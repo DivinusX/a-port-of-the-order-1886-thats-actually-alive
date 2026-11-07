@@ -2,6 +2,20 @@
 
 ## v0.2.7-hotfix.1 — November 6, 2026
 
+### Windows launcher rebuilt with the current UI
+
+The Windows packages shipped upstream's prebuilt launcher, which still drew the retired
+sidebar layout. It is now rebuilt from the same frontend the Linux package carries
+(top navigation, hero artwork, "Game files found" launch bar). The built frontend is
+preserved in `launcher-frontend/` so future Windows builds embed it directly.
+
+### Smaller packages
+
+- Dropped the unreferenced `*.original` upstream backups (309 MB).
+- Stripped debug symbols from the bundled libraries and runtime (Linux folder 635 MB → 341 MB;
+  tar.gz 233 MB → 132 MB).
+- `bin/gpu` was audited: every library is reachable from the runtime — nothing orphaned.
+
 ### Package layout: separate platform folders
 
 The download is now organized per platform, so both versions can live side by side
