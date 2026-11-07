@@ -60,6 +60,31 @@ To get the launcher window on SteamOS anyway, install WebKitGTK through
 Homebrew and expose only its two libraries; see issue #114 on GitHub for the
 exact commands.
 
+CONTROLLERS (XBOX, PLAYSTATION, OTHER GAMEPADS)
+
+The game reads controllers through SDL3, which uses each pad's HID
+interface (/dev/hidraw*). If your controller connects but no buttons do
+anything in game, in this order:
+
+1. Steam is the usual cause: its desktop controller support grabs gamepads
+   exclusively, so the game sees the pad but receives no input. Either exit
+   Steam while playing, or turn off Steam Settings -> Controller ->
+   "Enable Steam Input" for Xbox/PlayStation controllers.
+2. If it also fails with Steam closed, your session does not grant HID
+   access to gamepads (common on Bluetooth pads and some display managers).
+   Fix with either:
+     sudo usermod -aG input $USER      (then log out and back in)
+   or a udev rule:
+     echo 'SUBSYSTEM=="hidraw", ATTRS{id/vendor}=="045e|054c|057e|28de|0fd9", MODE="0660", GROUP="input", TAG+="uaccess"' \
+       | sudo tee /etc/udev/rules.d/99-gamepad-hidraw.rules
+     sudo udevadm control --reload && sudo udevadm trigger
+   The launcher prints a one-line warning to its log when a gamepad HID is
+   present but not readable, so you can tell this case apart from Steam.
+3. Bluetooth pads sometimes hold a dead link after sleep: press the Xbox/PS
+   button for 3 seconds to sleep the pad, then press again to reconnect.
+4. Wired and wireless at the same time: the game uses the first controller
+   it finds. Unplug the one you do not want to use.
+
 UPDATING
 
 Extract the new archive and copy your "user" folder from the old one into

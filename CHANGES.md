@@ -1,6 +1,29 @@
 # Changes Made - November 7, 2026
 
+## v0.2.12 — November 7, 2026
+
+### Fixed: gamepad connects but no buttons work (controller input lost to Steam / missing HID access)
+
+Reported by players using the Linux build with an Xbox controller (wireless or cable):
+the pad lit up and the launcher log said "gamepad connected", but the game ignored every
+button. Two causes, both environmental, now addressed:
+
+- **Steam grabs gamepads on the desktop.** Steam's controller support opens the pad
+  exclusively; the game then sees the device but receives no events. Exit Steam while
+  playing, or disable Steam Input for that controller family.
+- **No HID access for the user.** SDL reads pads through /dev/hidraw*; when a session
+  does not grant it (common with Bluetooth pads), SDL falls back to the grabbable evdev
+  path. Grant access once: `sudo usermod -aG input $USER` (log out/in), or install the
+  udev rule from the new CONTROLLERS section of QUICKSTART.txt.
+
+The runtime entry now prints a one-line warning to the launcher log when a gamepad HID
+is present but not readable, so the two cases are easy to tell apart. QUICKSTART.txt and
+README.md gained a full CONTROLLERS troubleshooting section. The runtime binary itself is
+unchanged (F10 frame-rate switch intact); the gamepad hot-plug fix (pump SDL events before
+enumeration) is already on the port's `perf/optimization` branch for the next rebuild.
+
 ## v0.2.11 — November 7, 2026
+
 
 ### Fixed: Xbox controller not recognized in-game
 

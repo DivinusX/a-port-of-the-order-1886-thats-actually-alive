@@ -4,7 +4,7 @@
   "platform": "linux-x86_64",
   "status": "release",
   "built_utc": "2026-11-07T07:09:36Z",
-  "runtime_sha256": "db7457adbcdc4fcee1b16c714bb4640abc12c3e66c52aa5cfccd052cc30532ef",
+  "runtime_sha256": "c89631dac7057787359020591e2595c8d3822a706cb8bc92089d072840435b37",
   "runtime_build": {
     "game_profile": "order1886",
     "runtime_abi": "order1886-native-1",
@@ -20,7 +20,7 @@
     "input_remapping": true,
     "htile_control": true,
     "effect_toggles": true,
-    "runtime_sha256": "db7457adbcdc4fcee1b16c714bb4640abc12c3e66c52aa5cfccd052cc30532ef",
+    "runtime_sha256": "c89631dac7057787359020591e2595c8d3822a706cb8bc92089d072840435b37",
     "source_revision": "77d055c30d4cf94a400f6f64c450b49727a66111",
     "source_dirty": true,
     "source_files_sha256": "fa18c1c912f0f202c3b3899d4ccdcf87998d16f408e7c7a976fd093049509587",

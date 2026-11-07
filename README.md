@@ -35,6 +35,13 @@ Only CUSA00076 has been run with a real dump; the others are accepted as experim
 > **No game files are included.** You need your own extracted copy. This is an
 > unofficial community project, not an official PC release.
 
+
+**Controllers not responding?** If a gamepad connects but no buttons work in game,
+Steam's desktop controller support is usually grabbing the pad exclusively - exit
+Steam or disable Steam Input for that controller type. If it also fails with Steam
+closed, grant HID access to your user (`sudo usermod -aG input $USER`, log out/in) -
+see the CONTROLLERS section of QUICKSTART.txt. The launcher log prints a warning
+when a gamepad HID is present but not readable.
 ## Native 4K, no upscaler
 
 New in v0.2.5. Graphics → **Render resolution** makes the game itself draw every screen-sized pass at the chosen size; at 3840 wide that is 3840×1600 (or 3840×2160 with 16:9 framing), presented 1:1. RTX 3070, 30 FPS mode.
