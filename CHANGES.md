@@ -1,6 +1,21 @@
 # Changes Made - November 7, 2026
 
+## v0.2.11 — November 7, 2026
+
+### Fixed: Xbox controller not recognized when plugged in after the game starts
+
+Gamepads connected while the game was already running stayed invisible: the pad read path
+asked SDL for the device list without processing events first, and SDL only adds a new
+controller during event pumping. The runtime now pumps before enumerating, so hot-plugged
+Xbox (and any SDL gamepad) controllers are picked up within a frame. Controllers connected
+before launch keep working as before; the button layout is unchanged (A/B/X/Y map to
+Cross/Circle/Square/Triangle).
+
+- The runtime binary in `bin/order1886-runtime.bin` was rebuilt with this fix.
+- The flicker fix from v0.2.10 is unchanged (`bin/order1886-runtime` wrapper).
+
 ## v0.2.10 — November 7, 2026
+
 
 ### Fixed: shadow flicker in Chapter 1 ("A Lady in Waiting")
 
