@@ -1,0 +1,31 @@
+# User data (saves, caches, logs - platform-specific)
+user/
+
+# Large binary directories (uploaded as release assets)
+bin/
+bin-windows/
+
+# Release archives (uploaded as release assets)
+*.zip
+*.tar.gz
+
+# Platform-specific executables (included in release packages)
+"The Order 1886"
+"The Order 1886.exe"
+"Play The Order 1886"
+"Play The Order 1886.exe"
+
+# Temporary files
+*.log
+*.tmp
+*.cache
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
