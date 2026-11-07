@@ -227,14 +227,16 @@ def _owned_root(state, create=False):
 def _remove(root, directory):
     if directory.parent != root or not GENERATION.fullmatch(directory.name) or safe_path(directory) != directory:
         raise ValueError(f'Refusing overlay cleanup outside owned storage: {directory}')
-    list(_tree(directory))  # Reject redirects before removal, including junctions after a crash.
+    # Case collisions are allowed here: this generation is ours to delete, and it was built
+    # from a mixed-case dump (PS4/ beside ps4/). Only redirects are rejected before removal.
+    list(_tree(directory, tolerate_case=True))
     shutil.rmtree(directory)  # Never chmod: a hard link can share source attributes.
 
 
 def _cleanup(root, keep=None):
     directories = [path for path in root.iterdir() if GENERATION.fullmatch(path.name) and path != keep]
     for directory in directories:
-        list(_tree(directory))
+        list(_tree(directory, tolerate_case=True))
     for directory in directories:
         _remove(root, directory)
     if keep is None:
@@ -272,7 +274,7 @@ def build_overlay(game, state, root='', enabled=False, order=None, extra=()):
     owned = _owned_root(state, create=True)
     for previous in owned.iterdir():
         if GENERATION.fullmatch(previous.name):
-            list(_tree(previous))
+            list(_tree(previous, tolerate_case=True))
     overlay = owned / ('overlay-' + uuid.uuid4().hex)
     overlay.mkdir()
     try:

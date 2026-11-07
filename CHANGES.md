@@ -1,4 +1,80 @@
-# Changes Made - November 6, 2026
+# Changes Made - November 7, 2026
+
+## v0.2.9 — November 7, 2026
+
+### Restored: the original button layout is the default again
+
+`button_prompts` was left on `xbox` in this installation's settings, which painted Xbox
+letters over the game's own prompts (and, on a mixed-case dump, over the wrong base art —
+the "QTE asks for Triangle, real button is Cross" scramble in v0.2.7). The default is
+`playstation` again: the game's own DualShock 4 glyphs, nothing painted, nothing mounted.
+A stale saved `xbox` value now falls back to `playstation` instead of launching a painted
+overlay, and an old cached Xbox prompt build is retired by the overlay manager on the next
+start (`mods.build_overlay` cleans every generation that no longer matches the settings).
+
+### Removed: the Xbox prompt set
+
+The Xbox option is gone from the launcher (Controls page), from the settings schema, from
+the validation allowlist and from the painting code (`order1886_prompts.py`,
+`order1886_glyph_mod.py`, `plan.json`). Selecting it is no longer possible; if an old
+settings file still says `xbox`, the launcher logs that the set was retired and launches
+with the game's own prompts. Xbox (and any other SDL3 gamepad) **input compatibility is
+untouched**: the runtime still maps every controller; only the prompt artwork option was
+removed. The worker binary was rebuilt with the new schema, so the launcher's dropdown
+offers PlayStation (original) and Keyboard and mouse only.
+
+### Ported: upstream e25254e — the keyboard prompts now follow your key mapping
+
+The Keyboard and mouse set used to *replace* your custom keyboard bindings with its own
+fixed layout (the old backend even overwrote `--keyboard-bindings` when the set was
+selected — the reason keys felt mixed after working on them). Now, exactly like the
+upstream GoW3 commit:
+
+- the key caps show the keys of your current keyboard mapping (Controls page);
+- a key you change shows in the prompts on the next launch (the mapping is part of the
+  build fingerprint, so the cache rebuilds itself);
+- your bindings are never rewritten by choosing a prompt set.
+
+### Lighter
+
+- The prompt painter now draws every keycap with Pillow at build time; the shipped PNG
+  art (`button_prompts/marks`, `button_prompts/keyboard`, 2.6 MB × 2 copies) is gone.
+- `scripts/` folder: 3.1 MB → 360 KB; the painting module lost the Xbox composition
+  machinery (inpainting, marking, composite) — 451 → 240 lines.
+- Worker onedir: 152 MB → 145 MB (stripped bundled libraries, dropped art, dropped the
+  old libavif/gfortran/quadmath copies that the previous build carried).
+- `package-manifest.json` regenerated against the current tree (the previous file still
+  pinned a runtime hash from before the v0.2.8 runtime fix).
+
+### Tests
+
+`tests/test_order1886_prompts.py` rewritten for the new behaviour (plan without Xbox
+data, key caps follow bindings, retired-set coercion, bindings never overwritten,
+overlay retirement with the original layout). Full battery: no new failures versus the
+upstream baseline on this machine (the remaining failures are the environment-only ones:
+missing C++ compilers and Windows-path probes).
+
+## v0.2.8 — November 7, 2026
+
+### New: launcher background music with a volume bar
+
+The launcher now plays music, with a mute button and volume bar at the right end of the
+top bar. The default volume is 40%.
+
+- The track is the first audio file (by name) in `music/` next to the launcher entry points
+  (`.mp3`, `.ogg`, `.opus`, `.flac`, `.wav`, `.m4a`, `.aac`). The package ships The Knights'
+  Theme; replace it with any file to change the song. An empty folder hides the control.
+- Volume and mute are remembered in `user/order1886/launcher-music.json`.
+- The music fades out when the game starts and back in when it ends.
+- Source: `launcher-frontend/assets/music.js` (UI) and `launcher-go-overlay/music.go`
+  (track lookup, settings, asset handler; applied on top of upstream `launcher-go`).
+
+### Fixed: "not a verified Order runtime" (backend exit code 2) on Linux
+
+The v0.2.7-hotfix.1 Linux tarball shipped a stripped `bin/order1886-runtime`. Stripping
+changed its SHA-256, so it no longer matched `bin/runtime-build.json` and the launcher
+refused it. The runtime is now shipped exactly as built. Bundled libraries may still be
+stripped; only the runtime is hash-pinned.
 
 ## v0.2.7-hotfix.1 — November 6, 2026
 
@@ -12,8 +88,8 @@ preserved in `launcher-frontend/` so future Windows builds embed it directly.
 ### Smaller packages
 
 - Dropped the unreferenced `*.original` upstream backups (309 MB).
-- Stripped debug symbols from the bundled libraries and runtime (Linux folder 635 MB → 341 MB;
-  tar.gz 233 MB → 132 MB).
+- Stripped debug symbols from the bundled libraries (Linux folder 635 MB → 341 MB;
+  tar.gz 233 MB → 132 MB). Stripping the runtime broke its hash check; fixed in v0.2.8.
 - `bin/gpu` was audited: every library is reachable from the runtime — nothing orphaned.
 
 ### Package layout: separate platform folders
