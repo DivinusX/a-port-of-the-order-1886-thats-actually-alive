@@ -41,6 +41,58 @@ class ResolveTests(unittest.TestCase):
         put(self.ns / 'primary/p1/v1', b'directory')
         self.assertIsNone(ui.resolve(self.game, 'primary/p1/v1/res'))
 
+    def test_resource_only_in_the_update_tree_folds_to_sibling(self):
+        # Mixed-case dump: the walked lowercase branch lacks the resource entirely
+        # (update extraction put it only in PS4/); the guest would fold to the sibling.
+        put(self.ns / 'primary/p1/v1/res', b'other')
+        put(self.game / '_data/1408209885/PS4/primary/p2/v1/res', b'upper only')
+        self.assertEqual(ui.resolve(self.game, 'primary/p2/v1/res').read_bytes(), b'upper only')
+
+
+class StaleBaseTests(unittest.TestCase):
+    """A ps4/ copy that differs from the PS4/ update makes the guest show old art;
+    prepare() must refuse to paint prompts on it until the dump is merged."""
+
+    def setUp(self):
+        import order1886_prompts as prompts
+        self.prompts = prompts
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.game = Path(temporary.name)
+
+    def test_diverged_duplicate_is_stale(self):
+        put(self.game / '_data/1408209885/ps4/primary/p1/v1/res', b'base 1.00')
+        put(self.game / '_data/1408209885/PS4/primary/p1/v1/res', b'update 1.02')
+        self.assertTrue(self.prompts._base_is_stale(self.game, 'primary/p1/v1/res'))
+
+    def test_merged_duplicate_is_not_stale(self):
+        put(self.game / '_data/1408209885/ps4/primary/p1/v1/res', b'update 1.02')
+        put(self.game / '_data/1408209885/PS4/primary/p1/v1/res', b'update 1.02')
+        self.assertFalse(self.prompts._base_is_stale(self.game, 'primary/p1/v1/res'))
+
+    def test_single_tree_is_not_stale(self):
+        put(self.game / '_data/1408209885/ps4/primary/p1/v1/res', b'base')
+        self.assertFalse(self.prompts._base_is_stale(self.game, 'primary/p1/v1/res'))
+        put(self.game / '_data/1408209885/PS4/primary/p2/v1/res', b'update only')
+        self.assertFalse(self.prompts._base_is_stale(self.game, 'primary/p2/v1/res'))
+
+
+class MergeUpdateTests(unittest.TestCase):
+    def test_plan_lists_replacements_and_additions(self):
+        import order1886_merge_update as merge
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        root = Path(temporary.name) / '_data/1408209885'
+        base, update = root / 'ps4', root / 'PS4'
+        put(base / 'primary/p1/v1/same', b'same')
+        put(update / 'primary/p1/v1/same', b'same')
+        put(base / 'primary/p1/v1/old', b'1.00')
+        put(update / 'primary/p1/v1/old', b'1.02')
+        put(update / 'primary/p2/v1/new', b'only in update')
+        actions = dict(merge.plan(base, update))
+        self.assertEqual(actions, {Path('primary/p1/v1/old'): 'replace',
+                                   Path('primary/p2/v1/new'): 'add'})
+
 
 class OverlayMixedCaseTests(unittest.TestCase):
     """The mirror may hold ps4/ and PS4/ siblings; a replacement must land on the exact

@@ -23,7 +23,7 @@ import shutil
 
 ASSETS = Path(__file__).resolve().parent / 'button_prompts'
 SETS = ('playstation', 'xbox', 'keyboard')
-VERSION = 2  # bump when the composition below changes
+VERSION = 3  # bump when the composition below changes (3: refuse stale mixed-case bases)
 
 XBOX = dict(cross='A', circle='B', square='X', triangle='Y', l1='LB', r1='RB', l2='LT',
             r2='RT', l3='LS', r3='RS', options='MENU', touchpad='VIEW')
@@ -384,6 +384,21 @@ def _fingerprint(game, prompt_set):
     return digest.hexdigest()
 
 
+def _base_is_stale(game, resource):
+    """True when the base ps4/ tree holds a different copy of a file the PS4/ update
+    tree also has. The guest opens the exact lowercase path, so it would show the old
+    art while the updated executable checks the new buttons — prompt letters could
+    never match. Such dumps need order1886_merge_update.py --apply first."""
+    import order1886_ui_extract as ui
+    ns = Path(game) / ui.NAMESPACE
+    sibling = Path(ns.parent) / 'PS4' / resource
+    lower = ns / resource
+    if not (lower.is_file() and sibling.is_file()):
+        return False
+    return (hashlib.sha256(lower.read_bytes()).digest()
+            != hashlib.sha256(sibling.read_bytes()).digest())
+
+
 def prepare(game, state, prompt_set, log=print):
     """[(path relative to the game folder, generated file)] for the selected set; empty for the
     game's own PlayStation prompts. Built once per executable, set and art version."""
@@ -418,6 +433,12 @@ def prepare(game, state, prompt_set, log=print):
         if missing:
             raise ValueError('Button prompts are verified with CUSA00076 1.02; this game has no '
                              f'{missing[0]}. Choose PlayStation prompts.')
+        stale = [r for r in resources if _base_is_stale(game, r)]
+        if stale:
+            raise ValueError('This dump extracted the 1.02 update beside the base game, and the '
+                             f'game still reads the older art for {stale[0]}: prompts would show '
+                             'buttons that do not match the game. Run scripts/order1886_merge_update.py '
+                             'on the game folder with --apply once, then start again.')
         previous, glyphs.RESOURCES = glyphs.RESOURCES, resources
         try:
             _, total = glyphs.build(str(game), prompt_set, str(folder), plan=reviewed,

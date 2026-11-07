@@ -1,5 +1,10 @@
 # User data (saves, caches, logs - platform-specific)
 user/
+The Order Linux/user/
+
+# Packaged platform folders (distributed as release assets, not tracked)
+The Order Linux/
+The Order Windows/
 
 # Large binary directories (uploaded as release assets)
 bin/
@@ -9,11 +14,19 @@ bin-windows/
 *.zip
 *.tar.gz
 
-# Platform-specific executables (included in release packages)
-"The Order 1886"
-"The Order 1886.exe"
-"Play The Order 1886"
-"Play The Order 1886.exe"
+# Platform executables (included in release packages; quotes break gitignore patterns)
+The Order 1886
+The Order 1886.exe
+Play The Order 1886
+Play The Order 1886.exe
+
+# Development workspace for the button-prompts feature
+# (contains an embedded git repo, backups and generated prompt state >100MB)
+mod_buttons/
+
+# Python
+__pycache__/
+*.pyc
 
 # Temporary files
 *.log

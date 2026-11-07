@@ -2,6 +2,37 @@
 
 ## v0.2.7-hotfix.1 — November 6, 2026
 
+### Package layout: separate platform folders
+
+The download is now organized per platform, so both versions can live side by side
+without mixing files:
+
+- `The Order Linux/` — Linux entry points (`The Order 1886`, `Play The Order 1886`),
+  `bin/` (runtime, launcher, worker, bundled libraries), `scripts/`, notices and docs.
+- `The Order Windows/` — Windows entry points (`The Order 1886.exe`,
+  `Play The Order 1886.exe`) and `bin/` (runtime, worker, DLLs).
+
+Run each launcher from inside its own folder; keep the entry points and `bin` together.
+Settings, saves and logs are created in `user/` inside each folder.
+
+### Fixed: scrambled button prompts on mixed-case dumps (QTE asks for Triangle, real button is Cross)
+
+When the 1.02 update was extracted beside the base game (`PS4/` next to `ps4/`), the guest
+opened the exact lowercase path and read **base 1.00 UI art** while the executable was 1.02:
+prompts showed one button while the game checked another. Three changes:
+
+- `scripts/order1886_merge_update.py` (new): merges the update tree onto the base tree, like a
+  real PS4 does. Dry run by default; `--apply` copies the newer files. Run it once on a dump
+  that shows both `PS4/` and `ps4/` under `_data/1408209885`.
+- `order1886_prompts.prepare()` now refuses to paint Xbox/Keyboard letters onto a stale base
+  copy (detects diverged duplicates) and tells you to run the merge script.
+- `ui.resolve()` retries the sibling tree when the walked branch lacks a resource, matching
+  the guest's case folding (the standalone menu asset lives only in the update tree).
+- Prompt `VERSION` bumped to 3 so installations that already painted scrambled prompts rebuild.
+- The Linux worker's embedded scripts (`bin/order1886-worker/_internal/scripts/`) now carry
+  the hotfix too — the earlier hotfix only patched the top-level `scripts/`, which the worker
+  does not load.
+
 ### Fixed: Mixed-case game dumps (CUSA00035 and others)
 
 **Problem:** Button prompts (Xbox/Keyboard) failed to build on game dumps where the update
