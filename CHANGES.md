@@ -1,4 +1,26 @@
-# Changes Made - November 6, 2026
+# Changes Made - November 7, 2026
+
+## v0.2.8 — November 7, 2026
+
+### New: launcher background music with a volume bar
+
+The launcher now plays music, with a mute button and volume bar at the right end of the
+top bar. The default volume is 40%.
+
+- The track is the first audio file (by name) in `music/` next to the launcher entry points
+  (`.mp3`, `.ogg`, `.opus`, `.flac`, `.wav`, `.m4a`, `.aac`). The package ships The Knights'
+  Theme; replace it with any file to change the song. An empty folder hides the control.
+- Volume and mute are remembered in `user/order1886/launcher-music.json`.
+- The music fades out when the game starts and back in when it ends.
+- Source: `launcher-frontend/assets/music.js` (UI) and `launcher-go-overlay/music.go`
+  (track lookup, settings, asset handler; applied on top of upstream `launcher-go`).
+
+### Fixed: "not a verified Order runtime" (backend exit code 2) on Linux
+
+The v0.2.7-hotfix.1 Linux tarball shipped a stripped `bin/order1886-runtime`. Stripping
+changed its SHA-256, so it no longer matched `bin/runtime-build.json` and the launcher
+refused it. The runtime is now shipped exactly as built. Bundled libraries may still be
+stripped; only the runtime is hash-pinned.
 
 ## v0.2.7-hotfix.1 — November 6, 2026
 
@@ -12,8 +34,8 @@ preserved in `launcher-frontend/` so future Windows builds embed it directly.
 ### Smaller packages
 
 - Dropped the unreferenced `*.original` upstream backups (309 MB).
-- Stripped debug symbols from the bundled libraries and runtime (Linux folder 635 MB → 341 MB;
-  tar.gz 233 MB → 132 MB).
+- Stripped debug symbols from the bundled libraries (Linux folder 635 MB → 341 MB;
+  tar.gz 233 MB → 132 MB). Stripping the runtime broke its hash check; fixed in v0.2.8.
 - `bin/gpu` was audited: every library is reachable from the runtime — nothing orphaned.
 
 ### Package layout: separate platform folders
