@@ -41,8 +41,10 @@ upstream GoW3 commit:
   art (`button_prompts/marks`, `button_prompts/keyboard`, 2.6 MB × 2 copies) is gone.
 - `scripts/` folder: 3.1 MB → 360 KB; the painting module lost the Xbox composition
   machinery (inpainting, marking, composite) — 451 → 240 lines.
-- Worker onedir: 152 MB → 145 MB (stripped bundled libraries, dropped art, dropped the
-  old libavif/gfortran/quadmath copies that the previous build carried).
+- Worker onedir: the bundled libraries are stripped and the art is gone (152 MB → 157 MB
+  overall: the rebuilt 3.12 interpreter carries more built-in modules than the previous
+  build's stripped libpython, +11 MB, while the art and the old libavif/gfortran/quadmath
+  copies, −15 MB, went). The tarball is 172.4 MB → 174.8 MB.
 - `package-manifest.json` regenerated against the current tree (the previous file still
   pinned a runtime hash from before the v0.2.8 runtime fix).
 

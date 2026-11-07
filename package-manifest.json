@@ -3,7 +3,7 @@
   "launcher": "Go / Wails v2.17.0",
   "platform": "linux-x86_64",
   "status": "release",
-  "built_utc": "2026-11-07T07:03:49Z",
+  "built_utc": "2026-11-07T07:09:36Z",
   "runtime_sha256": "251c787374160921515de5897e68d4832712441a1e8ccb9e814130dd4d21bc40",
   "runtime_build": {
     "game_profile": "order1886",
@@ -45,7 +45,7 @@
   "files": [
     {
       "path": "CHANGES.md",
-      "sha256": "c84eb9c8ae1e29b67fe408ebef38c16820464a42d6c830767ac6e6b9cbce022b"
+      "sha256": "f5b31599aa41b05e75d83c7ee5daaf9a4e08d02cb60c217ab2a53f62a4e439eb"
     },
     {
       "path": "LICENSE",
