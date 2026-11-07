@@ -414,7 +414,7 @@ def prepare(game, state, prompt_set, log=print):
         folder.mkdir(parents=True)
         reviewed = plan(prompt_set)
         resources = sorted({e['resource'] for e in reviewed.values() if e['role'] != 'keep'})
-        missing = [r for r in resources if not (Path(game) / glyphs.ui.NAMESPACE / r).is_file()]
+        missing = [r for r in resources if glyphs.ui.resolve(game, r) is None]
         if missing:
             raise ValueError('Button prompts are verified with CUSA00076 1.02; this game has no '
                              f'{missing[0]}. Choose PlayStation prompts.')

@@ -129,7 +129,12 @@ def glyph_bitmaps(game, oodle, planned=None):
     planned = planned or {}
     root = Path(game) / ui.NAMESPACE
     for name in RESOURCES:
-        blob = (root / name).read_bytes()
+        resource = root / name
+        if not resource.is_file():
+            resource = ui.resolve(game, name)  # mixed-case dumps
+            if resource is None:
+                raise SystemExit(f'{name}: not under {game / ui.NAMESPACE}, not even ignoring case')
+        blob = resource.read_bytes()
         data, _ = ui.payload(blob, oodle)
         found = []
         for offset in ui.find_swfs(data):

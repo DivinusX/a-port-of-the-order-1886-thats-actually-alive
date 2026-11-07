@@ -59,23 +59,29 @@ def resolve_root(root, installation):
     return safe_path(path if path.is_absolute() else Path(installation) / path)
 
 
-def _entries(folder):
+def _entries(folder, tolerate_case=False):
     entries, seen = [], set()
     for path in folder.iterdir():
         _component(path.name)
         key = path.name.casefold()
         if key in seen:
-            raise ValueError(f'Ambiguous filename case in {folder}: {path.name}')
-        seen.add(key)
+            # Mixed-case dumps are real: an update extraction can leave PS4/ beside
+            # the base game's ps4/ (runtime_file.c fold_case() reads both at runtime).
+            # Enumerating such an original game is safe on case-sensitive filesystems;
+            # mod folders keep the strict rule so two mods cannot fight by case alone.
+            if not tolerate_case:
+                raise ValueError(f'Ambiguous filename case in {folder}: {path.name}')
+        else:
+            seen.add(key)
         entries.append((path, _stat(path)))
     return sorted(entries, key=lambda item: item[0].name.casefold())
 
 
-def _tree(folder):
-    for path, info in _entries(folder):
+def _tree(folder, tolerate_case=False):
+    for path, info in _entries(folder, tolerate_case):
         yield path, info
         if stat.S_ISDIR(info.st_mode):
-            yield from _tree(path)
+            yield from _tree(path, tolerate_case)
 
 
 def discover(root):
@@ -133,22 +139,47 @@ def plan(game, root, enabled, order):
     if not selected:
         return [], []
     game = safe_path(game)
-    known = {str(path.relative_to(game)).casefold(): (path.relative_to(game), stat.S_ISDIR(info.st_mode))
-             for path, info in _tree(game)}
+    known = {}
+    for path, info in _tree(game, tolerate_case=os.name != 'nt'):
+        relative = path.relative_to(game)
+        known.setdefault(relative.as_posix().casefold(), []).append(
+            (relative, stat.S_ISDIR(info.st_mode)))
     replacements, conflicts, owners = [], [], {}
+
+    def canonicalize(relative):
+        """Where a replacement lands in the mirror: the exact spelling wins (the guest
+        opens it and runtime fold_case() finds it); a component missing in the written
+        case folds to its unique same-branch variant, as before; a variant living under
+        the sibling of a case-duplicated tree, or nothing at all, keeps the written
+        spelling instead of jumping into the other branch."""
+        canonical, tail = Path(), None
+        for index, component in enumerate(relative.parts):
+            candidate = (tail if tail is not None else canonical) / component
+            if tail is not None:
+                tail = candidate
+                continue
+            key = candidate.as_posix().casefold()
+            directory = index < len(relative.parts) - 1
+            variants = known.setdefault(key, [])
+            exact = next((v for v in variants if v[0] == candidate), None)
+            if exact:
+                if exact[1] != directory:
+                    raise ValueError(f'File/directory conflict: {relative}')
+                canonical = candidate
+                continue
+            same_branch = [v for v in variants if v[0].parent == canonical]
+            if len(same_branch) == 1:
+                if same_branch[0][1] != directory:
+                    raise ValueError(f'File/directory conflict: {relative}')
+                canonical = same_branch[0][0]
+                continue
+            tail = candidate
+            variants.append((candidate, directory))
+        return canonical if tail is None else tail
+
     for name, folder in selected:
         for relative, source in mod_files(folder):
-            canonical = Path()
-            for index, component in enumerate(relative.parts):
-                canonical /= component
-                key = str(canonical).casefold()
-                directory = index < len(relative.parts) - 1
-                if key in known:
-                    canonical, previous_directory = known[key]
-                    if previous_directory != directory:
-                        raise ValueError(f'File/directory conflict: {relative}')
-                else:
-                    known[key] = (canonical, directory)
+            canonical = canonicalize(relative)
             key = canonical.as_posix().casefold()
             if key in owners:
                 conflicts.append((canonical.as_posix(), owners[key], name))
@@ -245,7 +276,7 @@ def build_overlay(game, state, root='', enabled=False, order=None, extra=()):
     overlay = owned / ('overlay-' + uuid.uuid4().hex)
     overlay.mkdir()
     try:
-        for source, info in _tree(game):
+        for source, info in _tree(game, tolerate_case=os.name != 'nt'):
             target = overlay / source.relative_to(game)
             if stat.S_ISDIR(info.st_mode):
                 target.mkdir()
