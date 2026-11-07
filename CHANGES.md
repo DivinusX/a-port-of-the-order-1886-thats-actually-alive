@@ -1,6 +1,26 @@
 # Changes Made - November 7, 2026
 
+## v0.2.10 — November 7, 2026
+
+### Fixed: shadow flicker in Chapter 1 ("A Lady in Waiting")
+
+Walking in the sunlit plaza made the level's shadows pop in and out every few frames.
+Cause: the runtime's sun depth-range page sync forced a GPU drain mid-frame and handed
+the shadow pass a half-updated depth range, so frames alternated between correct and
+all-shadow.
+
+Fix: the runtime entry now disables that sync (`ORDER1886_SUN_SYNC=0`). Sunlight stays
+(the draw-time HTILE expand is untouched), shadows are stable, and the plaza got faster
+(measured ~50 → 80 fps on RX 9070 XT).
+
+- `bin/order1886-runtime` is a small wrapper; the real runtime is `bin/order1886-runtime.bin`
+  (the same binary as v0.2.9, unchanged).
+- Verified with 300+ screenshot captures of the full checkpoint walk: zero flicker events
+  (before: 21 violent brightness flips in 35 samples).
+- Game runs at its native 30 fps; 60 fps remains opt-in.
+
 ## v0.2.8 — November 7, 2026
+
 
 ### New: launcher background music with a volume bar
 

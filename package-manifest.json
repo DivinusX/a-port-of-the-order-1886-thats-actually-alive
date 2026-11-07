@@ -4,7 +4,7 @@
   "platform": "linux-x86_64",
   "status": "release",
   "built_utc": "2026-11-07T07:09:36Z",
-  "runtime_sha256": "251c787374160921515de5897e68d4832712441a1e8ccb9e814130dd4d21bc40",
+  "runtime_sha256": "db7457adbcdc4fcee1b16c714bb4640abc12c3e66c52aa5cfccd052cc30532ef",
   "runtime_build": {
     "game_profile": "order1886",
     "runtime_abi": "order1886-native-1",
@@ -20,9 +20,9 @@
     "input_remapping": true,
     "htile_control": true,
     "effect_toggles": true,
-    "runtime_sha256": "251c787374160921515de5897e68d4832712441a1e8ccb9e814130dd4d21bc40",
-    "source_revision": "8891bd6f15a10b58ee353c4c89fdfa7f853f0819",
-    "source_dirty": false,
+    "runtime_sha256": "db7457adbcdc4fcee1b16c714bb4640abc12c3e66c52aa5cfccd052cc30532ef",
+    "source_revision": "77d055c30d4cf94a400f6f64c450b49727a66111",
+    "source_dirty": true,
     "source_files_sha256": "fa18c1c912f0f202c3b3899d4ccdcf87998d16f408e7c7a976fd093049509587",
     "submodules": [
       "c64f093404125e960813f95f1996c14780f0dd69 gpu/third_party/fsr-vulkan (c64f093)",
