@@ -2,17 +2,18 @@
 
 ## v0.2.11 — November 7, 2026
 
-### Fixed: Xbox controller not recognized when plugged in after the game starts
+### Fixed: Xbox controller not recognized in-game
 
-Gamepads connected while the game was already running stayed invisible: the pad read path
-asked SDL for the device list without processing events first, and SDL only adds a new
-controller during event pumping. The runtime now pumps before enumerating, so hot-plugged
-Xbox (and any SDL gamepad) controllers are picked up within a frame. Controllers connected
-before launch keep working as before; the button layout is unchanged (A/B/X/Y map to
-Cross/Circle/Square/Triangle).
+Controllers now work when connected before or at launch (verified live: the runtime reports
+"gamepad connected: Xbox Series X Controller" and buttons respond; A/B/X/Y map to
+Cross/Circle/Square/Triangle). If your pad was plugged in while the game was already running,
+connect it before starting the game — and note the Bluetooth device sometimes needs a re-open
+(button Xbox/PS) after sleep.
 
-- The runtime binary in `bin/order1886-runtime.bin` was rebuilt with this fix.
-- The flicker fix from v0.2.10 is unchanged (`bin/order1886-runtime` wrapper).
+- The runtime binary is unchanged from v0.2.10/v0.2.9 — your F10 in-game frame-rate switch
+  (60/90/120/30) is intact.
+- Source-side robustness fix (hot-plug: pump SDL events before gamepad enumeration) is on the
+  `perf/optimization` branch of the port repo for the next runtime rebuild.
 
 ## v0.2.10 — November 7, 2026
 
