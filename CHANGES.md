@@ -1,5 +1,13 @@
 # Changes Made - November 7, 2026
 
+## v0.2.13 — November 7, 2026
+
+### Small update / launcher adjustments
+
+- **Readable game title:** the top-bar logo is cropped to its lettering, so the name shows about twice as large.
+- **Search no longer covers the tabs:** "Search all settings" is now a round icon that opens on click, Ctrl+K or while it holds text.
+- **Quieter music:** default launcher music volume lowered from 40% to 20%.
+
 ## v0.2.12 — November 7, 2026
 
 ### Fixed: gamepad connects but no buttons work (controller input lost to Steam / missing HID access)

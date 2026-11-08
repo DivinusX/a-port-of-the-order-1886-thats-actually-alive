@@ -2,7 +2,7 @@
 // side at /music/theme) with a mute button and volume bar at the right end of the top bar.
 // The main UI re-renders #app wholesale, so this control lives on <body> and follows it.
 const bridge = () => window.go?.main?.App;
-const DEFAULT_VOLUME = 40;
+const DEFAULT_VOLUME = 20;
 
 const ICON_ON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
 const ICON_OFF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M16 9.5l5 5M21 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';

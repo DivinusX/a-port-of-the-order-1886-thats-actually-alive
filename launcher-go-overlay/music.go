@@ -15,7 +15,7 @@ import (
 // none. Volume and mute are saved in the state folder beside the other launcher settings.
 
 const (
-	defaultMusicVolume = 40
+	defaultMusicVolume = 20
 	musicRoute         = "/music/theme"
 )
 

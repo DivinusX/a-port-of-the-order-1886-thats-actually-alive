@@ -77,7 +77,7 @@
  ${!g&&e.some(t=>t.available)?`<button class="quiet" data-action="reset"${i.busy||w?" disabled":""}>${o(a("Reset section"))}</button>`:""}</div>
  ${e.length?`<div class="rows">${e.map(z).join("")}</div>`:!g&&["performance","game","system"].includes(b)?"":`<p class="empty-state">${o(a("No matching settings. Try a different search."))}</p>`}
  ${b==="performance"&&!g?ne(i.timing,a,o):""}${b==="game"&&!g?oe(i.patches,o)+ce():""}${b==="system"&&!g?de():""}</section>`}function $(){if(!i)return;const e=document.activeElement,t=e?.dataset.setting,n=e&&["text","search"].includes(e.type)?[e.selectionStart,e.selectionEnd]:null,s=i.settings.ui_language??"en";document.documentElement.lang=s==="pt"?"pt-BR":s,document.documentElement.dir=s==="ar"?"rtl":"ltr";const r=b==="home"&&!g,l=_?"lost":i.busy||S?"running":"";if(Z(O,`<div class="shell${r?" is-home":""}">
- <header class="topbar"><a href="#" class="brand" data-page="home" aria-label="The Order: 1886 — ${o(a("Home"))}"><img src="/assets/logo-horizontal.png" alt="The Order: 1886"></a>
+ <header class="topbar"><a href="#" class="brand" data-page="home" aria-label="The Order: 1886 — ${o(a("Home"))}"><img src="/assets/logo-brand.png" alt="The Order: 1886"></a>
  <nav class="tabs" aria-label="${o(a("Main navigation"))}">${i.pages.map(c=>`<button id="nav-${c.id}" data-page="${c.id}" class="tab ${b===c.id&&!g?"selected":""}"${b===c.id&&!g?' aria-current="page"':""}>${o(a(c.title))}</button>`).join("")}</nav>
  <label class="search">${H("search")}<span class="sr-only">${o(a("Search all settings"))}</span><input id="search" type="search" placeholder="${o(a("Search all settings"))}" value="${o(g)}" autocomplete="off"></label></header>
  <div id="content" class="content">${r?ue():he()}</div>
