@@ -1,5 +1,44 @@
 # Changes Made - November 7, 2026
 
+## v0.2.14 — November 7, 2026
+
+### New: Cinematic bars option — the letterbox lines are now the player's choice
+
+The game draws its 2.40:1 picture inside the 16:9 frame, so the default view
+carries black bars above and below. The old Graphics → Framing control
+(Original / 16:9) hid this behind emulator jargon and defaulted to the bars.
+It is now an explicit choice, and the bars are gone by default:
+
+- Graphics → **Cinematic bars** offers **Enabled — cinematic bars** and
+  **Disabled — no bars (experimental)**. Disabled patches the aspect constant
+  (2.4 → 16/9) in a derived prepared image, so the game renders the full 16:9
+  picture; original game files are never touched and the byte-checked recipe
+  still recovers with Enabled if an executable does not match.
+- New and existing installs default to **Disabled** (bars removed). The Home
+  strip chip reads **BARS: On/Off**.
+- Verified on CUSA00035 1.02 at 2560×1440 by launching the game in every
+  state and measuring the bands: 186 px top and bottom with bars enabled,
+  0 px with them disabled, in title, menu and resumed gameplay at 60 FPS.
+  The change was driven through the launcher UI itself (ydotoold clicks on
+  the Graphics page). Evidence and method:
+  `docs/verification/2026-11-07-cinematic-bars/`.
+- Implementation: the setting key stays `aspect_ratio` (`original` / `16:9`),
+  so the display recipe, the resolution height maths and the validation
+  triples are unchanged; the schema label/choices/defaults in
+  `launcher.order1886_options`, the fallback defaults in
+  `launcher.order1886_common` (`load_launch_settings`, `backend_command`,
+  `validate_launch_game`) and the `--aspect-ratio` default in the backend
+  `order1886` were re-pointed to `16:9` with the worker's own bundled
+  Python 3.12 (marshal round-trip inside a rebuilt PYZ/CArchive), and the
+  Home chip template in the launcher's embedded frontend was rewritten
+  in place at the same byte length.
+- `package-manifest.json` re-pinned: worker `3bef6f26abc598d2…`,
+  launcher `34d5ba80f84eec8c…`. The runtime binary is unchanged.
+- Known limits: the 16:9 recipe still carries its experimental flag (HUD and
+  cutscenes were not re-qualified chapter by chapter); one first launch ended
+  in an AMD device-lost flake that did not repeat; non-English launchers show
+  the new option strings in English until the catalog gains them.
+
 ## v0.2.13 — November 7, 2026
 
 ### Fixed: the v0.2.12 controller diagnostics promised but not shipped are now real

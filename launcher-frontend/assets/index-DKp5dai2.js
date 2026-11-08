@@ -59,7 +59,7 @@
   ${r("graphics","Display",String(e.display_mode??""))}
   ${r("graphics","Upscaling",e.presentation_filter==="fsr1"?"FSR 1":String(e.presentation_filter??""))}
   ${r("performance","Game frame rate",`${e.frame_rate} FPS`)}
-  ${r("graphics","Framing",String(e.aspect_ratio??""))}
+  ${r("graphics","Bars",e.aspect_ratio<"a"?"Off":"On")}
   ${f?r("game","Game language",f):""}
   <button class="chip install" data-page="game" title="${o(e.game_dir)}"><span>${o(a("Game installation"))}${t&&n.TITLE_ID?` · ${o(n.TITLE_ID)} · v${o(n.APP_VER)}`:""}</span>
    <strong class="${t?"":"readiness"}">${o(t?e.game_dir:e.game_dir?i.game.message:a("Choose your extracted game folder"))}</strong></button>

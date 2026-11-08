@@ -549,7 +549,7 @@
     },
     {
       "path": "bin/order1886-launcher",
-      "sha256": "5c82c4ca6bf165fe9b57839cdd27f1612ad4751d5681e2d5589fbcb802106d1e"
+      "sha256": "34d5ba80f84eec8c6778467ea27e81981f3e1051bc6ea1aa6778f38f49cc863c"
     },
     {
       "path": "bin/order1886-runtime",
@@ -1185,7 +1185,7 @@
     },
     {
       "path": "bin/order1886-worker/order1886-worker",
-      "sha256": "0cdcb0661bcfd902de4191bc8da1fa6eb904d34430acde82f21a600a8c750adb"
+      "sha256": "3bef6f26abc598d23c1c35e0d3c2801beff9f07b0c9d68ddbedb5085732a04fd"
     },
     {
       "path": "bin/runtime-build.json",

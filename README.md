@@ -216,7 +216,7 @@ For a source checkout, open `Launch The Order 1886.cmd` or run the Go launcher y
 | Page | Available controls |
 | --- | --- |
 | **Home** | Play, the launch configuration and the game installation check |
-| **Graphics** | Display mode, framing, render resolution (native up to 4K), FSR 1/Linear, VSync, output resolution, sharpening, anisotropy and the four post effects |
+| **Graphics** | Display mode, cinematic bars (letterbox on/off), render resolution (native up to 4K), FSR 1/Linear, VSync, output resolution, sharpening, anisotropy and the four post effects |
 | **Performance** | 30/60/90 FPS and Unlocked, the presentation cap, the in-game menu and overlay items |
 | **Controls** | Mouse camera, sensitivity, inverted Y and keyboard bindings |
 | **Game & Content** | Game folder, game language, catalogued patches, saves, mods, desktop shortcut and Add to Steam |
