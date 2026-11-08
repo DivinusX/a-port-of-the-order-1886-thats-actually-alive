@@ -192,6 +192,12 @@ keyboard fallback, save + resume, 30-minute session, The Chase flicker parity
     this dll from CI, so no committed change was needed.
   - `WIN32_LEAN_AND_MEAN` double-define in the new pad-check file caught by the project's
     own `-Werror` (the exe target inherits the PUBLIC define from ps4gpu) — guarded.
+  Second CI finding: the CPU-checks step died in `pipeline-binary-initialization-test`
+  (and `async-pipeline-cache-test` lurked behind it) — both need a real Vulkan physical
+  device, and the GitHub Windows runner has no ICD (`ErrorIncompatibleDriver`). They now
+  probe the loader and print a visible `SKIP (no Vulkan device)` with exit 0 when none
+  exists; both paths verified here (runs on the RX 9070 XT, skips via
+  `VK_ICD_FILENAMES=/nonexistent`). Linux CI keeps running the tests in full.
   **Interactive gameplay under wine (same day):** with the providers + FSR 4 bundle
   staged beside the exe, the Windows build ran the full input chain: pad-file injection
   (the runtime's own `ORDER1886_PAD_FILE` diagnostic path) navigated title → main menu →
