@@ -80,11 +80,16 @@ problem as a bug, and see `docs/verification/2026-11-08-windows-port-checklist.m
 ## What is not verified yet
 
 Everything below is shipped as built-by-CI but untested on physical Windows hardware at the
-time of writing. Each item is a line in the manual checklist:
+time of writing. Each item is a line in the manual checklist. Partial credit from a local
+cross-build (Linux + wine, same day): the runtime exe and both provider DLLs compile and
+link for Windows, and the runtime answers `--runtime-info`, `--cpu-features`, `--gamepad`,
+`--input-options` and prints the pad-check line under wine — but no game was booted:
 
 - First launch, folder pick and Play on Windows 10 and 11 (both entry points).
-- FSR 4 on Windows (provider load, bundle discovery, capability gate, fallback to FSR 3.1).
-- The pad check output with Xbox, DualSense and Steam running/closed.
+- FSR 4 on Windows (provider load, bundle discovery, capability gate, fallback to FSR 3.1)
+  — the DLL builds; its GPU path never ran.
+- The pad check output with Xbox, DualSense and Steam running/closed (the no-pad branch
+  already prints correctly under wine).
 - Saves, resume, trophies display, long sessions, 4K/60, borderless behaviour on
   multi-monitor and HDR setups, SmartScreen/Defender experience.
 - The sun-flicker fix itself on Windows: identical code path to Linux (verified there with

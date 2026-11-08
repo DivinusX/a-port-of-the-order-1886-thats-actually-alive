@@ -32,8 +32,14 @@ the `order1886-go-package.yml` workflow), now carrying the fork's v0.2.15–17 w
   one Linux-side change is the CI parity fix above (it makes CI produce what the released
   packages already contained; no local build path changed).
 
-**Unverified on hardware:** no Windows machine was available where this was written. The
-CI is the first compile of the new C; the checklist has not been executed. FSR 4 on
+**Unverified on hardware:** no Windows machine was available where this was written.
+The runtime was, however, fully cross-built on Linux (llvm-mingw + MSYS2 clang64 packages)
+and run under wine: `order1886-runtime.exe` answers `--runtime-info`, `--cpu-features`,
+`--gamepad`, `--input-options` and prints the new pad-check line; `order1886_fsr3.dll` and
+`order1886_fsr4.dll` build (the cross-build caught and fixed a real Windows compile bug in
+the FSR 4 provider: narrow `fopen` on a wide path). The CI remains the first build with
+MSYS2's exact toolchain and the first producer of the zip; the checklist has not been
+executed. FSR 4 on
 Windows, the pad-check wording, SmartScreen/Defender, long sessions and 4K/60 are all
 open items. The sun-flicker fix itself is the same code path verified on Linux in v0.2.17
 (0 brightness flips at the video's framing), but Windows page protection and drivers

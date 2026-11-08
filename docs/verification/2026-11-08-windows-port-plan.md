@@ -157,13 +157,29 @@ keyboard fallback, save + resume, 30-minute session, The Chase flicker parity
   PyInstaller/worker, and everything runtime-behavioural.
   Deeper since: `src/pad_diag_windows.c` now cross-compiles to a real COFF object
   (clang `-target x86_64-w64-mingw32`, 0 errors, 3 header-internal warnings that MSYS2's
-  patched headers do not emit; the warnings were outside the file). The FSR 4 provider's
-  new Windows branch could not be given the same treatment: this machine has no Windows
-  C++ standard library (MSYS2 clang64 ships its own), and mixing Linux libstdc++ headers
-  with the mingw target produces only environment noise. The added block is a verbatim
-  structural copy of the `_WIN32` pattern in `vk_upscale_providers.cpp`
-  (`GetModuleFileNameW` → `std::filesystem::path(std::wstring(...))`), which the existing
-  upstream Windows CI already compiles.
+  patched headers do not emit; the warnings were outside the file).
+  **Full native cross-build campaign (later same day): the entire Windows runtime was
+  actually built and run on this Linux machine** with llvm-mingw 20261104 (clang 23) +
+  MSYS2 clang64 dependency packages assembled into a local sysroot:
+  - `ps4gpu` static library: builds clean for Windows (the fork's staging sun-sync,
+    HTILE expand, sampler and resolve code included).
+  - `order1886-runtime.exe`: links (133 MB PE32+, SETUPAPI import proving the pad check
+    is in) and **runs under wine**: `--runtime-info` returns the exact JSON contract the
+    launcher parses, `--cpu-features` → "CPU: complete", `--gamepad` → "Gamepad: none",
+    `--input-options` → the full mapping JSON, and a real-boot attempt prints the new
+    `Order1886: pad check:` line — the first execution of the Windows pad diagnostics.
+  - `order1886_fsr4.dll`: builds — after fixing a real fork bug the cross-build caught:
+    `read_file` used `std::fopen(path.c_str(), …)`, which cannot compile on Windows
+    (`path::value_type` is `wchar_t`); now `_wfopen` under `#ifdef _WIN32` (commit
+    7e520b2). This would have broken the CI build of the fork's own provider target.
+  - `order1886_fsr3.dll`: builds (5.2 MB) with LOCAL-ONLY force-includes for
+    llvm-mingw/libc++ differences (`_countof`, `swprintf_s` declarations, transitive
+    `<mutex>`, `log2`); MSYS2 clang64 headers provide these natively — upstream ships
+    this dll from CI, so no committed change was needed.
+  - `WIN32_LEAN_AND_MEAN` double-define in the new pad-check file caught by the project's
+    own `-Werror` (the exe target inherits the PUBLIC define from ps4gpu) — guarded.
+  Remaining CI-first: MSYS2's exact compile flags/toolchain, the PyInstaller worker,
+  and everything game-behavioural (needs the dump + hardware).
 * Linux regression after all edits: `ninja -C out/gpu` no work, 589 launcher tests OK,
   fsr4 provider rebuilds (guards the untouched POSIX branch), build.sh `bash -n`,
   workflow YAML parse, bundle extraction rehearsed against the real v0.2.17 tarball
