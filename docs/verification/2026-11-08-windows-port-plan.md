@@ -115,13 +115,13 @@ only when the maintainer stages it beside the script, so the CI zip ships silent
 you decide the OST belongs in a public release asset (it is copyrighted game content;
 the "do not include games" constraint arguably covers it — your call, flagged).
 
-Known gap, flagged not fixed (owner decision): the Linux workflow
-(`order1886-go-linux-package.yml`) does not initialize `gpu/third_party/fsr-vulkan` and builds
-neither upscaler provider — a package built by *that* workflow ships without FSR 3.1/4
-(runtime falls back to the game's own resolve; functional but degraded). Actual releases were
-built locally, where the providers are present. Fixing it means touching the Linux packaging
-script too (staging `order1886_fsr3.so`/`order1886_fsr4.so` + `bin/fsr4/`); pre-existing,
-unrelated to the Windows port, left untouched to avoid unrequested Linux scope.
+Linux CI status (updated during the v0.2.18 push): the workflow's submodule list was missing
+`gpu/third_party/fsr-vulkan`, which the fork's provider loop needs — fixed, and
+`order1886-go-linux-package.yml` now completes green on the branch. Remaining known gap
+(flagged, not fixed): the Linux packaging script still does not stage the built providers
+(`out/order1886_fsr3.so`/`order1886_fsr4.so` + the `bin/fsr4/` bundle) into the package, so a
+CI-built Linux package ships without FSR (functional fallback, degraded). Local builds stage
+them by hand; wiring them into the script is the follow-up when the next Linux release is due.
 
 ## 7. Manual test checklist (player's Windows box) — summary
 
