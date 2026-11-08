@@ -66,6 +66,7 @@ are additive Vulkan/C++ with no Linux-only APIs (audited above).
 | `launcher-go/music.go`, `launcher-go/ui_wails.go`, `launcher-go/order1886-frontend/` (vendored) | The release repo's overlay (music + the one-line musicHandler + the static fork frontend) was applied by hand before every Linux build and lived in no CI path — both workflows npm-built the retired sidebar UI, so any CI-built package (Windows **or** Linux) would ship the wrong launcher window. Vendored into the source tree. | Medium on discovery, low now: verified by the local windows/amd64 cross-build (GUI-subsystem PE + `go vet` clean). Linux user-facing behavior unchanged — the released packages already carry this UI; the fix makes CI match it. |
 | `.github/workflows/order1886-go-linux-package.yml` (~3 lines) | Stage `order1886-frontend` into `frontend/dist` and add `-s` to the wails build (same parity fix on the Linux side). | Low: CI-only; the local Linux build path never ran npm. |
 | `docs/order1886-build.md` | Windows section: fsr4 provider + bundle step + the pad-check note. | None. |
+| `packaging/windows/QUICKSTART-Order1886.txt` | Fork the shipped quickstart to the package's reality: zip name (both languages + checksum example), DivinusX release/support URLs, FSR 4 in the upscaling list, the two sun-shadow switches, and a port-status pointer to WINDOWS.md. Content-only. | None. |
 
 ## 3. Release-repo (aport) changes (branch `windows-port`, push after approval)
 
