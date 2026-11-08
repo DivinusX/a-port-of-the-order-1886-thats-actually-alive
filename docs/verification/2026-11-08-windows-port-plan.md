@@ -34,9 +34,12 @@ dedicated local branches (`windows-port`) in the two repos; nothing is pushed.
   manifests + MIT license) is **not tracked in any repo and no script fetches it**. It
   is FireBurn/Q2RTX `baseq2/fsr4_shaders`, staged by hand into the Linux package.
   Platform-neutral bytes. This is the port's one real dependency gap (§6).
-* This machine has **no** go, wails, mingw, pwsh or PyInstaller, and sudo needs a
-  password: no Windows binary can be compiled or run here. CI (windows-2025) is the
-  build host; the player's Windows box is the test host.
+* This machine originally had **no** go, wails, mingw, pwsh or PyInstaller, and sudo needs
+  a password. Go 1.25.14, PowerShell 7.5.2 and the mingw-w64 v12 headers were later
+  installed under /tmp without root (see §8) — enough to cross-build and vet the launcher,
+  parse the PS1 and syntax-check the new C; **not** enough to build or run the native
+  Windows runtime or the worker. CI (windows-2025) is the build host; the player's Windows
+  box is the test host.
 
 ## 1. Runtime strategy — recommendation
 
@@ -58,7 +61,9 @@ are additive Vulkan/C++ with no Linux-only APIs (audited above).
 | `src/pad_diag_windows.c` (new) + `src/probe.c` | Windows "pad check": runs only on a real game boot (first arg is the prepared image, not a `--flag`), honouring `ORDER1886_PAD_DIAG=0`; prints the same `Order1886: pad check:` lines. Scans: XInput slots 0–3 via `LoadLibraryEx` (xinput1_4 → xinput1_3 → xinput9_1_0), HID gamepads via SetupAPI (`GUID_DEVINTERFACE_HID`, VID 045E/1720 and the SDL-known list), and compares against `SDL_GetGamepads()` — a pad visible on USB but not opened by SDL gets the "Steam or driver grabbed it" advice (the Windows analogue of the udev/Steam hints). `probe.c`: call it from main() under `#ifdef _WIN32` before the memory reservation. | Medium: new Win32 code, `-Wall -Wextra -Werror` on the exe target; needs `setupapi` in `target_link_libraries` (onecore does not cover it). Cannot compile here — CI is the first build. Linux behavior unchanged. |
 | `gpu/CMakeLists.txt` | Windows exe target: add `../src/pad_diag_windows.c` + `setupapi` link. Linux target untouched. | Low. |
 | `packaging/windows/order1886-go-build.ps1` | Add: `order1886_fsr4.dll` copy (next to fsr3), `-Fsr4Assets <dir>` param staging `bin/fsr4/`, `music/` copy (parity with the Linux package), then `Compress-Archive` → `order1886-win-x86_64-<ver>.zip` + `.sha256`. | Medium: no pwsh here — syntax-level review only; CI is the first execution (the workflow's own note: "Unverified until it has completed on GitHub Actions"). |
-| `.github/workflows/order1886-go-package.yml` | Fetch the FSR 4 bundle (§6), pass `-Fsr4Assets`, upload zip + sha256 as release-ready artifacts. Linux workflow (`order1886-go-linux-package.yml`) untouched — separate jobs, separate runners, cannot break Linux. | Low. |
+| `.github/workflows/order1886-go-package.yml` | Fetch the FSR 4 bundle (§6), pass `-Fsr4Assets`, upload zip + sha256 as release-ready artifacts. | Low. |
+| `launcher-go/music.go`, `launcher-go/ui_wails.go`, `launcher-go/order1886-frontend/` (vendored) | The release repo's overlay (music + the one-line musicHandler + the static fork frontend) was applied by hand before every Linux build and lived in no CI path — both workflows npm-built the retired sidebar UI, so any CI-built package (Windows **or** Linux) would ship the wrong launcher window. Vendored into the source tree. | Medium on discovery, low now: verified by the local windows/amd64 cross-build (GUI-subsystem PE + `go vet` clean). Linux user-facing behavior unchanged — the released packages already carry this UI; the fix makes CI match it. |
+| `.github/workflows/order1886-go-linux-package.yml` (~3 lines) | Stage `order1886-frontend` into `frontend/dist` and add `-s` to the wails build (same parity fix on the Linux side). | Low: CI-only; the local Linux build path never ran npm. |
 | `docs/order1886-build.md` | Windows section: fsr4 provider + bundle step + the pad-check note. | None. |
 
 ## 3. Release-repo (aport) changes (branch `windows-port`, push after approval)
@@ -85,8 +90,9 @@ of ps4gpu + runtime + providers + the launcher test suite.
 Nothing in `launcher-go-overlay/` needs changing for Windows: `ui_wails.go` already
 sets `windows.Options`, and the overlay README already documents
 `wails build -s -platform windows/amd64` (no `webkit2_41` tag; Wails on Windows needs
-no CGO). The PS1 builds it natively on the CI runner (this machine has no Go). The
-worker (`order1886.py`) already branches on `os.name == 'nt'`: runtime name
+no CGO — verified locally: the cross-build and `go vet` for windows/amd64 both pass, see
+§8). The CI builds the shipped exe natively on the runner.
+The worker (`order1886.py`) already branches on `os.name == 'nt'`: runtime name
 `order1886-runtime.exe`, `CREATE_NO_WINDOW`, `msvcrt` lock file, System32 PATH smoke.
 
 ## 6. Blocker-grade gap: the FSR 4 asset bundle provenance
@@ -110,9 +116,25 @@ keyboard fallback, save + resume, 30-minute session, The Chase flicker parity
 
 ## 8. Honesty ledger
 
-* Compiled here: nothing Windows. Linux rebuild + test suite only.
-* First real execution of every Windows change: the `windows-2025` CI job (this is also
-  how upstream ships — the PS1 has never run on this machine either).
+* Compiled here: nothing Windows was *run* (no Windows here), but after this section was
+  written four real local verifications were executed with toolchains installed without
+  root (Go 1.25.14, PowerShell 7.5.2, mingw-w64 headers v12):
+  1. **Launcher cross-build PASSES on Linux**: overlay applied per
+     `launcher-go-overlay/README.md`, `CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build
+     -tags desktop,production` → PE32+ x86-64 (console), and with `-H=windowsgui` →
+     PE32+ (GUI) matching `wails build -platform windows/amd64` output shape.
+  2. **`go vet -tags desktop,production ./...` for windows/amd64: clean** (the whole
+     launcher package, including the overlay files and `process_windows.go`).
+  3. **`order1886-go-build.ps1` parses with PowerShell's own parser: 0 errors.**
+  4. **`src/pad_diag_windows.c` passes `clang -fsyntax-only -target x86_64-w64-mingw32
+     -Wall -Wextra` against mingw-w64 v12 headers + SDL3: 0 errors** (only known
+     header-internal clang warnings; MSYS2 ships patched headers for those).
+  Still CI-first: actual linking (`setupapi`, PE subsystem), the native build itself,
+  PyInstaller/worker, and everything runtime-behavioural.
+* Linux regression after all edits: `ninja -C out/gpu` no work, 589 launcher tests OK,
+  fsr4 provider rebuilds (guards the untouched POSIX branch), build.sh `bash -n`,
+  workflow YAML parse, bundle extraction rehearsed against the real v0.2.17 tarball
+  (285 files, required names verified), release-asset URL live (HTTP 200).
 * Unverified until the checklist runs: FSR 4 on Windows, pad-check output, WebView2 on
   clean Win 10, Defender/SmartScreen behavior, long sessions, 4K/60, driver-specific
   paths, the zip layout.

@@ -22,8 +22,15 @@ the `order1886-go-package.yml` workflow), now carrying the fork's v0.2.15–17 w
   `order1886-win-x86_64-<version>.zip` + `.sha256`.
 - Release repo: `packaging/windows/order1886-win-package.py` (manifest gate + finalizer),
   `WINDOWS.md` (EN+PT) and the manual test checklist under `docs/verification/`.
-- Linux behavior is unchanged: every edit is inside `#ifdef _WIN32`, the Windows branch of
-  `build.sh`, the Windows PS1/workflow, or new Windows-only files.
+- CI parity fix (both platforms): the launcher overlay (music + handler) and the fork's
+  static frontend were hand-applied before every Linux build and lived in no CI path —
+  any CI-built package shipped the retired sidebar UI. They are now vendored in the
+  source tree (`launcher-go/music.go`, `launcher-go/ui_wails.go`,
+  `launcher-go/order1886-frontend/`) and staged by both workflows with `-s`.
+- Linux user-facing behavior is unchanged: every edit is inside `#ifdef _WIN32`, the
+  Windows branch of `build.sh`, the Windows PS1/workflow, or new Windows-only files. The
+  one Linux-side change is the CI parity fix above (it makes CI produce what the released
+  packages already contained; no local build path changed).
 
 **Unverified on hardware:** no Windows machine was available where this was written. The
 CI is the first compile of the new C; the checklist has not been executed. FSR 4 on

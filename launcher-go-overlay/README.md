@@ -1,7 +1,10 @@
 # launcher-go overlay
 
 Files copied over upstream `launcher-go/` (JulioCacko/The-Order-1886_pc) before building the
-launcher. Build with the frontend from `launcher-frontend/` (do not run the frontend build;
+launcher. **As of the windows-port branch these are vendored into the source repo itself**
+(`launcher-go/music.go`, `launcher-go/ui_wails.go`, `launcher-go/order1886-frontend/`) and
+staged by both CI workflows; this directory stays as the release-side copy and the build
+recipe. Build with the frontend from `launcher-frontend/` (do not run the frontend build;
 `frontend/src` upstream is the older sidebar UI):
 
 ```sh
