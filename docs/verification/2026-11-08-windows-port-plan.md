@@ -70,7 +70,7 @@ are additive Vulkan/C++ with no Linux-only APIs (audited above).
 
 | File | Change | Risk |
 | --- | --- | --- |
-| `packaging/windows/order1886-win-package.py` | New: standalone assembler mirroring `packaging/linux/order1886-go-package.py` — takes staged artifacts, builds `The Order 1886/` layout, writes `package-manifest.json` with the same schema (product/launcher/status/built_utc/runtime_sha256/runtime_build/update_abi/source_revision/source_dirty/files[]) and produces zip + `.sha256`. Lets the package be assembled from CI artifacts without re-running the PS1. | Low; pure Python, runs on Linux for staging logic, on Windows for real bytes. |
+| `packaging/windows/order1886-win-package.py` | New: standalone assembler mirroring `packaging/linux/order1886-go-package.py` — verifies the CI tree (every manifest hash, no `.so`/`.sh`/`user/` leakage, FSR 4 bundle license), merges release docs via `--extra` (WINDOWS.md, CHANGES.md, README.md, docs/verification — the parity the Linux tarball already ships), rebuilds the manifest over the merged tree, and produces `order1886-win-x86_64-<version>.zip` + `.sha256`. | Low; pure Python, rehearsed end-to-end (§8 item 7). |
 | `WINDOWS.md` | New: EN + PT (QUICKSTART style): requirements (Win 10 1903+/11 x64, current Vulkan driver, WebView2 runtime — preinstalled on Win 11/updated Win 10; **no Visual C++ redistributable needed** — the CLANG64 runtime DLLs ship inside the package), folder layout, controls (XInput native), troubleshooting (pad-check lines, SmartScreen/Defender notes, Steam Input), and the explicit unverified list. | None (docs). |
 | `docs/verification/2026-11-08-windows-port-checklist.md` | New: the manual checklist (§7). | None. |
 | `CHANGES.md` | Draft v0.2.18 entry, marked "built by CI, unverified on hardware until the checklist passes". | None. |
@@ -106,6 +106,12 @@ and fetch that. Flagged rather than silently worked around, per the working meth
 **FSR 3.1 remains the automatic fallback** exactly as on Linux when the bundle or GPU
 support is missing.
 
+Related, smaller: the launcher's music track ("The Knights' Theme", game OST) is not in
+either repo — the Linux package carries it by manual staging. The PS1 copies `music/`
+only when the maintainer stages it beside the script, so the CI zip ships silent until
+you decide the OST belongs in a public release asset (it is copyrighted game content;
+the "do not include games" constraint arguably covers it — your call, flagged).
+
 ## 7. Manual test checklist (player's Windows box) — summary
 
 Launch (SmartScreen), game-folder pick (CUSA00035), Play → title, CONTINUE,
@@ -133,6 +139,19 @@ keyboard fallback, save + resume, 30-minute session, The Chase flicker parity
   5. **Launcher Go unit tests pass on the host** (`go test -tags noui ./...`: the package
      plus `internal/pkgpath`, `internal/updatehost`, `internal/updates` — the stdio worker
      protocol shared by both platforms).
+  6. **The cross-built Windows entry PE actually runs under wine**: flag set prints,
+     `-direct-play` executes the recovery gate (`internal/updates.PendingRecovery` journal
+     semantics) and the error-report path. The odd `exec: "Z:\tmp\fakeroot"` line comes
+     from the Linux-only `startUI` relaunch (`pkgpath.UI()` returns "" on Windows) — a
+     path the shipped Windows exe never takes (the PS1 ships the desktop build as both
+     entries). Layout audit confirms `pkgpath.Worker()` for Windows
+     (`bin/order1886-worker.exe`, flat) matches how the PS1 flattens the PyInstaller
+     onedir into `bin/`.
+  7. **Finalizer end-to-end rehearsed** (`order1886-win-package.py --extra`): a synthetic
+     CI-shaped tree + release docs → merged 4 docs, manifest rebuilt over 18 files, zip
+     verified with `sha256sum -c`, docs present in the zip and covered by the manifest.
+     The release-side `--extra` folder is assembled from this repo:
+     `mkdir -p extra/docs/verification && cp WINDOWS.md CHANGES.md README.md extra/ && cp docs/verification/2026-11-08-windows-port-checklist.md extra/docs/verification/`.
   Still CI-first: actual linking (`setupapi`, PE subsystem), the native build itself,
   PyInstaller/worker, and everything runtime-behavioural.
 * Linux regression after all edits: `ninja -C out/gpu` no work, 589 launcher tests OK,

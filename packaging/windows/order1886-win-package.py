@@ -20,7 +20,12 @@ Windows content rules checked here, because the Linux builder cannot see them:
 
 Usage:
     python3 packaging/windows/order1886-win-package.py --tree "/path/The Order 1886" \
-        --version v0.2.18 --out dist/
+        --version v0.2.18 --out dist/ [--extra release-docs/]
+
+--extra merges release-repository documents (CHANGES.md, WINDOWS.md, docs/verification/…)
+into the package before the manifest is rebuilt — the parity step that makes the Windows
+zip carry the same reading material the Linux tarball ships. Any manifest drift from the
+merge is resolved by regenerating the file list from disk.
 """
 from __future__ import annotations
 
@@ -54,6 +59,8 @@ def main() -> int:
     parser.add_argument('--tree', type=Path, required=True,
                         help='staged folder (…/The Order 1886) from the CI artifact')
     parser.add_argument('--version', default='', help='zip name stamp, e.g. v0.2.18')
+    parser.add_argument('--extra', type=Path, default=None,
+                        help='release-repo docs folder merged in before the manifest is rebuilt')
     parser.add_argument('--out', type=Path, default=Path('.'), help='where to write zip + .sha256')
     args = parser.parse_args()
 
@@ -69,6 +76,21 @@ def main() -> int:
     if not manifest_path.is_file():
         raise SystemExit('the CI artifact has no package-manifest.json; run the package workflow first')
     manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+
+    if args.extra:
+        import shutil
+        src = args.extra.resolve()
+        merged = 0
+        for path in sorted(src.rglob('*')):
+            if path.is_file():
+                target = tree / path.relative_to(src)
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(path, target)
+                merged += 1
+        manifest['files'] = [{'path': p.relative_to(tree).as_posix(), 'sha256': sha256(p)}
+                             for p in sorted(tree.rglob('*'))
+                             if p.is_file() and p.name != 'package-manifest.json']
+        print(f'merged {merged} release docs; manifest rebuilt over {len(manifest["files"])} files')
 
     listed = {entry['path'] for entry in manifest['files']}
     on_disk = []

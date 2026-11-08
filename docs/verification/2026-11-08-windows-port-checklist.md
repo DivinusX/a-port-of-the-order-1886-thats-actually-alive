@@ -8,11 +8,14 @@ after each section settles most disputes.
 
 - [ ] `sha256sum -c order1886-win-x86_64-v0.2.18.zip.sha256` (or `Get-FileHash`) matches
 - [ ] Zip extracts to a single root folder `The Order 1886/` containing both `.exe` entries,
-      `bin/`, `docs/`, `music/`, `notices/`, `LICENSE`, `QUICKSTART.txt`, `README-Order1886.txt`,
-      `WINDOWS.md`, `package-manifest.json`
+      `bin/`, `docs/`, `notices/`, `LICENSE`, `QUICKSTART.txt`, `README-Order1886.txt`,
+      `WINDOWS.md`, `CHANGES.md`, `README.md`, `package-manifest.json` (release docs are
+      injected by `order1886-win-package.py --extra`; `music/` only if the maintainer
+      staged it — see plan §6)
 - [ ] `bin/` contains `order1886-runtime.exe`, `order1886_fsr3.dll`, `order1886_fsr4.dll`,
-      `fsr4/` (with `LICENSE-FSR4-v07.txt`), `order1886-worker/`, `order1886-launcher` files,
-      `runtime-build.json`
+      `fsr4/` (with `LICENSE-FSR4-v07.txt`), `order1886-worker.exe` + `_internal/` (the
+      Windows onedir is flattened into `bin/`, matching `pkgpath.Worker()`),
+      `runtime-build.json`, and every non-system DLL the loader needs (libSDL3.dll etc.)
 - [ ] No `user/` in the zip; no `.so` or `.sh` anywhere
 
 ## 2. First launch and game detection
