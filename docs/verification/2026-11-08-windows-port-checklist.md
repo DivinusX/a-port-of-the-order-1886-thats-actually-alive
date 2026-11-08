@@ -1,5 +1,11 @@
 # Windows x86-64 port — manual test checklist (v0.2.18 candidate)
 
+Pre-verified off Windows (Linux cross-build + wine, 2026-11-08): the runtime exe boots the
+game to the title screen and renders it (2560×1440 screenshot captured through the F12
+presenter), `HTILE:` expand lines fire, and **AMD FSR 4 v07 runs on the Windows binaries**
+(provider DLL loaded, bundle discovered beside the exe, 18000+ reconstructed frames on
+winevulkan/RADV). The items below are still the real gate — wine is not Windows.
+
 Run on a physical Windows 10 (1903+) and Windows 11 machine, x86-64. Record pass/fail per
 line with the GPU, driver version and OS build. The newest `-boot.log` from `user/order1886/logs`
 after each section settles most disputes.

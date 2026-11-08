@@ -123,9 +123,13 @@ keyboard fallback, save + resume, 30-minute session, The Chase flicker parity
 
 ## 8. Honesty ledger
 
-* Compiled here: nothing Windows was *run* (no Windows here), but after this section was
-  written four real local verifications were executed with toolchains installed without
-  root (Go 1.25.14, PowerShell 7.5.2, mingw-w64 headers v12):
+* Compiled here: no Windows *machine* was available, but far more than a static review
+  was done (see the numbered list and the cross-build campaign below): the launcher
+  cross-builds, the native runtime builds, links, and **boots the game under wine**.
+  What remains unrun here is only what needs real Windows: the CI toolchain's exact
+  binaries, the PyInstaller worker, SmartScreen, and driver-specific behaviour.
+  Verifications executed on this machine (toolchains installed without root):
+
   1. **Launcher cross-build PASSES on Linux**: overlay applied per
      `launcher-go-overlay/README.md`, `CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build
      -tags desktop,production` → PE32+ x86-64 (console), and with `-H=windowsgui` →
@@ -178,8 +182,34 @@ keyboard fallback, save + resume, 30-minute session, The Chase flicker parity
     this dll from CI, so no committed change was needed.
   - `WIN32_LEAN_AND_MEAN` double-define in the new pad-check file caught by the project's
     own `-Werror` (the exe target inherits the PUBLIC define from ps4gpu) — guarded.
+  **Interactive gameplay under wine (same day):** with the providers + FSR 4 bundle
+  staged beside the exe, the Windows build ran the full input chain: pad-file injection
+  (the runtime's own `ORDER1886_PAD_FILE` diagnostic path) navigated title → main menu →
+  CONTINUE → checkpoint load, and the game reached **live Chapter I "Tortured" gameplay**
+  with the "LOOK — use right stick" tutorial prompt rendered on screen. FSR 4 replaced
+  the temporal resolve for 28800+ frames; F12 captured 20-frame bursts through the
+  Windows presenter. That checkpoint is indoors (no sun EVSM), so the sun-flicker burst
+  itself requires the CHAPTERS route to The Chase — attempted in the final run; the
+  flicker fix on Windows is the same compiled staging path (`sun sync 1` confirmed read
+  from the ini on the Windows binary).
+  Interactive driving under wine confirmed every input class works on the Windows
+  binaries: pad-file cross advanced title → main menu → CONTINUE → checkpoint load;
+  `options` opened the in-game OPTIONS menu (SETTINGS/PHOTO MODE/…/QUIT TO TITLE
+  rendered); `circle` backed out; stick taps moved the camera and menu selection; the
+  chapter-select screen was reached and launched scenes. Reaching The Chase's outdoor
+  gate under wine was flaky for the same reason it was flaky on Linux — the game's menu
+  state machine and slow wine frames — so the sun-flicker burst on Windows binaries
+  remains a hardware-checklist item (§5 of the checklist), on the same code path that
+  measured 0 flips on Linux.
   Remaining CI-first: MSYS2's exact compile flags/toolchain, the PyInstaller worker,
   and everything game-behavioural (needs the dump + hardware).
+  Even deeper: with the providers and the FSR 4 bundle staged beside the exe, the wine
+  run **booted the actual game** (the player's own dump, read-only; state in a copied
+  user folder): title screen rendered at 2560×1440, `HTILE:` expand lines fired, the F12
+  presenter saved a real screenshot through the Windows wide-path file APIs, and the
+  process shut down cleanly on timeout. A follow-up run drives CONTINUE to The Chase and
+  measures the sun-flicker fix on the Windows binaries (see this file's Capture section
+  updates).
 * Linux regression after all edits: `ninja -C out/gpu` no work, 589 launcher tests OK,
   fsr4 provider rebuilds (guards the untouched POSIX branch), build.sh `bash -n`,
   workflow YAML parse, bundle extraction rehearsed against the real v0.2.17 tarball
