@@ -74,6 +74,9 @@ problem as a bug, and see `docs/verification/2026-11-08-windows-port-checklist.m
   `bin/order1886_fsr3.dll` / `order1886_fsr4.dll` must be where they were shipped.
 - **FSR 4 shows as unsupported** — expected on GPUs without `shader-mixed-float-dot-product`
   (most NVIDIA before RTX, older AMD/Intel): FSR 3.1 keeps working.
+- **System → Updates says nothing is available** — expected: this fork publishes releases
+  without an updater receipt, so updates are manual by design: download the new zip, extract
+  to a new folder, copy your `user` folder over.
 - **Antivirus flags the download** — unsigned PyInstaller/MinGW binaries trip heuristics;
   verify the `.sha256` next to the zip and add an exclusion if you trust the source.
 
@@ -169,6 +172,9 @@ oficial. Nenhum conteúdo de jogo está incluído — use sua própria cópia ex
 - **FSR 4 aparece como não suportado** — esperado em GPUs sem
   `shader-mixed-float-dot-product` (quase todas as NVIDIA pré-RTX, AMD/Intel antigas):
   o FSR 3.1 continua funcionando.
+- **Sistema → Atualizações diz que nada está disponível** — esperado: este fork publica
+  releases sem recibo do atualizador, então atualizar é manual: baixe o novo zip, extraia
+  em pasta nova e copie a pasta `user` para junto do novo executável.
 - **Antivírus marca o download** — binários PyInstaller/MinGW não assinados disparam
   heurísticas; confira o `.sha256` ao lado do zip e crie uma exclusão se confiar na origem.
 

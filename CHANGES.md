@@ -20,6 +20,10 @@ the `order1886-go-package.yml` workflow), now carrying the fork's v0.2.15–17 w
 - The package workflow stages the platform-neutral FSR 4 v07 bundle from the published
   v0.2.17 Linux package (the bundle is not in any git tree) and ships
   `order1886-win-x86_64-<version>.zip` + `.sha256`.
+- Updater safety: the built-in updater and the UI releases/issues links now name the fork's
+  repository. Upstream's release receipt would have let in-app updates silently replace
+  this lineage's fixes; the fork's releases publish no receipt, so the updater reports
+  "no update available" and manual extraction stays the documented channel.
 - Release repo: `packaging/windows/order1886-win-package.py` (manifest gate + finalizer),
   `WINDOWS.md` (EN+PT) and the manual test checklist under `docs/verification/`.
 - CI parity fix (both platforms): the launcher overlay (music + handler) and the fork's

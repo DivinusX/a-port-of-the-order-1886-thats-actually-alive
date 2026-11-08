@@ -73,6 +73,7 @@ after each section settles most disputes.
       (compare a few file hashes before/after the session)
 - [ ] Audio plays; no crackle after 10 minutes
 - [ ] Launcher music plays when `music/` present; volume slider persists
+- [ ] System → Updates reports no update available (fork channel is manual by design — see WINDOWS.md)
 
 ## 7. Long session and stress
 
