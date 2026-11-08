@@ -1,5 +1,35 @@
 # Changes Made - November 8, 2026
 
+## v0.2.16 — November 8, 2026
+
+### Fixed: sun shadows and wet-surface specular are back (the v0.2.15 regression)
+
+**[mateussmeneses/theorder1886-port#26](https://github.com/mateussmeneses/theorder1886-port/issues/26)
+is closed for this build.** Outdoor Chapter I scenes lost the sun's shadows, the sun
+patch on walls, and the wet-stone specular, and the sun flickered: consecutive frames
+flipped brightness by ~16 levels. The RDNA4 retest on that issue identified the decisive
+half — the **draw-time HTILE expand** (`7cf7979`, build/test follow-up PR #112) — which
+this lineage never had: it carried only the sun readback-sync half (PR #143), and the
+v0.2.10 flicker fix disables that sync by design. Without the expand, the EVSM sun
+conversion reads the cascade maps' HTILE Zmask in its cleared state and gets a constant
+moment texture.
+
+- `BeginRenderingFull` now fills the depth surface's HTILE Zmask with the uncompressed
+  value when a depth-writing pass clears depth (once per surface): the sun's caster
+  depth becomes visible to the compute, shadows and specular return.
+  `ORDER1886_HTILE_DRAW_EXPAND=0` restores the old behaviour.
+- The v0.2.10 flicker fix is untouched: the readback sync stays disabled
+  (`ORDER1886_SUN_SYNC=0`), so the plaza keeps the stable, low-flicker behaviour.
+- Boot log: `HTILE: 0x… marked uncompressed, 196608 bytes` x8 surfaces.
+- A/B on the same save, scripted walk/sprint/pan, 30 FPS, FSR 4 on, effects off
+  (RX 9070 XT / RADV): **brightness flips 3 → 0** across a 14-frame burst (max Δ 17.6 →
+  0.6), ground shadow coverage stable, NPC/awning/balustrade/fountain shadows and
+  wet-stone specular present. FSR 4 unaffected (`fsr4 reconstructed 3600+ frames`,
+  0 validation errors).
+- Deterministic unit test for the mask-range maths (`htile-expand-test`), ported from
+  PR #112. Evidence + patch: `docs/verification/2026-11-08-sun-shadow-expand.md`,
+  `docs/verification/2026-11-08-sun-shadow/`.
+
 ## v0.2.15 — November 8, 2026
 
 ### New: AMD FSR 4 replaces the game's temporal anti-aliasing on Linux

@@ -3,7 +3,7 @@
   "launcher": "Go / Wails v2.17.0",
   "platform": "linux-x86_64",
   "status": "release",
-  "built_utc": "2026-11-08T10:54:55Z",
+  "built_utc": "2026-11-08T11:22:28Z",
   "runtime_sha256": "950a388ef107e5f775634de11cdb8f14b6b400df7e1464a0997baf9c4ca75974",
   "runtime_build": {
     "game_profile": "order1886",
@@ -23,7 +23,7 @@
     "runtime_sha256": "950a388ef107e5f775634de11cdb8f14b6b400df7e1464a0997baf9c4ca75974",
     "source_revision": "37482884cf72e8920b9c8357600b5f271befadfe",
     "source_dirty": true,
-    "source_files_sha256": "5c5d7e486c99f2ce9fed9e16dad8dd9b24e0f358bd627551e67ee6978602228e",
+    "source_files_sha256": "2be5bce0a4e5001b41611ec43b3343f8df7c7a6377ce9d8162587a916a090800",
     "submodules": [
       "c64f093404125e960813f95f1996c14780f0dd69 gpu/third_party/fsr-vulkan (c64f093)",
       " f1cc2ae15e53a861a874c3034aae6798fde194ab gpu/third_party/imgui (v1.62-5575-gf1cc2ae15)",
@@ -37,15 +37,15 @@
       "bash",
       "build.sh"
     ],
-    "built_utc": "2026-11-08T09:35:00+00:00"
+    "built_utc": "2026-11-08T11:15:09.154841+00:00"
   },
   "update_abi": "order1886-update-2",
-  "source_revision": "37482884cf72e8920b9c8357600b5f271befadfe",
+  "source_revision": "489693acf32cfddd23641bad352605491f4f513c",
   "source_dirty": true,
   "files": [
     {
       "path": "CHANGES.md",
-      "sha256": "25b32837c625a9159c0207c28310b55b0ef73d5ab012bb95ad66f8c371c31dc5"
+      "sha256": "ef88d968a590aa7fd84b963b0a627990063a6343e2f67bc28387a152c696e6f4"
     },
     {
       "path": "LICENSE",
@@ -1537,7 +1537,7 @@
     },
     {
       "path": "bin/gpu/libps4gpu.so",
-      "sha256": "7e660f0dab5f989e490303c65f5b48804cfc671c38b34f071899f5983c3935fe"
+      "sha256": "5a2d001e199e247ed60c25502855b59f51ccd02b63327c80d26406993a2b9313"
     },
     {
       "path": "bin/gpu/librabbitmq.so.4",
@@ -2589,7 +2589,7 @@
     },
     {
       "path": "bin/runtime-build.json",
-      "sha256": "a3b4cecfdbf17143cdc714513e92c0ac2f059c80c8c577f1515ea8b922fb63a9"
+      "sha256": "bae798fdad7b5b7d9ba7b1d7903b6ca7cca41de92678a5b1cc57ad71dd1c595c"
     },
     {
       "path": "docs/verification/2026-11-07-cinematic-bars/README.md",
@@ -2622,6 +2622,22 @@
     {
       "path": "docs/verification/2026-11-08-fsr4-linux.patch",
       "sha256": "d03b2e90b1149120dc437b2801b76f272316c2ed0753430971896771891f3acb"
+    },
+    {
+      "path": "docs/verification/2026-11-08-sun-shadow/after-shadows.png",
+      "sha256": "7b02f3d85e89077e710f2df1a468b4c6f47601a72a30398036a5a896eb794961"
+    },
+    {
+      "path": "docs/verification/2026-11-08-sun-shadow/before-flicker.png",
+      "sha256": "07efe592856c67bdfbdf5582c9b12b3b89d549a32c9800b92cd2c13dbf701262"
+    },
+    {
+      "path": "docs/verification/2026-11-08-sun-shadow-expand.md",
+      "sha256": "b2c167da03124a4dd59c103c7b089698317f38f76c75322f8271e2c87ff9ed89"
+    },
+    {
+      "path": "docs/verification/2026-11-08-sun-shadow-expand.patch",
+      "sha256": "e04bf0b04ac6259dd07acb36e067a6f7d161f5a406301436b7699fa682c4cd43"
     },
     {
       "path": "music/README.txt",
