@@ -125,10 +125,14 @@ keyboard fallback, save + resume, 30-minute session, The Chase flicker parity
      PE32+ (GUI) matching `wails build -platform windows/amd64` output shape.
   2. **`go vet -tags desktop,production ./...` for windows/amd64: clean** (the whole
      launcher package, including the overlay files and `process_windows.go`).
-  3. **`order1886-go-build.ps1` parses with PowerShell's own parser: 0 errors.**
+  3. **`order1886-go-build.ps1` parses with PowerShell's own parser: 0 errors** (also after
+     the frontend-staging edit).
   4. **`src/pad_diag_windows.c` passes `clang -fsyntax-only -target x86_64-w64-mingw32
      -Wall -Wextra` against mingw-w64 v12 headers + SDL3: 0 errors** (only known
      header-internal clang warnings; MSYS2 ships patched headers for those).
+  5. **Launcher Go unit tests pass on the host** (`go test -tags noui ./...`: the package
+     plus `internal/pkgpath`, `internal/updatehost`, `internal/updates` — the stdio worker
+     protocol shared by both platforms).
   Still CI-first: actual linking (`setupapi`, PE subsystem), the native build itself,
   PyInstaller/worker, and everything runtime-behavioural.
 * Linux regression after all edits: `ninja -C out/gpu` no work, 589 launcher tests OK,
