@@ -1,5 +1,42 @@
 # Changes Made - November 8, 2026
 
+## v0.2.17 — November 8, 2026
+
+### Fixed: the sun flicker in The Chase (staging readback sync)
+
+The Chase checkpoint flickered: consecutive frames swung between bright and dark
+(~36 <-> ~54, 385 flips per 1200 frames in the player's video). The sun's EVSM shadow
+ranges are GPU-written and CPU-read; every CPU touch faulted and forced a **synchronous
+queue drain** mid-frame (the v0.2.9 design), and the stall handed the shadow pass a
+half-updated depth range every other frame. v0.2.10 silenced that by disabling the sync -
+which also killed the sun shadows (the v0.2.15 regression) - so v0.2.16 kept the flicker.
+
+This build ships the other half of the RDNA4 retest recipe
+([mateussmeneses/theorder1886-port](https://github.com/mateussmeneses/theorder1886-port)
+`7cf7979`, issue #26): **staging readback sync**.
+
+- Graphics -> **Sun shadow readback sync** = *Staging (recommended)*: at the sun's EVSM
+  copy dispatch the registered ranges are snapshotted into host-visible staging by the
+  game's own copy command; a CPU fault takes the newest GPU-completed snapshot - fresh
+  data, no mid-frame drain, no stall. *Synchronous drain* is the v0.2.9 behaviour,
+  *Off* the v0.2.10 one.
+- A CPU write never needs GPU bytes: with no completed batch yet (level init) it takes
+  the snapshot if one exists, otherwise the stale backing, and returns. Falling into the
+  drain there deadlocked The Chase's loader (the GPU thread runs the fault under the
+  Liverpool lock; `scheduler.Finish()` waited a tick only that same lock could close) -
+  found and fixed during verification, see `docs/verification/2026-11-08-sun-shadow-staging-sync.md`.
+- The snapshot queue is bounded (four in-flight, ~8 MB); a stalled GPU skips snapshots
+  instead of allocating without limit.
+- The launcher writes `sun_sync`/`htile_expand` to runtime.ini; the runtime wrapper no
+  longer forces `ORDER1886_SUN_SYNC=0`, and the runtime defaults to staging.
+- Verified on RX 9070 XT / RADV, The Chase, 30 FPS, FSR 4, effects off: 9000-frame
+  session, 8276 sun faults served from batches, zero drains; 20-frame bursts at the
+  movement-tutorial gate (the video's exact framing): brightness 47.2-49.1, max delta
+  0.21, **0 flips** (was 385); shadows and wet-stone specular intact.
+- Also fixed: sampler cache keys now fold the custom border colour (upstream
+  `e1ceeabe8`) - reusing an S# with a different table entry kept the previous colour.
+  Evidence + full patch: `docs/verification/2026-11-08-sun-shadow-staging-sync.{md,patch}`.
+
 ## v0.2.16 — November 8, 2026
 
 ### Fixed: sun shadows and wet-surface specular are back (the v0.2.15 regression)

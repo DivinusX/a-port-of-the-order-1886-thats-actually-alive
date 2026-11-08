@@ -1,0 +1,1392 @@
+diff --git a/docs/order1886-localization-policy.md b/docs/order1886-localization-policy.md
+index 751e485..290e571 100644
+--- a/docs/order1886-localization-policy.md
++++ b/docs/order1886-localization-policy.md
+@@ -64,8 +64,9 @@ else stays English until a person who speaks the language owns the wording.
+ - **Ambiguous one-word labels** (`Framing`, `Native`). Both could be read as composition
+   or as a resolution claim, and a wrong guess is worse than English.
+ 
+-75 of the 304 UI keys are translated. The remaining 229 are English in all twelve
+-non-English languages on purpose, and their reasons are the classes above.
++90 of the 335 UI keys are translated: 75 from the UI table plus 15 shared with the base
++Tk catalogue. The remaining 245 are English in all twelve non-English languages on
++purpose, and their reasons are the classes above.
+ 
+ ## The translated keys
+ 
+diff --git a/docs/verification/2026-11-08-sun-shadow-staging-sync.md b/docs/verification/2026-11-08-sun-shadow-staging-sync.md
+new file mode 100644
+index 0000000..77e2a4f
+--- /dev/null
++++ b/docs/verification/2026-11-08-sun-shadow-staging-sync.md
+@@ -0,0 +1,60 @@
++# The Chase sun-shadow flicker: staging readback sync — 2026-11-08 (v0.2.17)
++
++## The bug (user video, 2026-11-08 06:30)
++
++`Video_2026-11-08_06-30-57.mp4` (2560x1440, 60fps, 2117 frames, Chapter II "Pursue the
++Lycan" = The Chase): the sun's shadows and the sunlight on buildings/trees/foliage drop
++out on every other frame. Frame-by-frame brightness series: mean 60.8, stdev 6.9,
++**413 flips (|Δ|>6) of 2116 consecutive pairs, 401 of them alternating**, max |Δ| 16.1.
++The upper-right quadrant (the sun-lit brick facade) flips 412 times — the flicker is the
++sun, not the camera.
++
++## Why v0.2.16 still flickered here
++
++v0.2.16 shipped the draw-time HTILE expand (the decisive half for Chapter I) but kept the
++v0.2.10 wrapper's `ORDER1886_SUN_SYNC=0`, which disables the sun-range registration
++entirely. In The Chase the sun's EVSM ranges are rewritten every frame and the guest CPU
++reads them back; with no sync the deferred-readback path serves them a frame stale, so
++the cascade data alternates between fresh and stale — the perfect 2-frame period.
++
++The RDNA4 retest on [mateussmeneses/theorder1886-port#26](https://github.com/mateussmeneses/theorder1886-port/issues/26#issuecomment-6700803190)
++says the same thing from the other side: "Sun readback sync only: gameplay stays flat;
++with the HTILE draw-expand as well: gameplay shadows return... the HTILE expand is the
++decisive half; sun-sync alone is not enough." The Chase needs **both** halves; Chapter I
++only needed the expand.
++
++## The fix (port of 7cf7979's buffer_cache half)
++
++Staging sun-sync, replacing the old drain design's role:
++
++- `BufferCache::RecordSunCopies()` — at the sun EVSM copy dispatch (pgm 0x7b1b18c9,
++  hooked in `DispatchRecord` after the binding pass that registers the ranges), the
++  registered ranges are copied GPU→host-visible staging (`HostCached`, deferred) as one
++  batch tagged with the scheduler tick. Recording happens outside `synchronized_mutex`.
++- `BufferCache::DeliverSunCopies()` — a CPU write fault on a registered page takes the
++  newest GPU-completed batch (`scheduler.IsFree(tick)`) into guest backing and returns:
++  no `scheduler.Finish()` mid-frame drain (the v0.2.9 flicker source), no stale frame
++  (the v0.2.16 source). Only before the first completed batch does a fault fall through
++  to the normal path.
++- Modes: `sun_sync` runtime.ini key / ORDER1886_SUN_SYNC env / new Graphics option:
++  **1 staging (default)**, 2 legacy drain, 0 off. The wrapper no longer exports
++  `ORDER1886_SUN_SYNC=0`; it is versioned at `packaging/linux/order1886-runtime-wrapper.sh`.
++- `htile_expand` (from v0.2.16) became a live setting + Graphics option too; both keys
++  round-trip through the runtime's own `Save()`.
++
++## Also fixed in this pass (sibling audit)
++
++- Sampler cache key vs custom border color (upstream e1ceeabe8): `GetSampler` hashed only
++  the S# bytes while the custom RGBA comes from a mutable guest table — reusing an S# with
++  a different table entry kept the previous color. The effective color is now snapshotted
++  and folded into the key. Shadow-map edge clamps sample through custom borders.
++- Launcher test suite: the UI catalog pins every shown string; the two new options'
++  strings were added to `UI_KEYS` (310→335), the translated-count formula now accounts
++  for keys translated through the base Tk table (`Performance` is English in pt/fr/it),
++  and the worker runtime-discovery test uses the platform's runtime name. 589 tests OK.
++
++## Verification
++
++TBD — fill from chase6b: consecutive-frame brightness of raw presented dumps
++(`ORDER1886_FRAME_DUMP_TRIGGER`) at the same checkpoint as the video; expect unimodal
++tight spread vs the video's bimodal ±10.
+diff --git a/gpu/shadps4/video_core/buffer_cache/buffer_cache.cpp b/gpu/shadps4/video_core/buffer_cache/buffer_cache.cpp
+index a773bec..464d118 100644
+--- a/gpu/shadps4/video_core/buffer_cache/buffer_cache.cpp
++++ b/gpu/shadps4/video_core/buffer_cache/buffer_cache.cpp
+@@ -11,6 +11,7 @@
+ #include <magic_enum/magic_enum.hpp>
+ #include "ps4_copy.h"
+ #include "ps4_toggles.h"
++#include "ps4_settings.h"
+ #include "common/alignment.h"
+ #include "core/memory.h"
+ #include "video_core/amdgpu/liverpool.h"
+@@ -215,6 +216,15 @@ void BufferCache::ReadMemory(VAddr device_addr, u64 size, bool is_write, bool as
+         return;
+     }
+     const auto flush_request = [this, device_addr, size, is_write] {
++        static const bool trace = std::getenv("ORDER1886_TRACE") != nullptr;
++        const auto trace_at = [&](const char* where) {
++            if (trace) {
++                std::printf("TRACE fault %#llx w=%d %s\n",
++                            static_cast<unsigned long long>(device_addr), int(is_write), where);
++                std::fflush(stdout);
++            }
++        };
++        trace_at("enter");
+         const u32 first_block = device_addr >> block_shift;
+         const u32 last_block = (device_addr + size - 1) >> block_shift;
+         const auto* arena = GetArena(first_block, last_block);
+@@ -227,6 +237,37 @@ void BufferCache::ReadMemory(VAddr device_addr, u64 size, bool is_write, bool as
+             std::max<VAddr>(Common::AlignDown(device_addr, WindowSize), arena->cpu_addr);
+         const VAddr window_end = std::min<VAddr>(
+             std::max<VAddr>(window_start + WindowSize, device_addr + size), arena_end);
++        // Sun-sync staging: the sun's EVSM ranges are GPU-written and CPU-read; a fault on a
++        // registered page takes the newest GPU-completed copy of the whole batch. This serves
++        // read faults without the synchronous download below - that drain is what handed the
++        // shadow pass half-updated depth and made the sun flicker every other frame (v0.2.9,
++        // and The Chase in v0.2.16). A CPU *write* never needs GPU bytes: with no completed
++        // batch yet (level init) the write takes the stale backing and returns. Falling into
++        // the drain there deadlocked the loader - the GPU thread runs this lambda under the
++        // Liverpool lock, and scheduler.Finish() waits on a tick that DrawRec cannot close
++        // until the Liverpool lock is free (chase15 trace: "sun-nobatch" -> "dl finish" ->
++        // silence). Only read faults with no batch yet still take the drain; by the time the
++        // game samples the EVSMs a batch exists, so it is rare, and it is the correct wait.
++        if (const u32 sun_sync = Ps4Settings::Get().sun_sync; sun_sync >= 1 &&
++            SynchronizedPage(device_addr, size)) {
++            const bool delivered = sun_sync == 1 && DeliverSunCopies();
++            trace_at(delivered ? "sun-delivered" : "sun-nobatch");
++            if (delivered || is_write) {
++                if (is_write) {
++                    // The batch (or the stale backing) stands in for the download the drain
++                    // would have done, so the GPU-dirty bits must drop the same way
++                    // DownloadMemory drops them - otherwise a later windowed download copies
++                    // the arena over these bytes before the CPU data is uploaded.
++                    {
++                        std::scoped_lock lock{gpu_ranges_mutex};
++                        gpu_modified_ranges.Subtract(device_addr, size);
++                    }
++                    memory_tracker->UnmarkRegionAsGpuModified(device_addr, size);
++                    memory_tracker->MarkRegionAsCpuModified(device_addr, size);
++                }
++                return;
++            }
++        }
+         if (is_write && deferred_readbacks_enabled &&
+             !Ps4Toggle::Disabled(Ps4Toggle::DeferredReadbacks)) {
+             bool on_gpu;
+@@ -242,8 +283,11 @@ void BufferCache::ReadMemory(VAddr device_addr, u64 size, bool is_write, bool as
+         }
+         // GPU data of earlier deferred readbacks in this window must reach guest memory
+         // before this readback completes.
++        trace_at("pre-wait");
+         WaitDeferredReadbacks(window_start, window_end - window_start);
++        trace_at("pre-download");
+         DownloadMemory(arena, window_start, window_end - window_start);
++        trace_at("post-download");
+         if (is_write) {
+             memory_tracker->MarkRegionAsCpuModified(device_addr, size);
+         }
+@@ -285,7 +329,16 @@ void BufferCache::DownloadMemory(const Buffer* arena, VAddr device_addr, u64 siz
+         copy.dstOffset += download.offset;
+     }
+     runtime.CopyBuffer(arena, download.buffer, copies);
++    if (std::getenv("ORDER1886_TRACE")) {
++        std::printf("TRACE dl finish copies=%zu total=%llu\n", copies.size(),
++                    static_cast<unsigned long long>(total_size_bytes));
++        std::fflush(stdout);
++    }
+     scheduler.Finish();
++    if (std::getenv("ORDER1886_TRACE")) {
++        std::printf("TRACE dl finish-done\n");
++        std::fflush(stdout);
++    }
+ 
+     download.buffer->Invalidate(download.offset, download.size);
+     for (const auto& copy : copies) {
+@@ -297,11 +350,11 @@ void BufferCache::DownloadMemory(const Buffer* arena, VAddr device_addr, u64 siz
+ }
+ 
+ void BufferCache::KeepPageSynchronized(VAddr device_addr, u64 size, u64 pgm_hash) {
+-    static const bool enabled = [] {
+-        const char* env = std::getenv("ORDER1886_SUN_SYNC");
+-        return !(env && env[0] == '0');
+-    }();
+-    if (!enabled || device_addr == 0 || size == 0) {
++    // Mode from runtime.ini / ORDER1886_SUN_SYNC: 0 off, 1 staging (default), 2 legacy drain.
++    if (Ps4Settings::Get().sun_sync == 0) {
++        return;
++    }
++    if (device_addr == 0 || size == 0) {
+         return;
+     }
+     std::scoped_lock lock{synchronized_mutex};
+@@ -334,6 +387,91 @@ bool BufferCache::SynchronizedPage(VAddr addr, u64 size) {
+     return true;
+ }
+ 
++// Sun-sync staging (mateussmeneses/theorder1886-port 7cf7979, theorder1886-port#26).
++// The drain-on-fault design (above) is what made the sun flicker in v0.2.9: the GPU stall
++// handed the shadow pass a half-updated depth range. Instead, snapshot the registered
++// ranges at the sun EVSM copy dispatch into host-visible staging; a CPU write fault then
++// takes the newest batch the GPU has already completed - fresh data, no stall.
++void BufferCache::RecordSunCopies() {
++    if (Ps4Settings::Get().sun_sync != 1) {
++        return; // only the staging mode batches; drain mode keeps the synchronous path
++    }
++    std::vector<std::pair<VAddr, VAddr>> ranges;
++    {
++        std::scoped_lock lock{synchronized_mutex};
++        if (!synchronized_ranges.Intersects(0, ~0ULL)) {
++            return;
++        }
++        synchronized_ranges.ForEach([&](VAddr start, VAddr end) { ranges.emplace_back(start, end); });
++    }
++    // Recording happens outside the mutex: the scheduler and staging pool have their own
++    // locks, and DeliverSunCopies (guest fault thread) must never queue behind a record.
++    u64 total = 0;
++    for (const auto& [start, end] : ranges) {
++        total += Common::AlignUp(end - start, 16);
++    }
++    // A bounded queue: while the GPU is stalled, a freed pool entry cannot be reused until its
++    // tick retires, so recording every dispatch would allocate without limit (2 MiB per batch -
++    // the chase12 hang: 1156 dedicated buffers, vkAllocateMemory stuck in reclaim). When the
++    // queue is full, skip the snapshot; CPU faults fall back to the drain path until it frees.
++    {
++        std::scoped_lock lock{synchronized_mutex};
++        if (sun_batches.size() >= 4) {
++            return;
++        }
++    }
++    if (std::getenv("ORDER1886_TRACE")) {
++        std::printf("TRACE record enter total=%llu\n", static_cast<unsigned long long>(total));
++        std::fflush(stdout);
++    }
++    SunBatch batch{};
++    batch.staging = staging_pool.Request(total, VideoCore::MemoryType::HostCached, 0, true);
++    u64 offset = 0;
++    for (const auto& [start, end] : ranges) {
++        const u64 size = end - start;
++        const auto* arena = GetArena(start >> block_shift, (end - 1) >> block_shift);
++        if (arena) {
++            runtime.CopyBuffer(arena, batch.staging.buffer,
++                               std::array{vk::BufferCopy{start - arena->cpu_addr,
++                                                         batch.staging.offset + offset, size}});
++            batch.items.push_back({start, size, offset});
++        }
++        offset += Common::AlignUp(size, 16);
++    }
++    batch.tick = scheduler.CurrentTick();
++    std::scoped_lock lock{synchronized_mutex};
++    sun_batches.push_back(std::move(batch));
++    // Completed batches older than the newest completed one are no longer needed.
++    while (sun_batches.size() > 1 && scheduler.IsFree(sun_batches[1].tick)) {
++        staging_pool.FreeDeferred(sun_batches.front().staging);
++        sun_batches.pop_front();
++    }
++    // A stalled GPU must not grow the queue without limit.
++    while (sun_batches.size() > 4) {
++        staging_pool.FreeDeferred(sun_batches.front().staging);
++        sun_batches.pop_front();
++    }
++}
++
++bool BufferCache::DeliverSunCopies() {
++    std::scoped_lock lock{synchronized_mutex};
++    const SunBatch* newest = nullptr;
++    for (const auto& batch : sun_batches) {
++        if (scheduler.IsFree(batch.tick)) {
++            newest = &batch;
++        }
++    }
++    if (!newest) {
++        return false;
++    }
++    newest->staging.buffer->Invalidate(newest->staging.offset, newest->staging.size);
++    for (const auto& item : newest->items) {
++        memory->TryWriteBacking(reinterpret_cast<void*>(item.addr),
++                                newest->staging.mapped + item.staging_offset, item.size);
++    }
++    return true;
++}
++
+ bool BufferCache::DeferReadback(const Buffer* arena, VAddr device_addr, u64 size) {
+     std::vector<std::pair<VAddr, u64>> pages;
+     memory_tracker->ForEachDownloadRange<false>(
+diff --git a/gpu/shadps4/video_core/buffer_cache/buffer_cache.h b/gpu/shadps4/video_core/buffer_cache/buffer_cache.h
+index 42a0deb..7894fb4 100644
+--- a/gpu/shadps4/video_core/buffer_cache/buffer_cache.h
++++ b/gpu/shadps4/video_core/buffer_cache/buffer_cache.h
+@@ -106,6 +106,12 @@ public:
+     /// ORDER1886_SUN_SYNC=0 turns it off.
+     void KeepPageSynchronized(VAddr device_addr, u64 size, u64 pgm_hash);
+     bool SynchronizedPage(VAddr addr, u64 size);
++    /// Sun-sync staging (mateussmeneses 7cf7979): copy the registered ranges to host-visible
++    /// staging at the sun EVSM dispatch; a CPU read fault then takes the newest completed
++    /// batch without a queue drain. RecordSunCopies records into the current command stream.
++    void RecordSunCopies();
++    /// Returns true when a completed batch was written into guest backing memory.
++    bool DeliverSunCopies();
+ 
+     /// ORDER1886_READBACK_LOG=1: which dispatch wrote the small buffers the CPU reads back.
+     static bool ReadbackLog();
+@@ -200,6 +206,10 @@ private:
+     std::mutex gpu_ranges_mutex;
+     std::mutex synchronized_mutex;
+     RangeSet synchronized_ranges; ///< see KeepPageSynchronized (guarded by synchronized_mutex)
++    /// Sun-sync staging batches (see RecordSunCopies), oldest first, guarded by synchronized_mutex.
++    struct SunItem { VAddr addr; u64 size; u64 staging_offset; };
++    struct SunBatch { Vulkan::StagingBufferRef staging; std::vector<SunItem> items; u64 tick; };
++    std::deque<SunBatch> sun_batches;
+ 
+     /// Deferred readbacks (from TOport 32efe96, GPL-2.0). A guest write beside (not on)
+     /// GPU-written bytes of a page goes on at once; those bytes are copied to host memory in the
+diff --git a/gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp b/gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp
+index b9b0418..a55b1e4 100644
+--- a/gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp
++++ b/gpu/shadps4/video_core/renderer_vulkan/vk_rasterizer.cpp
+@@ -17,6 +17,7 @@
+ #include "core/debug_state.h"
+ #include "core/emulator_settings.h"
+ #include "core/memory.h"
++#include "ps4_settings.h"
+ #include "shader_recompiler/runtime_info.h"
+ #include "video_core/amdgpu/liverpool.h"
+ #include "video_core/amdgpu/pm4_cmds.h"
+@@ -1417,6 +1418,12 @@ void Rasterizer::DispatchRecord(const ComputePipeline* pipeline) {
+ 
+     buffer_cache.WatchWrittenBuffers(ReadbackWatchedShader(cs.pgm_hash));
+     buffer_cache.SetCurrentDispatch(cs.pgm_hash);
++    // Sun EVSM copy dispatch (mateussmeneses 7cf7979, theorder1886-port#26): snapshot the
++    // registered sun ranges into host staging at this point, so a CPU read fault can be
++    // served with the newest completed copy without draining the queue (v0.2.10 flicker).
++    if (cs.pgm_hash == 0x7b1b18c9) {
++        buffer_cache.RecordSunCopies();
++    }
+     const bool bound = BindResources(pipeline);
+     buffer_cache.WatchWrittenBuffers(false);
+     buffer_cache.SetCurrentDispatch(0);
+@@ -3234,12 +3241,8 @@ RenderState Rasterizer::BeginRenderingFull(const GraphicsPipeline* pipeline) {
+         // cascade maps' HTILE Zmask directly, and on RDNA4 a cleared mask makes the moment
+         // texture constant, so the sun's shadows and wet-surface specular vanish. Fill the
+         // mask with the uncompressed value once per surface, again whenever the pass clears
+-        // depth. ORDER1886_HTILE_DRAW_EXPAND=0 disables it.
+-        static const bool htile_draw_expand = [] {
+-            const char* env = std::getenv("ORDER1886_HTILE_DRAW_EXPAND");
+-            return !env || env[0] != '0';
+-        }();
+-        if (htile_draw_expand && htile_address && regs.depth_control.depth_enable &&
++        // depth. Graphics → HTILE draw expand (ORDER1886_HTILE_DRAW_EXPAND=0) disables it.
++        if (Ps4Settings::Get().htile_expand && htile_address && regs.depth_control.depth_enable &&
+             regs.depth_control.depth_write_enable &&
+             (is_depth_clear || !uncompressed_htiles.contains(htile_address))) {
+             const u64 size = memory->ClampRangeSize(
+diff --git a/gpu/shadps4/video_core/texture_cache/sampler.cpp b/gpu/shadps4/video_core/texture_cache/sampler.cpp
+index 91ac72c..48cc425 100644
+--- a/gpu/shadps4/video_core/texture_cache/sampler.cpp
++++ b/gpu/shadps4/video_core/texture_cache/sampler.cpp
+@@ -10,7 +10,8 @@
+ namespace VideoCore {
+ 
+ Sampler::Sampler(const Vulkan::Instance& instance, const AmdGpu::Sampler& sampler,
+-                 const AmdGpu::BorderColorBuffer border_color_base, const bool is_depth, float extra_lod_bias) {
++                 const std::optional<std::array<float, 4>>& custom_border_color,
++                 const bool is_depth, float extra_lod_bias) {
+     using namespace Vulkan;
+     const bool game_anisotropy = AmdGpu::IsAnisoFilter(sampler.xy_mag_filter) ||
+                                  AmdGpu::IsAnisoFilter(sampler.xy_min_filter);
+@@ -34,15 +35,11 @@ Sampler::Sampler(const Vulkan::Instance& instance, const AmdGpu::Sampler& sample
+     }
+ 
+     const auto custom_color = [&]() -> std::optional<vk::SamplerCustomBorderColorCreateInfoEXT> {
+-        if (border_color == vk::BorderColor::eFloatCustomEXT) {
+-            const auto border_color_index = sampler.border_color_ptr.Value();
+-            const auto border_color_buffer = border_color_base.Address<std::array<float, 4>*>();
+-            const auto custom_border_color_array = border_color_buffer[border_color_index];
+-
++        if (border_color == vk::BorderColor::eFloatCustomEXT && custom_border_color) {
+             const vk::SamplerCustomBorderColorCreateInfoEXT ret{
+                 .customBorderColor =
+                     vk::ClearColorValue{
+-                        .float32 = custom_border_color_array,
++                        .float32 = *custom_border_color,
+                     },
+                 .format = vk::Format::eR32G32B32A32Sfloat,
+             };
+diff --git a/gpu/shadps4/video_core/texture_cache/sampler.h b/gpu/shadps4/video_core/texture_cache/sampler.h
+index caea934..0dd8a02 100644
+--- a/gpu/shadps4/video_core/texture_cache/sampler.h
++++ b/gpu/shadps4/video_core/texture_cache/sampler.h
+@@ -3,6 +3,9 @@
+ 
+ #pragma once
+ 
++#include <array>
++#include <optional>
++
+ #include "video_core/amdgpu/regs_texture.h"
+ #include "video_core/amdgpu/resource.h"
+ #include "video_core/renderer_vulkan/vk_common.h"
+@@ -16,7 +19,7 @@ namespace VideoCore {
+ class Sampler {
+ public:
+     explicit Sampler(const Vulkan::Instance& instance, const AmdGpu::Sampler& sampler,
+-                     const AmdGpu::BorderColorBuffer border_color_base, bool is_depth,
++                     const std::optional<std::array<float, 4>>& custom_border_color, bool is_depth,
+                      float extra_lod_bias = 0.0f);
+     ~Sampler();
+ 
+diff --git a/gpu/shadps4/video_core/texture_cache/texture_cache.cpp b/gpu/shadps4/video_core/texture_cache/texture_cache.cpp
+index a544b21..bebaca0 100644
+--- a/gpu/shadps4/video_core/texture_cache/texture_cache.cpp
++++ b/gpu/shadps4/video_core/texture_cache/texture_cache.cpp
+@@ -1330,13 +1330,28 @@ void TextureCache::RefreshImage(Image& image) {
+ vk::Sampler TextureCache::GetSampler(const AmdGpu::Sampler& sampler,
+                                      AmdGpu::BorderColorBuffer border_color_base,
+                                      const bool is_depth, float extra_lod_bias) {
++    // The S# holds an index into a mutable guest table. Snapshot the effective custom color
++    // once so the cache key and the Vulkan sampler always describe the same RGBA value
++    // (mateussmeneses/theorder1886-port e1ceeabe8): reusing an S# with a different table entry
++    // used to keep the previous color - visible on shadow-map edge clamps.
++    std::optional<std::array<float, 4>> custom_border_color;
++    if (sampler.border_color_type.Value() == AmdGpu::BorderColor::Custom &&
++        instance.IsCustomBorderColorSupported()) {
++        const auto colors = border_color_base.Address<const std::array<float, 4>*>();
++        custom_border_color = colors[sampler.border_color_ptr.Value()];
++    }
+     // Compare and plain uses of one S# need separate samplers; so do extra LOD biases.
+-    const u64 hash = HashCombine(HashCombine(XXH3_64bits(&sampler, sizeof(sampler)), is_depth),
+-                                 u64(std::bit_cast<u32>(extra_lod_bias)));
++    u64 hash = HashCombine(HashCombine(XXH3_64bits(&sampler, sizeof(sampler)), is_depth),
++                           u64(std::bit_cast<u32>(extra_lod_bias)));
++    if (custom_border_color) {
++        hash = HashCombine(hash, XXH3_64bits(custom_border_color->data(),
++                                             sizeof(*custom_border_color)));
++    }
+ 
+     std::scoped_lock lock{samplers_mutex};
+-    const auto [it, new_sampler] = samplers.try_emplace(hash, instance, sampler, border_color_base,
+-                                                        is_depth, extra_lod_bias);
++    const auto [it, new_sampler] = samplers.try_emplace(hash, instance, sampler,
++                                                        custom_border_color, is_depth,
++                                                        extra_lod_bias);
+     if (new_sampler) {
+         samplers.at(hash).lru_id = sampler_lru_cache.Insert(hash, gc_tick);
+     } else {
+diff --git a/gpu/shim/ps4_settings.cpp b/gpu/shim/ps4_settings.cpp
+index f81772d..452aa26 100644
+--- a/gpu/shim/ps4_settings.cpp
++++ b/gpu/shim/ps4_settings.cpp
+@@ -122,6 +122,19 @@ void Set(Values& v, const std::string& key, const std::string& value) {
+         v.fsr4_auto_exposure = i != 0;
+     } else if (key == "fsr4_invert_jitter") {
+         v.fsr4_invert_jitter = i != 0;
++    } else if (key == "sun_sync") {
++        // Words or numbers: off=0, staging=1 (default), drain=2 (the v0.2.9 synchronous path).
++        if (value == "off") {
++            v.sun_sync = 0;
++        } else if (value == "drain") {
++            v.sun_sync = 2;
++        } else if (value == "staging") {
++            v.sun_sync = 1;
++        } else {
++            v.sun_sync = std::clamp(i, 0, 2);
++        }
++    } else if (key == "htile_expand") {
++        v.htile_expand = i != 0;
+     } else if (key == "live_resolution") {
+         v.live_resolution = value == "auto" ? -1 : std::clamp(i, 0, 1);
+     } else if (key == "output_res") {
+@@ -174,6 +187,7 @@ void Load() {
+         {"ORDER1886_STALE_READBACK", "stale_readback"},     {"ORDER1886_FSR1", "fsr1"},
+         {"ORDER1886_RCAS", "rcas"},                        {"ORDER1886_FRAMES_AHEAD", "frames_queued"},
+         {"ORDER1886_ANISOTROPY", "anisotropy"},            {"ORDER1886_VIBRATION", "vibration"},
++        {"ORDER1886_SUN_SYNC", "sun_sync"},                {"ORDER1886_HTILE_DRAW_EXPAND", "htile_expand"},
+     };
+     for (const auto& [env, key] : env_keys) {
+         if (const char* value = std::getenv(env); value && value[0]) {
+@@ -199,12 +213,13 @@ void Load() {
+     v.startup_anisotropy = v.anisotropy;
+     const int out = v.output_res;
+     std::printf("Settings: output %s, sharpening %s (%d), anisotropy %d, async shaders %d, "
+-                "frames queued %d, overlay items 0x%x\n",
++                "frames queued %d, overlay items 0x%x, sun sync %d, htile expand %d\n",
+                 out == OutputAutomatic ? "window"
+                                        : (std::to_string(OutputWidths[out]) + "x" +
+                                           std::to_string(OutputHeights[out])).c_str(),
+                 v.rcas ? "on" : "off", v.rcas_strength.load(), v.anisotropy.load(),
+-                int(v.async_shaders.load()), v.frames_queued.load(), v.overlay_items.load());
++                int(v.async_shaders.load()), v.frames_queued.load(), v.overlay_items.load(),
++                v.sun_sync.load(), int(v.htile_expand.load()));
+ }
+ 
+ bool GraphicsNeedRestart() {
+@@ -284,6 +299,10 @@ void Save() {
+         v.overlay_scale.load(), v.overlay_corner.load(), v.overlay_opacity.load(), v.overlay_layout.load());
+     std::fprintf(file, "mouse_look=%d\nmouse_sensitivity=%d\nmouse_invert_y=%d\n",
+         int(v.mouse_look.load()), v.mouse_sensitivity.load(), int(v.mouse_invert_y.load()));
++    // The sun-shadow chain (theorder1886-port#26): an in-game save must keep the launcher's
++    // readback mode and expand switch, or the next launch silently reverts the flicker fix.
++    std::fprintf(file, "sun_sync=%d\nhtile_expand=%d\n",
++        v.sun_sync.load(), int(v.htile_expand.load()));
+     // The launcher's FSR 3.1 choice arrives as this key; dropping it on an in-game save would
+     // switch the player back to the game's own resolve at the next launch.
+     if (v.requested_upscaler != UpscalerOff) {
+diff --git a/gpu/shim/ps4_settings.h b/gpu/shim/ps4_settings.h
+index b405217..0a041c0 100644
+--- a/gpu/shim/ps4_settings.h
++++ b/gpu/shim/ps4_settings.h
+@@ -87,6 +87,13 @@ struct Values {
+     // FSR 4 checks (menu): the provider's auto exposure, the jitter sign it is given.
+     std::atomic<bool> fsr4_auto_exposure{false};
+     std::atomic<bool> fsr4_invert_jitter{false};
++    /// Sun shadow readback mode (theorder1886-port#26): 0 off, 1 staging (default), 2 legacy
++    /// drain. Staging copies the sun ranges to host staging at the EVSM copy dispatch and
++    /// serves CPU write faults from the newest completed batch - no mid-frame queue drain,
++    /// which is what made the sun's shadows flicker every other frame in The Chase.
++    std::atomic<int> sun_sync{1};
++    /// Draw-time HTILE expand for depth-writing passes (the decisive half of #26 on RDNA4).
++    std::atomic<bool> htile_expand{true};
+     std::atomic<int> active_render_width{0}, active_render_height{0};
+     std::atomic<int> output_res{OutputDefault}; ///< index into OutputWidths, or OutputAutomatic
+     /// Live resolution and preset changes (run.sh): 0 off by default (startup patch, fastest
+diff --git a/launcher/order1886_lang_ui.py b/launcher/order1886_lang_ui.py
+index c674932..e902e53 100644
+--- a/launcher/order1886_lang_ui.py
++++ b/launcher/order1886_lang_ui.py
+@@ -13,314 +13,339 @@ tests/test_order1886_ui_catalog.py fails when a UI string is missing from it.
+ """
+ 
+ UI_KEYS = [
+-    "1 — baseline",
+-    "1280 wide, Steam Deck — experimental",
+-    "1280 × 720 output",
+-    "16:9 — experimental",
+-    "16×",
+-    "1920 × 1080 output",
+-    "2 (unqualified)",
+-    "2560 wide — experimental",
+-    "2560 × 1440 output",
+-    "2×",
+-    "30 FPS is native. 60, 90 and Unlocked are experimental: the game clock follows measured time, but Chapter 6/9 QTE checks remain required, and gameplay timing above 60 FPS is still unmeasured: at 60 FPS the tested courtyard runs at about 53 FPS on an RTX 3070. Unlocked runs as fast as the presentation frame cap allows; on a 60 Hz display, VSync holds every rate at 60.",
+-    "30 FPS — native",
+-    "3840 wide, native 4K — experimental",
+-    "3840 × 2160 output (upscaled, not native 4K)",
+-    "4×",
+-    "60 FPS — experimental",
+-    "8×",
+-    "90 FPS — experimental",
+-    "AMD FSR 3.1 (native AA) + FSR 1",
+-    "AMD FSR 4",
+-    "AMD FSR Frame Generation",
+-    "Achievements",
+-    "Additional modes",
+-    "An interrupted update needs your decision",
+-    "An update replaces only launcher files. Saves, settings, mods and patches are preserved, and an interrupted update is restored before the launcher starts.",
+-    "Anisotropic filtering",
+-    "Apply the launcher catalog immediately. Game language changes take effect on its next launch when assets are installed.",
+-    "Asynchronous shaders",
+-    "Background pipeline warmup (unqualified)",
+-    "Balanced",
+-    "Bronze",
+-    "Build cached pipelines on several CPU threads during warmup. Off by default: the correctness baseline. Turning it on is unqualified for stability and visuals; use it to help measure the path.",
+-    "Button prompts",
+-    "Camera sensitivity in percent.",
+-    "Cancel",
+-    "Cancel download",
+-    "Catalogued patches",
+-    "Channel",
+-    "Cheats require version-verified recipes and gameplay acceptance (#15).",
+-    "Check for updates",
+-    "Check for updates on start",
+-    "Check the selected channel once when the launcher starts and show a notice. Nothing is downloaded or installed without a click.",
+-    "Checking for updates…",
++    '1 — baseline',
++    '1280 wide, Steam Deck — experimental',
++    '1280 × 720 output',
++    '16:9 — experimental',
++    '16×',
++    '1920 × 1080 output',
++    '2 (unqualified)',
++    '2560 wide — experimental',
++    '2560 × 1440 output',
++    '2×',
++    '30 FPS is native. 60, 90 and Unlocked are experimental: the game clock follows measured time, but Chapter 6/9 QTE checks remain required, and gameplay timing above 60 FPS is still unmeasured: at 60 FPS the tested courtyard runs at about 53 FPS on an RTX 3070. Unlocked runs as fast as the presentation frame cap allows; on a 60 Hz display, VSync holds every rate at 60.',
++    '30 FPS — native',
++    '3840 wide, native 4K — experimental',
++    '3840 × 2160 output (upscaled, not native 4K)',
++    '4×',
++    '60 FPS — experimental',
++    '8×',
++    '90 FPS — experimental',
++    'AMD FSR 3.1 (native AA) + FSR 1',
++    'AMD FSR 4',
++    'AMD FSR Frame Generation',
++    'Achievements',
++    'Additional modes',
++    'An interrupted update needs your decision',
++    'An update replaces only launcher files. Saves, settings, mods and patches are preserved, and an interrupted update is restored before the launcher starts.',
++    'Anisotropic filtering',
++    'Apply the launcher catalog immediately. Game language changes take effect on its next launch when assets are installed.',
++    'Asynchronous shaders',
++    'Background pipeline warmup (unqualified)',
++    'Balanced',
++    'Borderless',
++    'Bronze',
++    'Build cached pipelines on several CPU threads during warmup. Off by default: the correctness baseline. Turning it on is unqualified for stability and visuals; use it to help measure the path.',
++    'Button prompts',
++    'Camera sensitivity in percent.',
++    'Cancel',
++    'Cancel download',
++    'Catalogued patches',
++    'Channel',
++    'Cheats require version-verified recipes and gameplay acceptance (#15).',
++    'Check for updates',
++    'Check for updates on start',
++    'Check the selected channel once when the launcher starts and show a notice. Nothing is downloaded or installed without a click.',
++    'Checking for updates…',
+     "Choose Linear / no FSR for the original-resolution path. AMD FSR 3.1 or NVIDIA DLAA replaces the game's own temporal anti-aliasing at the game's render size, then FSR 1 scales the result to the output. DLAA needs an NVIDIA GeForce RTX GPU; on any other GPU the game's own anti-aliasing stays and the session log says why. Presentation scaling does not establish native internal resolution: the scene renders at the size the game chooses, and larger output is not native 4K (docs/order1886-resolution.md).",
+-    "Choose a save backup first.",
+-    "Choose the host input for each PS4 digital button. Default restores the original source. Shared inputs press all assigned buttons; keyboard stick keys, mouse buttons and overlay shortcuts stay active. Physical sticks, analog triggers and real touch input are unchanged. Applies on next launch.",
+-    "Choose your extracted game folder",
+-    "Chromatic aberration",
+-    "Circle",
+-    "Compile new shaders and pipelines off the GPU thread. A draw whose pipeline is still compiling is skipped for that frame, so a first-time effect can be missing for a moment instead of the game stopping. Compute dispatches and tessellated draws still compile in place. Turn it off to wait for every compile.",
+-    "Completed",
+-    "Configure graphics",
+-    "Configured values; measured performance is recorded separately.",
+-    "Controller buttons",
+-    "Controller vibration",
+-    "Copy GPU-written images back to guest memory later, in batches, instead of waiting at each CPU access. Off by default: the correctness baseline. Turning it on is unqualified for stability and visuals; use it to help measure the path.",
+-    "Cross",
+-    "Current saves will be backed up before restoring. The game will then start; choose Continue or Load.",
+-    "Current saves will be backed up first. Stop the game before restoring.",
+-    "Custom render width",
+-    "Custom width — experimental",
+-    "D-pad down",
+-    "D-pad left",
+-    "D-pad right",
+-    "D-pad up",
+-    "Default",
+-    "Deferred image readbacks (unqualified)",
+-    "Depth of field",
+-    "Deutsch",
+-    "Development preview",
+-    "Download cancelled.",
+-    "Download update",
+-    "Downloading",
+-    "Downloading the update…",
+-    "Effective limit",
+-    "Enable mods",
+-    "Enabled mod order",
+-    "English",
+-    "Español",
++    'Choose a save backup first.',
++    'Choose the host input for each PS4 digital button. Default restores the original source. Shared inputs press all assigned buttons; keyboard stick keys, mouse buttons and overlay shortcuts stay active. Physical sticks, analog triggers and real touch input are unchanged. Applies on next launch.',
++    'Choose your extracted game folder',
++    'Chromatic aberration',
++    'Circle',
++    'Compile new shaders and pipelines off the GPU thread. A draw whose pipeline is still compiling is skipped for that frame, so a first-time effect can be missing for a moment instead of the game stopping. Compute dispatches and tessellated draws still compile in place. Turn it off to wait for every compile.',
++    'Completed',
++    'Configure graphics',
++    'Configured values; measured performance is recorded separately.',
++    'Controller buttons',
++    'Controller vibration',
++    'Controls',
++    'Copy GPU-written images back to guest memory later, in batches, instead of waiting at each CPU access. Off by default: the correctness baseline. Turning it on is unqualified for stability and visuals; use it to help measure the path.',
++    'Cross',
++    'Current saves will be backed up before restoring. The game will then start; choose Continue or Load.',
++    'Current saves will be backed up first. Stop the game before importing.',
++    'Current saves will be backed up first. Stop the game before restoring.',
++    'Custom render width',
++    'Custom width — experimental',
++    'D-pad down',
++    'D-pad left',
++    'D-pad right',
++    'D-pad up',
++    'Default',
++    'Deferred image readbacks (unqualified)',
++    'Depth of field',
++    'Deutsch',
++    'Development preview',
++    'Disabled',
++    'Display mode',
++    'Download cancelled.',
++    'Download update',
++    'Downloading',
++    'Downloading the update…',
++    'Drains the GPU mid-frame; the v0.2.9 flicker source.',
++    'Effective limit',
++    'Enable mods',
++    'Enabled mod order',
++    'English',
++    'Español',
+     "Every provider renders at the game's own size for now; lower render sizes need render-target scaling (#3).",
+-    "Experimental edition: only CUSA00076 has been tested with a real dump. If something fails, report it with the session log.",
+-    "Film grain",
+-    "Follow launcher language",
+-    "Frame generation",
+-    "Frame-generation presentation, synchronization and latency qualification are pending.",
+-    "Frame-generation presentation, synchronization and latency qualification are pending. Requires supported NVIDIA hardware.",
+-    "Frame-generation presentation, synchronization and latency qualification are pending. Requires the Windows D3D12 presentation bridge.",
+-    "Framing",
+-    "Français",
+-    "GPU readback policy",
+-    "Game & Content",
+-    "Game default",
+-    "Game files found (experimental edition)",
+-    "Game frame rate",
+-    "Game installation",
+-    "Game text language",
+-    "Game voice language",
+-    "Generated frames do not increase simulation rate. All three providers remain in the gold plan.",
+-    "Gold",
+-    "HTILE metadata adaptation (unqualified)",
+-    "Hidden trophy",
+-    "How many frames the GPU command thread may run ahead of the GPU. 1 is the paced baseline; 2 can raise throughput at the cost of latency; Unbounded removes the wait and can make frame delivery bursty.",
+-    "In-game settings menu",
+-    "Independent text selection remains tracked in #21.",
+-    "Independent vibration configuration is pending runtime validation.",
+-    "Independent voice selection requires installed language assets (#21).",
+-    "Infinite ammunition",
+-    "Infinite health",
+-    "Install and restart",
+-    "Install and restart?",
+-    "Installation tools",
+-    "Intel XeSS",
+-    "Intel XeSS Frame Generation",
+-    "Invert vertical camera",
+-    "Invert vertical mouse movement.",
+-    "Italiano",
+-    "Keyboard and mouse",
+-    "Keyboard buttons",
+-    "Keyboard stick axes, physical analog triggers and real touch input are not independently remappable yet (#4).",
+-    "L1",
+-    "L2",
+-    "L3",
+-    "Launch configuration",
++    'Experimental edition: only CUSA00076 has been tested with a real dump. If something fails, report it with the session log.',
++    'FSR 1',
++    "Fills the depth surfaces' HTILE mask with the uncompressed value when a pass clears and writes depth, so the sun's EVSM compute reads caster geometry instead of the cleared state. Off restores the v0.2.15 behaviour (sun shadows and wet-surface specular can vanish, theorder1886-port#26); turn it off only to A/B a report.",
++    'Film grain',
++    'Follow launcher language',
++    'Frame generation',
++    'Frame-generation presentation, synchronization and latency qualification are pending.',
++    'Frame-generation presentation, synchronization and latency qualification are pending. Requires supported NVIDIA hardware.',
++    'Frame-generation presentation, synchronization and latency qualification are pending. Requires the Windows D3D12 presentation bridge.',
++    'Framing',
++    'Français',
++    'Fullscreen',
++    'GPU readback policy',
++    'Game & Content',
++    'Game default',
++    'Game files found (experimental edition)',
++    'Game folder',
++    'Game frame rate',
++    'Game installation',
++    'Game text language',
++    'Game voice language',
++    'Generated frames do not increase simulation rate. All three providers remain in the gold plan.',
++    'Gold',
++    'Graphics',
++    'HTILE draw expand',
++    'HTILE metadata adaptation (unqualified)',
++    'Hidden trophy',
++    'Home',
++    'How many frames the GPU command thread may run ahead of the GPU. 1 is the paced baseline; 2 can raise throughput at the cost of latency; Unbounded removes the wait and can make frame delivery bursty.',
++    'Import',
++    'Import copies saves from another installation, a save backup or a decrypted save folder. Current saves are backed up first; saves with the same name are replaced.',
++    'Import saves?',
++    'Import saves…',
++    'In-game settings menu',
++    'Independent text selection remains tracked in #21.',
++    'Independent vibration configuration is pending runtime validation.',
++    'Independent voice selection requires installed language assets (#21).',
++    'Infinite ammunition',
++    'Infinite health',
++    'Install and restart',
++    'Install and restart?',
++    'Installation tools',
++    'Intel XeSS',
++    'Intel XeSS Frame Generation',
++    'Invert vertical camera',
++    'Invert vertical mouse movement.',
++    'Italiano',
++    'Keyboard and mouse',
++    'Keyboard buttons',
++    'Keyboard stick axes, physical analog triggers and real touch input are not independently remappable yet (#4).',
++    'L1',
++    'L2',
++    'L3',
++    'Launch configuration',
++    'Launcher language',
+     "Leave empty to use the installation's verified Order runtime.",
+-    "Limits how often the runtime presents (#14). At 30, 60 or 90 FPS the game frame rate still wins while it is lower, so the default of 120 never changes their pacing and lowering it throttles presentation only. With Unlocked this cap is the frame rate. The game clock follows measured time either way, so this is not a simulation-speed control.",
+-    "Linear / no FSR",
+-    "Load cached pipelines while the game runs instead of on a loading screen before the first frame. Off by default: the correctness baseline. Turning it on is unqualified for stability and visuals; use it to help measure the path.",
+-    "Local unlock history and artwork from your installed game. Names and descriptions are decrypted from your game with your own trophy key. Locked artwork stays hidden.",
+-    "Locked texture update checks (unqualified)",
+-    "Main navigation",
+-    "Manage game and saves",
+-    "Map mouse movement to the game camera; release capture when focus is lost.",
+-    "Match the window",
+-    "Mods folder",
+-    "Motion blur",
+-    "Mount loose-file overlays without changing original game files.",
+-    "Mouse camera",
+-    "Mouse sensitivity",
+-    "NVIDIA DLAA (DLSS at native size) + FSR 1",
+-    "NVIDIA DLSS Frame Generation",
+-    "Native",
+-    "No digital source",
+-    "No earned trophies recorded yet. Unlocks appear here when the game writes them.",
+-    "No hash-verified recipe for this executable is available yet.",
+-    "No matching settings. Try a different search.",
+-    "No session output yet.",
+-    "No session yet",
+-    "No update checked yet",
+-    "Use installation runtime",
+-    "Up to date",
+-    "Off",
++    'Limits how often the runtime presents (#14). At 30, 60 or 90 FPS the game frame rate still wins while it is lower, so the default of 120 never changes their pacing and lowering it throttles presentation only. With Unlocked this cap is the frame rate. The game clock follows measured time either way, so this is not a simulation-speed control.',
++    'Linear / no FSR',
++    'Load cached pipelines while the game runs instead of on a loading screen before the first frame. Off by default: the correctness baseline. Turning it on is unqualified for stability and visuals; use it to help measure the path.',
++    'Local unlock history and artwork from your installed game. Names and descriptions are decrypted from your game with your own trophy key. Locked artwork stays hidden.',
++    'Locked texture update checks (unqualified)',
++    'Main navigation',
++    'Manage game and saves',
++    'Map mouse movement to the game camera; release capture when focus is lost.',
++    'Match the window',
++    'Mods folder',
++    'Motion blur',
++    'Mount loose-file overlays without changing original game files.',
++    'Mouse camera',
++    'Mouse sensitivity',
++    'NVIDIA DLAA (DLSS at native size) + FSR 1',
++    'NVIDIA DLSS Frame Generation',
++    'Native',
++    'No digital source',
++    'No earned trophies recorded yet. Unlocks appear here when the game writes them.',
++    'No hash-verified recipe for this executable is available yet.',
++    'No matching settings. Try a different search.',
++    'No session output yet.',
++    'No session yet',
++    'No update checked yet',
++    'Off',
+     "Off by default and unqualified for performance, stability and visuals. Before an upload the runtime checks a clean image's flags without taking the mutex it shares with the guest fault handlers; turning this on takes that mutex for every check. Uploads and image contents are otherwise unchanged, and the extra locking costs GPU-thread time. It is here to isolate a suspected race, not to change the picture. A runtime honours it only when its build declares the live switch file.",
+-    "Off by default and unqualified for performance, stability and visuals. The runtime normally records Vulkan commands on its own recording thread and hands them over; turning this on records each command on the thread that submits it, so no work moves between threads. It does not change what the game draws. A runtime honours it only when its build declares the live switch file.",
+-    "Off by default. The adapted HTILE metadata read path has no matched gameplay, visual or frame-cost qualification yet (#5), so leave it off unless you are helping to measure it. Turning it on lets buffer reads take the tracked HTILE word instead.",
+-    "Off by default. The menu, its tabs and the settings it changes while the game runs are unqualified for this title: input capture, focus and stability have not been verified in gameplay, so enable it only to help test it. Insert or R3+R2 toggles it when enabled.",
+-    "On",
+-    "One folder name per line. Later enabled mods take priority; newly discovered mods remain disabled.",
+-    "Only enabled folders in the saved order are mounted.",
+-    "Only this title’s regenerable shader cache will be removed. Saves and settings are preserved.",
+-    "Open installation",
+-    "Open logs",
+-    "Open player data",
+-    "Open updates",
++    'Off by default and unqualified for performance, stability and visuals. The runtime normally records Vulkan commands on its own recording thread and hands them over; turning this on records each command on the thread that submits it, so no work moves between threads. It does not change what the game draws. A runtime honours it only when its build declares the live switch file.',
++    'Off by default. The adapted HTILE metadata read path has no matched gameplay, visual or frame-cost qualification yet (#5), so leave it off unless you are helping to measure it. Turning it on lets buffer reads take the tracked HTILE word instead.',
++    'Off by default. The menu, its tabs and the settings it changes while the game runs are unqualified for this title: input capture, focus and stability have not been verified in gameplay, so enable it only to help test it. Insert or R3+R2 toggles it when enabled.',
++    'On',
++    'One folder name per line. Later enabled mods take priority; newly discovered mods remain disabled.',
++    'Only enabled folders in the saved order are mounted.',
++    'Only this title’s regenerable shader cache will be removed. Saves and settings are preserved.',
++    'Open installation',
++    'Open logs',
++    'Open player data',
++    'Open saves folder',
++    'Open updates',
+     "Optional: your own console's trophy key, 32 hexadecimal digits, as shadPS4 uses it. With it the launcher decrypts trophy names and descriptions from your game's own files; hidden trophies stay hidden until earned. The key stays in this installation's settings and is never sent anywhere.",
+-    "Options",
+-    "Original (1920 wide)",
+-    "Original game files and player data are protected.",
+-    "Original preserves cinematic framing. The 16:9 patch is executable-specific and experimental.",
+-    "Output resolution",
+-    "Overlay: CPU",
+-    "Overlay: GPU",
+-    "Overlay: RAM / VRAM",
+-    "Overlay: frame time",
+-    "Parallel pipeline warmup (unqualified)",
+-    "Performance overlay",
+-    "Physical trigger remains active",
+-    "Platinum",
+-    "Play uses the current save data.",
+-    "Play will ask to restore the selected backup first.",
+-    "PlayStation (original)",
+-    "Player data",
+-    "Polski",
+-    "Português (Brasil)",
+-    "Precise — experimental",
+-    "Presentation cap",
+-    "Presentation frame cap",
+-    "Preview follows every published Go preview, which is the only channel that carries a launcher package today. Stable stays quiet until a release without a preview suffix exists.",
+-    "Preview — every published Go preview",
+-    "Quality",
+-    "Quality presets render the scene below the output size and let the temporal provider reconstruct it.",
+-    "Queued frames",
+-    "R1",
+-    "R2",
+-    "R3",
++    'Options',
++    'Original (1920 wide)',
++    'Original cinematic aspect',
++    'Original game files and player data are protected.',
++    'Original preserves cinematic framing. The 16:9 patch is executable-specific and experimental.',
++    'Output resolution',
++    'Overlay: CPU',
++    'Overlay: GPU',
++    'Overlay: RAM / VRAM',
++    'Overlay: frame time',
++    'Parallel pipeline warmup (unqualified)',
++    'Performance',
++    'Performance overlay',
++    'Physical trigger remains active',
++    'Platinum',
++    'Play uses the current save data.',
++    'Play will ask to restore the selected backup first.',
++    'PlayStation (original)',
++    'Player data',
++    'Polski',
++    'Português (Brasil)',
++    'Precise — experimental',
++    'Presentation cap',
++    'Presentation frame cap',
++    'Preview follows every published Go preview, which is the only channel that carries a launcher package today. Stable stays quiet until a release without a preview suffix exists.',
++    'Preview — every published Go preview',
++    'Quality',
++    'Quality presets render the scene below the output size and let the temporal provider reconstruct it.',
++    'Queued frames',
++    'R1',
++    'R2',
++    'R3',
+     "RCAS sharpening strength in percent; 0 turns it off. It runs with FSR 1 upscaling, or when the output matches the game's size; with Linear upscaling to a larger output it has no pass to run in.",
+     "Raises filtering to at least this level on filtered, mipmapped textures; depth and point-sampled textures keep the game's own sampling. Applies on next launch; visual qualification is pending.",
+-    "Ready to install",
+-    "Recipes that edit the prepared image are applied on the next preparation, and each one must match this build`s title id, APP_VER, VERSION, image hashes and expected bytes or the preparation refuses it. The 60 FPS and 16:9 recipes are configured by the game frame rate and framing settings instead, so they are not selectable here.",
+-    "Relaxed (existing baseline)",
+-    "Relaxed keeps the existing behavior. Selective synchronizes CPU reads of small GPU output buffers; precise tracks all GPU-written buffers. Both can add waits and require gameplay/performance qualification.",
+-    "Render resolution",
+-    "Report an issue",
+-    "Required buffer readbacks cannot be disabled in the Order profile.",
+-    "Reset",
+-    "Reset section",
+-    "Reset section?",
+-    "Reset this section to validated defaults?",
+-    "Resolved timing",
+-    "Restore",
+-    "Restore and play",
+-    "Restore previous version",
+-    "Restore the previous version?",
+-    "Restoring the previous version",
+-    "Return to Whitechapel",
+-    "Roll back this update",
+-    "Runtime executable",
+-    "Save backups",
+-    "Current saves will be backed up first. Stop the game before importing.",
+-    "Import",
+-    "Import copies saves from another installation, a save backup or a decrypted save folder. Current saves are backed up first; saves with the same name are replaced.",
+-    "Import saves?",
+-    "Import saves…",
+-    "Open saves folder",
+-    "Saves",
+-    "Saves folder",
+-    "Saves imported. Start the game and choose Continue or Load.",
+-    "Save restored. Start the game and choose Continue or Load.",
+-    "Saved — applies on next launch.",
+-    "Saving settings…",
+-    "Search all settings",
+-    "Search settings",
+-    "Section reset.",
+-    "Select a matching native runtime to remove a digital binding.",
+-    "Select your extracted game folder (any edition: CUSA00076, CUSA00035, CUSA00070, CUSA00100, CUSA00670 or CUSA00785). Original files remain unchanged.",
+-    "Selected backup",
+-    "Selected backup will be restored after confirmation.",
+-    "Selective — experimental",
+-    "Session log",
+-    "Session output",
+-    "Shader cache cleared.",
+-    "Sharpening",
+-    "Show the runtime performance overlay.",
+-    "Shown in the performance overlay when it is on.",
+-    "Silver",
+-    "Size of the presented image before it is fitted to the window. The game still renders at its own size, so a larger output is upscaled by the Upscaling filter, not native 4K; a smaller one costs less and is stretched to the window. Output dimensions and game-rendered dimensions are reported separately.",
+-    "Skip reload",
+-    "Square",
+-    "Stable — released builds only",
+-    "Starting session…",
+-    "Stick axes and analog trigger remapping",
+-    "Stop",
+-    "Stop and close",
+-    "Stop and close?",
+-    "Synchronize presentation with the display.",
+-    "Synchronous command recording (unqualified)",
+-    "System",
+-    "The FSR 4 provider is not built into this package yet (#12).",
++    'Ready to install',
++    'Recipes that edit the prepared image are applied on the next preparation, and each one must match this build`s title id, APP_VER, VERSION, image hashes and expected bytes or the preparation refuses it. The 60 FPS and 16:9 recipes are configured by the game frame rate and framing settings instead, so they are not selectable here.',
++    'Record performance data',
++    'Relaxed (existing baseline)',
++    'Relaxed keeps the existing behavior. Selective synchronizes CPU reads of small GPU output buffers; precise tracks all GPU-written buffers. Both can add waits and require gameplay/performance qualification.',
++    'Render resolution',
++    'Report an issue',
++    'Required buffer readbacks cannot be disabled in the Order profile.',
++    'Reset',
++    'Reset section',
++    'Reset section?',
++    'Reset this section to validated defaults?',
++    'Resolved timing',
++    'Restore',
++    'Restore and play',
++    'Restore previous version',
++    'Restore the previous version?',
++    'Restoring the previous version',
++    'Return to Whitechapel',
++    'Roll back this update',
++    'Runtime executable',
++    'Save backups',
++    "Save frame times and slow-frame diagnostics with each session's logs. Turn this off after recording the slow scene.",
++    'Save restored. Start the game and choose Continue or Load.',
++    'Saved — applies on next launch.',
++    'Saves',
++    'Saves folder',
++    'Saves imported. Start the game and choose Continue or Load.',
++    'Saving settings…',
++    'Search all settings',
++    'Search settings',
++    'Section reset.',
++    'Select a matching native runtime to remove a digital binding.',
++    'Select your extracted game folder (any edition: CUSA00076, CUSA00035, CUSA00070, CUSA00100, CUSA00670 or CUSA00785). Original files remain unchanged.',
++    'Selected backup',
++    'Selected backup will be restored after confirmation.',
++    'Selective — experimental',
++    'Session log',
++    'Session output',
++    'Shader cache cleared.',
++    'Sharpening',
++    'Show the runtime performance overlay.',
++    'Shown in the performance overlay when it is on.',
++    'Silver',
++    'Size of the presented image before it is fitted to the window. The game still renders at its own size, so a larger output is upscaled by the Upscaling filter, not native 4K; a smaller one costs less and is stretched to the window. Output dimensions and game-rendered dimensions are reported separately.',
++    'Skip reload',
++    'Square',
++    'Stable — released builds only',
++    'Staging — recommended',
++    'Starting session…',
++    'Stick axes and analog trigger remapping',
++    'Stop',
++    'Stop and close',
++    'Stop and close?',
++    'Sun reads race the GPU; shadows and specular may flicker.',
++    'Sun shadow readback sync',
++    'Synchronize presentation with the display.',
++    'Synchronous command recording (unqualified)',
++    'Synchronous drain — legacy',
++    'System',
++    "The Chase's every-other-frame sun flicker came from the synchronous drain answering the sun copy's CPU read mid-frame with half-updated depth. Staging (default) snapshots the ranges at the copy dispatch and serves the newest completed batch without a stall. Synchronous drain is the old behaviour, Off skips the sync entirely; both can flicker.",
++    'The FSR 4 provider is not built into this package yet (#12).',
+     "The Linux runtime does not load upscaler providers yet, so the game's own temporal anti-aliasing stays (#10).",
+     "The Linux runtime does not load upscaler providers yet, so the game's own temporal anti-aliasing stays (#11).",
++    'The Linux runtime has no NVIDIA DLSS bridge: DLAA needs the Windows vendor runtime and an RTX GPU (#11).',
+     "The animated grain noise laid over the final image. On is the original image. Off zeroes the effect's strength in a hash-checked prepared copy of the executable, applied on next launch; the original game files stay unchanged and gameplay with the effect off is unqualified.",
+-    "The buttons the game shows in prompts, menus and quick-time events. Xbox and Keyboard and mouse are built from your own game files on the first launch with them (up to a minute) and leave the original files unchanged. Keyboard and mouse also uses its own key layout, listed in docs/order1886-button-prompts.md, in place of custom keyboard buttons.",
++    'The buttons the game shows in prompts, menus and quick-time events. Xbox and Keyboard and mouse are built from your own game files on the first launch with them (up to a minute) and leave the original files unchanged. Keyboard and mouse also uses its own key layout, listed in docs/order1886-button-prompts.md, in place of custom keyboard buttons.',
+     "The camera and object motion blur of the full-screen effects pass. On is the original image. Off zeroes the effect's strength in a hash-checked prepared copy of the executable, applied on next launch; the original game files stay unchanged and gameplay with the effect off is unqualified.",
+     "The colour fringing toward the edges of the lens. On is the original image. Off zeroes the effect's strength in a hash-checked prepared copy of the executable, applied on next launch; the original game files stay unchanged and gameplay with the effect off is unqualified.",
+-    "The current session will be stopped before the launcher closes.",
+-    "The interrupted update is rolled back from its verified backup. Choose this only after reading the recorded failure.",
+-    "The launcher closes so the update can replace its own files. Saves, settings, mods and patches are preserved, and the launcher reopens when it is done.",
++    'The current session will be stopped before the launcher closes.',
++    'The interrupted update is rolled back from its verified backup. Choose this only after reading the recorded failure.',
++    'The launcher closes so the update can replace its own files. Saves, settings, mods and patches are preserved, and the launcher reopens when it is done.',
+     "The out-of-focus blur of cutscenes and aiming; distance fog blur is kept. On is the original image. Off zeroes the effect's strength in a hash-checked prepared copy of the executable, applied on next launch; the original game files stay unchanged and gameplay with the effect off is unqualified.",
+-    "The runtime has no XeSS identifier yet, so even a qualified temporal renderer could not select it (#13).",
++    'The runtime has no XeSS identifier yet, so even a qualified temporal renderer could not select it (#13).',
+     "The size the game itself renders at, with no upscaler: every screen-sized pass, from the G-buffer to tonemapping, runs at this width, and the height follows Framing (2.4:1 for Original, 16:9 for full screen). A prepared copy of the executable sets the size and grows the game's render-target memory to match; the original files stay unchanged. At any size other than the original Upscaling is set aside and the frame is presented 1:1, guest memory grows with larger sizes, and image quality, memory use and gameplay are experimental (docs/order1886-resolution.md).",
+-    "These are the values the next launch will ask for, not measured performance.",
+-    "This setting is not exposed by the validated Order launch profile yet; backend wiring and qualification are pending.",
+-    "Timing",
+-    "Touchpad left click",
+-    "Touchpad right click",
+-    "Triangle",
+-    "Trophy",
+-    "Trophy key",
+-    "Türkçe",
+-    "Unavailable",
+-    "Unbounded (unqualified)",
+-    "Unlock time unavailable",
+-    "Unlocked",
+-    "Unlocked — experimental",
+-    "Update available",
+-    "Update channel",
+-    "Update failed",
+-    "Update needs your attention",
+-    "Update state unavailable",
+-    "Updates",
+-    "Upscaler quality",
+-    "Use current saves",
+-    "Use current saves, or choose a complete backup to restore before Play. Current saves are backed up before replacement.",
+-    "Used when Render resolution is Custom: a multiple of 16 from 1280 to 4880 (4192 with 16:9 framing).",
+-    "VBlank",
+-    "VSync",
+-    "Valid changes save automatically. Game settings take effect on the next launch.",
+-    "View releases",
+-    "Wait for settings to finish saving.",
+-    "Window mode is independent of framing and game timing.",
+-    "Worker connection lost. A game may still be running; check its window and the session log before starting another session.",
+-    "Xbox",
+-    "Your game. Your settings. Ready when you are.",
+-    "installed achievements earned",
+-    "matching options",
+-    "uncapped",
+-    "Русский",
+-    "العربية",
+-    "日本語",
+-    "简体中文",
+-    "한국어",
++    'These are the values the next launch will ask for, not measured performance.',
++    'This setting is not exposed by the validated Order launch profile yet; backend wiring and qualification are pending.',
++    'Timing',
++    'Touchpad left click',
++    'Touchpad right click',
++    'Triangle',
++    'Trophy',
++    'Trophy key',
++    'Türkçe',
++    'Unavailable',
++    'Unbounded (unqualified)',
++    'Unlock time unavailable',
++    'Unlocked',
++    'Unlocked — experimental',
++    'Up to date',
++    'Update available',
++    'Update channel',
++    'Update failed',
++    'Update needs your attention',
++    'Update state unavailable',
++    'Updates',
++    'Upscaler quality',
++    'Upscaling',
++    'Use current saves',
++    'Use current saves, or choose a complete backup to restore before Play. Current saves are backed up before replacement.',
++    'Use installation runtime',
++    'Used when Render resolution is Custom: a multiple of 16 from 1280 to 4880 (4192 with 16:9 framing).',
++    'VBlank',
++    'VSync',
++    'Valid changes save automatically. Game settings take effect on the next launch.',
++    'View releases',
++    'Wait for settings to finish saving.',
++    'Window mode is independent of framing and game timing.',
++    'Windowed',
++    'Worker connection lost. A game may still be running; check its window and the session log before starting another session.',
++    'Xbox',
++    'Your game. Your settings. Ready when you are.',
++    'installed achievements earned',
++    'matching options',
++    'uncapped',
++    'Русский',
++    'العربية',
++    '日本語',
++    '简体中文',
++    '한국어',
+ ]
+diff --git a/launcher/order1886_options.py b/launcher/order1886_options.py
+index 9c3e2a5..b7a5e42 100644
+--- a/launcher/order1886_options.py
++++ b/launcher/order1886_options.py
+@@ -78,6 +78,22 @@ field("sharpness", "Sharpening", "graphics", "number", 0,
+ field("anisotropy", "Anisotropic filtering", "graphics", "select", 1,
+       "Raises filtering to at least this level on filtered, mipmapped textures; depth and point-sampled textures keep the game's own sampling. Applies on next launch; visual qualification is pending.",
+       [(x, "Game default" if x == 1 else str(x) + "×", "") for x in (1, 2, 4, 8, 16)])
++# Sun-shadow chain (theorder1886-port#26): the EVSM sun conversion reads the cascade maps'
++# HTILE mask (expand) and its CPU readback must not stall the queue (sync mode). Both default
++# to the stable combination verified on RX 9070 XT; the choices exist to A/B a report.
++field("sun_sync", "Sun shadow readback sync", "graphics", "select", 1,
++      "The Chase's every-other-frame sun flicker came from the synchronous drain answering the "
++      "sun copy's CPU read mid-frame with half-updated depth. Staging (default) snapshots the "
++      "ranges at the copy dispatch and serves the newest completed batch without a stall. "
++      "Synchronous drain is the old behaviour, Off skips the sync entirely; both can flicker.",
++      [(1, "Staging — recommended", ""),
++       (2, "Synchronous drain — legacy", "Drains the GPU mid-frame; the v0.2.9 flicker source."),
++       (0, "Off", "Sun reads race the GPU; shadows and specular may flicker.")])
++field("htile_expand", "HTILE draw expand", "graphics", "boolean", True,
++      "Fills the depth surfaces' HTILE mask with the uncompressed value when a pass clears and "
++      "writes depth, so the sun's EVSM compute reads caster geometry instead of the cleared "
++      "state. Off restores the v0.2.15 behaviour (sun shadows and wet-surface specular can "
++      "vanish, theorder1886-port#26); turn it off only to A/B a report.")
+ # Each switch edits the prepared copy of the executable (scripts/order1886_post_effects.py) so the
+ # game takes its own path for a lens without that effect. There is no model-detail switch: the
+ # only level-of-detail control found in the executable is a frame-capture flag with no located
+diff --git a/order1886.py b/order1886.py
+index 5ac5d92..df83f29 100644
+--- a/order1886.py
++++ b/order1886.py
+@@ -372,7 +372,7 @@ def timing_profile(settings):
+ 
+ # Diagnostic switches that change no game behaviour; everything else ORDER1886_* is
+ # set from the player's settings only.
+-DIAGNOSTIC_ENVIRONMENT = frozenset({'ORDER1886_DIAG_RESOURCE_SHARPS', 'ORDER1886_FATAL_DUMP',
++DIAGNOSTIC_ENVIRONMENT = frozenset({'ORDER1886_DIAG_RESOURCE_SHARPS', 'ORDER1886_FATAL_DUMP', 'ORDER1886_TRACE', 'ORDER1886_PAD_FILE',
+                                     'ORDER1886_GPU_LOG', 'ORDER1886_PERF_DIAG'})
+ 
+ 
+@@ -555,7 +555,8 @@ OUTPUT_RESOLUTIONS = ('automatic', '1280x720', '1920x1080', '2560x1440', '3840x2
+ GRAPHICS_DEFAULTS = {'output_resolution': 'automatic', 'sharpness': 0, 'anisotropy': 1, 'frames_queued': 1,
+                      'overlay_frametime': True, 'overlay_gpu': False, 'overlay_cpu': False,
+                      'overlay_memory': False, 'async_shaders': True, 'background_warmup': False,
+-                     'parallel_warmup': False, 'speculative_readbacks': False}
++                     'parallel_warmup': False, 'speculative_readbacks': False,
++                     'sun_sync': 1, 'htile_expand': True}
+ 
+ 
+ def graphics_settings(settings):
+@@ -564,7 +565,7 @@ def graphics_settings(settings):
+     if values['output_resolution'] not in OUTPUT_RESOLUTIONS:
+         raise ValueError('Invalid output resolution')
+     for key, allowed in (('sharpness', range(0, 101)), ('anisotropy', (1, 2, 4, 8, 16)),
+-                         ('frames_queued', (0, 1, 2))):
++                         ('frames_queued', (0, 1, 2)), ('sun_sync', (0, 1, 2))):
+         if type(values[key]) is not int or values[key] not in allowed:
+             raise ValueError(f'Invalid {key.replace("_", " ")}: {values[key]!r}')
+     for key, default in GRAPHICS_DEFAULTS.items():
+@@ -607,6 +608,10 @@ def write_runtime_config(user, settings):
+               **({'upscaler': upscaler} if upscaler else {}),
+               'output_res': graphics['output_resolution'],
+               'rcas': int(graphics['sharpness'] > 0), 'rcas_strength': graphics['sharpness'],
++              # The sun-shadow chain (theorder1886-port#26): staging readback sync (1) plus the
++              # draw-time HTILE expand (on) fix The Chase's every-other-frame sun flicker. The
++              # runtime also keeps these across its own in-game Save.
++              'sun_sync': graphics['sun_sync'], 'htile_expand': int(graphics['htile_expand']),
+               # The runtime's "off" is 0; the launcher shows it as the game's own 1x.
+               'anisotropy': 0 if graphics['anisotropy'] == 1 else graphics['anisotropy'],
+               'frames_queued': graphics['frames_queued'],
+@@ -774,8 +779,11 @@ def argument_parser():
+                         help='Frames the GPU command thread may run ahead; 0 is unbounded')
+     for name, default in (('overlay-frametime', 1), ('overlay-gpu', 0), ('overlay-cpu', 0),
+                           ('overlay-memory', 0), ('async-shaders', 1), ('background-warmup', 0),
+-                          ('parallel-warmup', 0), ('speculative-readbacks', 0)):
++                          ('parallel-warmup', 0), ('speculative-readbacks', 0), ('htile-expand', 1)):
+         parser.add_argument('--' + name, type=int, choices=[0, 1], default=default)
++    parser.add_argument('--sun-sync', type=int, choices=[0, 1, 2], default=1,
++                        help='Sun shadow readback: 0 off, 1 staging (default, fixes The Chase '
++                             'flicker), 2 legacy synchronous drain')
+     parser.add_argument('--mouse-look', type=int, choices=[0, 1], default=1)
+     parser.add_argument('--mouse-sensitivity', type=int, default=100,
+                         help='Mouse-to-stick sensitivity, 10 to 500 percent (default: 100)')
+diff --git a/packaging/linux/order1886-runtime-wrapper.sh b/packaging/linux/order1886-runtime-wrapper.sh
+new file mode 100755
+index 0000000..f0567bb
+--- /dev/null
++++ b/packaging/linux/order1886-runtime-wrapper.sh
+@@ -0,0 +1,65 @@
++#!/bin/sh
++# Sun-shadow chain (theorder1886-port#26). The v0.2.10 note killed the page sync here because
++# its synchronous drain (scheduler.Finish) handed the shadow pass half-updated depth. That fix
++# held for Chapter I, but The Chase flickers every other frame without the sync: the deferred
++# readback serves the sun's EVSM ranges a frame stale. The runtime now defaults to the staging
++# sync (sun_sync=1 in runtime.ini): the copy is batched at the EVSM dispatch and a CPU fault
++# takes the newest completed batch - no drain, no stale frame. ORDER1886_SUN_SYNC=0 or 2 in
++# this file would still override the ini; do not add it back.
++
++# One-shot gamepad diagnostics. Best-effort, never fatal, silent when all is well. The launcher
++# verifies the runtime by exec-ing this entry with --runtime-info/--gamepad/--input-options and
++# parsing stdout, so the scan runs ONLY for a real game boot (first argument is the prepared
++# image path, a --flag means a probe). ORDER1886_PAD_DIAG=0 skips; ORDER1886_SYSFS points the
++# scan at a fake sysfs for tests. Every line starts with "Order1886: pad check:" to stay greppable.
++first=$1
++case $first in
++  --*|"") diag=0 ;;
++  *) diag=1 ;;
++esac
++diag=${ORDER1886_PAD_DIAG:-$diag}
++if [ "$diag" = 1 ]; then
++  SYS=${ORDER1886_SYSFS:-/sys}
++  if [ ! -d "/lib/modules/$(uname -r)" ]; then
++    printf 'Order1886: pad check: the running kernel (%s) has no module folder: gamepad drivers (xpad, hid-microsoft) cannot load. Reboot into the installed kernel.\n' "$(uname -r)"
++  fi
++  pads=0
++  for u in "$SYS"/bus/usb/devices/*/; do
++    [ -f "$u/idVendor" ] || continue
++    v=$(cat "$u/idVendor" 2>/dev/null)
++    [ "$v" = 045e ] || [ "$v" = 1720 ] || continue
++    pads=1
++    bound=
++    p=$(basename "$u")
++    for i in "$u$p":*/driver; do
++      [ -e "$i" ] && bound=1 && break
++    done
++    [ "$bound" ] && continue
++    printf 'Order1886: pad check: an Xbox pad (%s:%s) is visible on USB but no driver took it: the kernel module is missing or failed to load (reboot after a kernel update, or load xpad).\n' "$v" "$(cat "$u/idProduct" 2>/dev/null)"
++  done
++  for h in "$SYS"/class/hidraw/hidraw*; do
++    uev=$(cat "$h/device/uevent" 2>/dev/null)
++    case $uev in
++      *0000045E*|*0000045e*) pads=1
++        node=/dev/$(basename "$h")
++        [ -e "$node" ] && [ ! -r "$node" ] && printf 'Order1886: pad check: %s is present but your user cannot read it. Add the udev rule from the CONTROLLERS section of QUICKSTART.txt, or grant the input group.\n' "$node"
++        ;;
++    esac
++  done
++  if [ "$pads" = 0 ] && [ -d "$SYS"/class/input ]; then
++    found=0
++    for n in "$SYS"/class/input/input*; do
++      name=$(cat "$n/name" 2>/dev/null)
++      case $name in
++        *[Xx][Bb]ox*|*XBOX*|*Microsoft*) found=1
++          for e in "$n"/event*; do
++            [ -e "$e" ] || continue
++            ev=/dev/input/$(basename "$e")
++            [ -r "$ev" ] || printf 'Order1886: pad check: "%s" (%s) is not readable by your user: quit Steam or grant input access.\n' "$name" "$ev"
++          done
++          ;;
++      esac
++    done
++  fi
++fi
++exec "$(dirname "$0")/order1886-runtime.bin" "$@"
+diff --git a/tests/test_order1886_lang_ui_translations.py b/tests/test_order1886_lang_ui_translations.py
+index 8bd41b4..2d5f00f 100644
+--- a/tests/test_order1886_lang_ui_translations.py
++++ b/tests/test_order1886_lang_ui_translations.py
+@@ -112,11 +112,16 @@ class CatalogueWiringTests(unittest.TestCase):
+                     self.assertEqual(lang.translate(key, locale), value)
+ 
+     def test_untranslated_reports_only_the_keys_that_are_still_english(self):
++        from launcher.order1886_lang_data import KEYS
+         for locale, texts in UI_TRANSLATIONS.items():
+             with self.subTest(locale=locale):
+-                still_english = sorted(set(UI_KEYS) - set(texts))
++                # A UI key can also be translated through the base Tk catalogue (KEYS), but
++                # only counts as translated when that base value really differs from English
++                # (`Performance` equals English in pt/fr/it). untranslated() reports exactly
++                # the keys that resolve to English.
++                base_translated = {key for key in KEYS if lang.table(locale)[key] != key}
++                still_english = sorted(set(UI_KEYS) - set(texts) - base_translated)
+                 self.assertEqual(lang.untranslated(locale), still_english)
+-                self.assertEqual(len(lang.untranslated(locale)), len(UI_KEYS) - len(texts))
+                 self.assertLess(len(lang.untranslated(locale)), len(UI_KEYS))
+         self.assertEqual(lang.untranslated("en"), [])
+ 
+diff --git a/tests/test_order1886_ui_catalog.py b/tests/test_order1886_ui_catalog.py
+index 231af20..183d28d 100644
+--- a/tests/test_order1886_ui_catalog.py
++++ b/tests/test_order1886_ui_catalog.py
+@@ -60,14 +60,18 @@ class UiCatalogTests(unittest.TestCase):
+                     self.assertTrue(lang.table(locale).get(key, '').strip())
+ 
+     def test_untranslated_keys_are_counted_and_can_only_shrink(self):
+-        # 75 UI keys are translated by order1886_lang_ui_translations.py; everything else
+-        # is English on purpose, which docs/order1886-localization-policy.md enumerates.
+-        # The count is derived, so a translator shrinking it never breaks this test, while
+-        # dropping a translation does: the translated total is pinned separately below.
+-        expected = {locale: len(lang.UI_KEYS) - 75 for locale in lang.LANGUAGES if locale != 'en'}
+-        for locale, count in expected.items():
++        # 90 UI keys resolve to a translation: 75 from order1886_lang_ui_translations.py plus
++        # 15 shared with the base Tk catalogue (KEYS/TRANSLATIONS); one of those shared values
++        # (`Performance`) equals English in pt/fr/it, so the resolved count is per locale.
++        # Everything else is English on purpose, which docs/order1886-localization-policy.md
++        # enumerates. The count is derived, so a translator shrinking it never breaks this
++        # test, while dropping a translation does: the translated total is pinned below.
++        for locale in lang.LANGUAGES:
++            if locale == 'en':
++                continue
+             with self.subTest(locale=locale):
+-                self.assertEqual(len(lang.untranslated(locale)), count)
++                resolved = sum(1 for key in lang.UI_KEYS if lang.table(locale)[key] != key)
++                self.assertEqual(len(lang.untranslated(locale)), len(lang.UI_KEYS) - resolved)
+         self.assertEqual(lang.untranslated('en'), [])
+         from launcher.order1886_lang_ui_translations import UI_TRANSLATIONS
+         for locale in lang.LANGUAGES:
+diff --git a/tests/test_order1886_worker.py b/tests/test_order1886_worker.py
+index 674d107..2f5580f 100644
+--- a/tests/test_order1886_worker.py
++++ b/tests/test_order1886_worker.py
+@@ -2,6 +2,7 @@
+ from pathlib import Path
+ import io
+ import json
++import os
+ import tempfile
+ import unittest
+ from unittest.mock import patch
+@@ -192,7 +193,8 @@ class WorkerTests(unittest.TestCase):
+ 
+     def test_bundled_worker_discovers_runtime_at_installation_root(self):
+         installation = self.root / "portable"
+-        runtime = installation / "bin" / "order1886-runtime.exe"
++        # find_runtime looks for the platform spelling; the fixture must use it too.
++        runtime = installation / "bin" / ("order1886-runtime.exe" if os.name == "nt" else "order1886-runtime")
+         runtime.parent.mkdir(parents=True)
+         runtime.touch()
+         previous = worker.order1886.INSTALL_ROOT

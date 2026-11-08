@@ -61,7 +61,7 @@ fixing something you can actually see, and each one documented with how it was t
 | --- | --- |
 | 🐧 **Linux first** | Built, tested and released on Linux (RX 9070 XT / Mesa RADV). The runtime and launcher ship as one self-contained package. |
 | ✨ **AMD FSR 4** | FSR 4 (v07 ML model) replaces the game's own temporal anti-aliasing, with FSR 3.1 as the automatic fallback when a GPU can't run it. |
-| ☀️ **Sun shadows fixed** | The draw-time HTILE expand brings back outdoor sun shadows and wet-stone reflections, without the Chapter I flicker coming back. |
+| ☀️ **Sun, steady** | Draw-time HTILE expand brings back outdoor sun shadows and wet-stone reflections; staging sun-shadow readback sync (v0.2.17) ends the flicker in The Chase — 385 → 0 measured brightness flips. |
 | 🎬 **No letterbox by default** | Graphics → **Cinematic bars** lets you choose. Bars are **off** by default, so the game renders the full 16:9 picture. Your game files are never touched. |
 | 🎮 **Controllers that work** | Hot-plug detection, the original PlayStation button layout, keyboard prompts that follow your key bindings, and a built-in pad check that tells you *why* a pad isn't seen. |
 | 🎵 **A launcher with a soul** | Background music with a volume bar, a clear Home strip showing your display, upscaler, frame rate and bars at a glance. |
@@ -74,6 +74,7 @@ Every release has a full write-up in [CHANGES.md](CHANGES.md), with evidence in
 
 | Version | Date | Highlights |
 | --- | --- | --- |
+| **v0.2.17** | Nov 8, 2026 | **The Chase sun flicker fixed** — staging sun-shadow readback sync; 20-frame bursts at the video's framing: 385 → 0 brightness flips |
 | **v0.2.16** | Nov 8, 2026 | Sun shadows and wet-surface specular restored (draw-time HTILE expand); brightness flicker measured at 3 → 0 flips |
 | v0.2.15 | Nov 8, 2026 | **AMD FSR 4** replaces the game's TAA on Linux; FSR 3.1 selectable on Linux as fallback |
 | v0.2.14 | Nov 7, 2026 | **Cinematic bars** option, bars removed by default |
