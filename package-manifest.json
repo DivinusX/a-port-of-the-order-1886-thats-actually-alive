@@ -4,7 +4,7 @@
   "platform": "linux-x86_64",
   "status": "release",
   "built_utc": "2026-11-07T07:09:36Z",
-  "runtime_sha256": "c89631dac7057787359020591e2595c8d3822a706cb8bc92089d072840435b37",
+  "runtime_sha256": "950a388ef107e5f775634de11cdb8f14b6b400df7e1464a0997baf9c4ca75974",
   "runtime_build": {
     "game_profile": "order1886",
     "runtime_abi": "order1886-native-1",
@@ -20,7 +20,7 @@
     "input_remapping": true,
     "htile_control": true,
     "effect_toggles": true,
-    "runtime_sha256": "c89631dac7057787359020591e2595c8d3822a706cb8bc92089d072840435b37",
+    "runtime_sha256": "950a388ef107e5f775634de11cdb8f14b6b400df7e1464a0997baf9c4ca75974",
     "source_revision": "77d055c30d4cf94a400f6f64c450b49727a66111",
     "source_dirty": true,
     "source_files_sha256": "fa18c1c912f0f202c3b3899d4ccdcf87998d16f408e7c7a976fd093049509587",
@@ -45,7 +45,7 @@
   "files": [
     {
       "path": "CHANGES.md",
-      "sha256": "f5b31599aa41b05e75d83c7ee5daaf9a4e08d02cb60c217ab2a53f62a4e439eb"
+      "sha256": "2e47502bdaadeb3c95af27244e3ed18d38b8c30211eb3dd83086d9c898872518"
     },
     {
       "path": "LICENSE",
@@ -57,7 +57,7 @@
     },
     {
       "path": "QUICKSTART.txt",
-      "sha256": "2c294e68e93755c3e1b6e7430cca6d7ee0f1153b969677948df04afb9171644d"
+      "sha256": "affd69fd160586fa5ff046580a49b8bf83e1aaaf521f179a84e08cb8151eb282"
     },
     {
       "path": "README-Order1886.txt",
@@ -65,7 +65,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "7a40d1e166b05fd97f890bf61372121a8c4d22fc72ac23194fccb4841ca4af0a"
+      "sha256": "13cb22e72d1e6a3b8054f7cec691d84a6212d8a3187e6564bc47871647c4b7de"
     },
     {
       "path": "The Order 1886",
@@ -549,11 +549,11 @@
     },
     {
       "path": "bin/order1886-launcher",
-      "sha256": "4a86633d04527ca079d362196eb1dfbadf50fc5e1fe76702e1e9cbb316697bc9"
+      "sha256": "5c82c4ca6bf165fe9b57839cdd27f1612ad4751d5681e2d5589fbcb802106d1e"
     },
     {
       "path": "bin/order1886-runtime",
-      "sha256": "251c787374160921515de5897e68d4832712441a1e8ccb9e814130dd4d21bc40"
+      "sha256": "950a388ef107e5f775634de11cdb8f14b6b400df7e1464a0997baf9c4ca75974"
     },
     {
       "path": "bin/order1886-worker/_internal/PIL/_avif.cpython-312-x86_64-linux-gnu.so",
@@ -593,7 +593,7 @@
     },
     {
       "path": "bin/order1886-worker/_internal/base_library.zip",
-      "sha256": "e9bea628585a0e71a479d8a8565719bbba12a9fad16a5e55fc902cab4ab1cbc3"
+      "sha256": "18df749f63dac4d89da2f5b7e24402b9ac6f05b0a9ce85c741ad433bd37c2563"
     },
     {
       "path": "bin/order1886-worker/_internal/cryptography-50.0.1.dist-info/INSTALLER",
@@ -1185,15 +1185,15 @@
     },
     {
       "path": "bin/order1886-worker/order1886-worker",
-      "sha256": "3e4304d12d0c103f4f55cf7496a2a44dc3daf78df1617bc4237f675a203f7b19"
+      "sha256": "0cdcb0661bcfd902de4191bc8da1fa6eb904d34430acde82f21a600a8c750adb"
     },
     {
       "path": "bin/runtime-build.json",
-      "sha256": "ab18dfc03af8276e26237be8504e1695bcbb7e958e105a4ce33db10a86581a50"
+      "sha256": "58c93778a03b9330e6d0ca89f930226a1659700d6c354427fc05939bf89222c0"
     },
     {
       "path": "music/README.txt",
-      "sha256": "fbd10979a8d2861e5b813094d78be0a6b8b64febb085ef6fd3fe7611d9fe75a2"
+      "sha256": "323ede6004e595ea775394f8172f977941bde236074d192c50608b7cd8223a12"
     },
     {
       "path": "music/The Knights' Theme (From The Order 1886 Video Game Soundtrack).mp3",

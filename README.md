@@ -35,13 +35,6 @@ Only CUSA00076 has been run with a real dump; the others are accepted as experim
 > **No game files are included.** You need your own extracted copy. This is an
 > unofficial community project, not an official PC release.
 
-
-**Controllers not responding?** If a gamepad connects but no buttons work in game,
-Steam's desktop controller support is usually grabbing the pad exclusively - exit
-Steam or disable Steam Input for that controller type. If it also fails with Steam
-closed, grant HID access to your user (`sudo usermod -aG input $USER`, log out/in) -
-see the CONTROLLERS section of QUICKSTART.txt. The launcher log prints a warning
-when a gamepad HID is present but not readable.
 ## Native 4K, no upscaler
 
 New in v0.2.5. Graphics → **Render resolution** makes the game itself draw every screen-sized pass at the chosen size; at 3840 wide that is 3840×1600 (or 3840×2160 with 16:9 framing), presented 1:1. RTX 3070, 30 FPS mode.
@@ -111,11 +104,7 @@ How these were taken, with hashes and logs: [preview 9 release verification](doc
 
 ## What's new
 
-**v0.2.9 — 7 November 2026.** **The original button layout is the default again, and the Xbox prompt set is gone.** Controls → Button prompts now offers **PlayStation (original)** and **Keyboard and mouse** only; the game's own DualShock 4 glyphs are the default and nothing is painted unless you choose keycaps. An old settings file that still says `xbox` launches with the original layout and says so. The keyboard prompts now **follow your keyboard mapping** instead of replacing it: the key caps show the keys you assigned in Controls, and a key you change shows in the prompts on the next launch (port of upstream e25254e). Controllers of every kind — Xbox, DualSense, DualShock — keep working as input devices; only the prompt artwork option was removed. Lighter still: the keycaps are drawn at build time, so the shipped prompt artwork (2.6 MB) is gone and `scripts/` shrank from 3.1 MB to 360 KB. [Release notes](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/releases/tag/v0.2.9)
-
-**v0.2.8 — 7 November 2026.** **Launcher background music** with a mute button and volume bar (The Knights' Theme; replace the file in `music/` to change it), and a fix for "not a verified Order runtime" (backend exit code 2) on Linux: the runtime now ships byte-identical to its build receipt. [Release notes](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/releases/tag/v0.2.8)
-
-**v0.2.7 — 1 November 2026.** **Xbox and keyboard button prompts** (#135): Controls → Button prompts shows Xbox letters or keycaps and mouse buttons in every prompt, menu, quick-time event, takedown and the weapon HUD, built from your own game files (131 Xbox and 185 keyboard bitmaps; pictures of the DualShock 4 itself stay). Keyboard and mouse also applies a matching key layout; Controls → Keyboard buttons still lets you assign any key. The Windows worker no longer crashes while building them. *(The Xbox set and the key-layout replacement were retired in v0.2.9.)* [Release notes](https://github.com/JulioCacko/The-Order-1886_pc/releases/tag/v0.2.7)
+**v0.2.7 — 1 November 2026.** **Xbox and keyboard button prompts** (#135): Controls → Button prompts shows Xbox letters or keycaps and mouse buttons in every prompt, menu, quick-time event, takedown and the weapon HUD, built from your own game files (131 Xbox and 185 keyboard bitmaps; pictures of the DualShock 4 itself stay). Keyboard and mouse also applies a matching key layout; Controls → Keyboard buttons still lets you assign any key. The Windows worker no longer crashes while building them. [Release notes](https://github.com/JulioCacko/The-Order-1886_pc/releases/tag/v0.2.7)
 
 <table>
   <tr>
@@ -259,6 +248,21 @@ QTE softlocks in Chapters 6 and 9, and gameplay timing above 60 FPS has not been
 On a 60 Hz display, VSync holds every rate at 60. A host presentation rate or selected cap does not establish
 that the game produces that many new frames. Use the 30 FPS baseline first.
 
+## Controllers
+
+Connect the pad before launching. The runtime opens any gamepad the kernel
+exposes through SDL3 and logs `Runtime: gamepad connected: <name>` in
+`user/order1886/logs`; `bin/order1886-runtime --gamepad` reports detection
+without starting the game. The runtime entry prints `Order1886: pad check:`
+warnings when a pad cannot work, each with its fix in the CONTROLLERS section
+of `QUICKSTART.txt`. In short: the game only sees a pad the **kernel driver
+loaded** (`xpad`/`hid-microsoft` wired, `hid-microsoft`/`xpadneo` Bluetooth) and
+**your user can read** (`input` group or the shipped udev rule), and **Steam
+must not be grabbing it** (quit Steam or disable Steam Input for that family).
+A kernel updated without a reboot is the most common cause of "no pad anywhere":
+with `/lib/modules/$(uname -r)` gone, no driver loads and SDL enumerates zero
+pads on every machine sharing that state.
+
 ## Known problems and reporting
 
 | Problem | What to do |
@@ -267,6 +271,7 @@ that the game produces that many new frames. Use the 30 FPS baseline first.
 | Low or varying frame rate | Include the scene, settings, GPU/driver and matching log. Shader compilation and compatibility work remain in progress. |
 | Runtime missing or identity rejected | Keep the complete package together, or build a matching runtime. Use System for an explicit runtime override. |
 | Experimental 60/90 FPS or Unlocked timing problems | Return to 30 FPS and report the chapter and reproduction steps. |
+| Gamepad not detected or buttons ignored | See **Controllers** and the CONTROLLERS section of `QUICKSTART.txt`: `bin/order1886-runtime --gamepad`, the `Order1886: pad check:` warnings, kernel drivers, read access and Steam's exclusive grab. |
 
 Open **System → Open logs**. When
 [reporting a problem](https://github.com/JulioCacko/The-Order-1886_pc/issues), include

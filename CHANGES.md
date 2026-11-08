@@ -2,6 +2,39 @@
 
 ## v0.2.13 — November 7, 2026
 
+### Fixed: the v0.2.12 controller diagnostics promised but not shipped are now real
+
+Reported everywhere: no Xbox pad is recognized, wired or Bluetooth, on several
+PCs. Live A/B test: the shipped runtime + bundled SDL3 open an Xbox-layout pad
+instantly when the kernel exposes one (`Runtime: gamepad connected: Xbox 360
+Controller` in the boot log with a test pad injected through the evdev path).
+The universal failure is the kernel layer, most often a kernel package updated
+without a reboot: `/lib/modules/$(uname -r)` is gone, `xpad`/`hid-microsoft`/
+`xpadneo` cannot load, so no `/dev/input` node exists and SDL enumerates zero
+pads. v0.2.12 described warnings and docs that this package never actually
+included; they ship now:
+
+- `bin/order1886-runtime` prints `Order1886: pad check:` warnings at startup
+  when the running kernel has no module folder, when an Xbox-family USB device
+  is visible but unclaimed by any driver, or when a pad's HID/input node is
+  present but not readable or held. Silent when all is well;
+  `ORDER1886_PAD_DIAG=0` skips the scan; the runtime itself is unchanged.
+  The scan runs only for real game boots (a first argument beginning with `--`
+  is a launcher probe) because Play verifies the entry's stdout and hashes its
+  bytes: **any edit of `bin/order1886-runtime` must re-pin
+  `runtime_sha256` in `bin/runtime-build.json` (and the manifest entries for
+  both files), or the launcher refuses the runtime.** Verified end-to-end:
+  the re-pinned package boots and the warnings land in the boot log.
+- `QUICKSTART.txt` gained the promised CONTROLLERS section (connect order,
+  `--gamepad` probe, per-warning fixes, the udev rule, Steam's exclusive
+  grab, and the verify-kernel-first commands) and `README.md` gained a
+  Controllers section plus a problem-table row.
+- Friends hitting this on their own PCs: have them run
+  `grep -A4 -i xbox /proc/bus/input/devices; ls /dev/input/by-id | grep -i 045e`
+  — no nodes means the same kernel-side gap (reboot / load xpad), nodes plus a
+  running Steam means Steam's grab, nodes and no Steam means the read-access
+  fix from CONTROLLERS.
+
 ### Small update / launcher adjustments
 
 - **Readable game title:** the top-bar logo is cropped to its lettering, so the name shows about twice as large.

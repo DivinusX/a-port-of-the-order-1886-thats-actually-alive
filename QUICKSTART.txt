@@ -60,30 +60,37 @@ To get the launcher window on SteamOS anyway, install WebKitGTK through
 Homebrew and expose only its two libraries; see issue #114 on GitHub for the
 exact commands.
 
-CONTROLLERS (XBOX, PLAYSTATION, OTHER GAMEPADS)
+CONTROLLERS (XBOX, PLAYSTATION AND OTHER GAMEPADS)
 
-The game reads controllers through SDL3, which uses each pad's HID
-interface (/dev/hidraw*). If your controller connects but no buttons do
-anything in game, in this order:
+Connect the pad before you launch, then start the game. When the runtime opens a
+pad it writes "Runtime: gamepad connected: <name>" to the boot log in
+user/order1886/logs and buttons work immediately. To check detection without
+starting the game: bin/order1886-runtime --gamepad prints one line, either
+"Gamepad: type=xbox360 ... name=..." or "Gamepad: none".
 
-1. Steam is the usual cause: its desktop controller support grabs gamepads
-   exclusively, so the game sees the pad but receives no input. Either exit
-   Steam while playing, or turn off Steam Settings -> Controller ->
-   "Enable Steam Input" for Xbox/PlayStation controllers.
-2. If it also fails with Steam closed, your session does not grant HID
-   access to gamepads (common on Bluetooth pads and some display managers).
-   Fix with either:
-     sudo usermod -aG input $USER      (then log out and back in)
-   or a udev rule:
-     echo 'SUBSYSTEM=="hidraw", ATTRS{id/vendor}=="045e|054c|057e|28de|0fd9", MODE="0660", GROUP="input", TAG+="uaccess"' \
-       | sudo tee /etc/udev/rules.d/99-gamepad-hidraw.rules
-     sudo udevadm control --reload && sudo udevadm trigger
-   The launcher prints a one-line warning to its log when a gamepad HID is
-   present but not readable, so you can tell this case apart from Steam.
-3. Bluetooth pads sometimes hold a dead link after sleep: press the Xbox/PS
-   button for 3 seconds to sleep the pad, then press again to reconnect.
-4. Wired and wireless at the same time: the game uses the first controller
-   it finds. Unplug the one you do not want to use.
+The launcher's runtime entry also prints "Order1886: pad check:" warnings when a
+pad cannot work. Each has a concrete fix:
+
+- "the running kernel has no module folder" or "visible on USB but no driver
+  took it": your distribution cannot load the Xbox kernel drivers (xpad,
+  hid-microsoft). This is not a game problem. The usual cause is a kernel update
+  without a reboot: /lib/modules/$(uname -r) is gone, so no driver loads.
+  Reboot into the installed kernel. Verify the pad reaches the kernel first:
+  grep -A4 -i xbox /proc/bus/input/devices must show an event/js device;
+  ls /dev/input/by-id | grep -i 045e must list the pad.
+- "is present but your user cannot read it": the session grants no HID access,
+  common with Bluetooth pads. Grant access once: sudo usermod -aG input $USER
+  (log out and in), or install this udev rule and replug:
+  echo 'KERNEL=="hidraw*", SUBSYSTEM=="hidraw", MODE="0660", GROUP="input"' \
+    | sudo tee /etc/udev/rules.d/61-order1886-pad.rules
+  sudo udevadm control --reload && sudo udevadm trigger
+- Everything looks right but buttons do nothing in-game while the pad works
+  elsewhere: Steam is grabbing the pad exclusively. Quit Steam while playing,
+  or disable Steam Input for that controller family in Settings > Controllers.
+
+Xbox pads: wired pads use xpad; Xbox Series/Elite Bluetooth pads use
+hid-microsoft or xpadneo. If the pad sleeps, press the Xbox button to re-open
+it. The runtime cannot use a pad that the kernel has not exposed.
 
 UPDATING
 
