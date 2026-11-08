@@ -1,7 +1,6 @@
 # Windows x86-64 port — file-by-file change plan with risks (v0.2.18 target)
 
-Status: PLAN — awaiting approval before the push. When approved, execute
-`2026-11-08-windows-port-runbook.md` step by step. All changes below are implemented on
+Status: APPROVED AND EXECUTED (2026-11-08): pushed, CI-built, released as v0.2.18. See the runbook for the exact chain. All changes below are implemented on
 dedicated local branches (`windows-port`) in the two repos; nothing is pushed.
 
 ## 0. Ground truth (verified 2026-11-08, this machine)

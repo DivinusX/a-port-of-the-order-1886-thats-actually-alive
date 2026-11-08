@@ -1,6 +1,6 @@
 # Changes Made - November 8, 2026
 
-## v0.2.18 (in progress) — Windows x86-64 port — NOT YET RELEASED
+## v0.2.18 — November 8, 2026
 
 ### New: the Windows package
 

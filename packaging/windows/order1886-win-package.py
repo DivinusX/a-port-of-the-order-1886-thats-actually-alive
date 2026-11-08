@@ -126,6 +126,8 @@ def main() -> int:
         return 1
 
     manifest['files'] = sorted(manifest['files'], key=lambda entry: entry['path'])
+    # Same schema as the Linux release manifest, which declares its platform.
+    manifest['platform'] = 'windows-x86_64'
     manifest_path.write_text(json.dumps(manifest, indent=1, ensure_ascii=False) + '\n', encoding='utf-8')
 
     suffix = f'-{args.version}' if args.version else ''
