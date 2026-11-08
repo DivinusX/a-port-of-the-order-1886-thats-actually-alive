@@ -84,6 +84,11 @@ gh release create v0.2.18 dist/order1886-win-x86_64-v0.2.18.zip \
   --notes-file <changelog section for v0.2.18 + unverified-list updates>
 ```
 
+GPL-2.0-or-later requires the corresponding source to accompany the binaries: the notes
+must link `https://github.com/DivinusX/The-Order-1886_pc/tree/windows-port` (source repo
+branch from step 2, whose `runtime-build.json` receipt binds the exact revision) plus the
+release repo's `windows-port` branch for the packaging and launcher overlay.
+
 Merge `windows-port` into `main` in both repos (or open the PRs), after the release exists.
 
 ## Known open items going into step 5 (from the plan, unchanged)
