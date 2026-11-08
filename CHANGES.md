@@ -444,4 +444,7 @@ Controls page — those use DualShock 4 glyphs that ship with every edition.
 All six editions accepted: CUSA00076 (tested), CUSA00035, CUSA00070, CUSA00100, CUSA00670, CUSA00785 (experimental)
 
 ### Credits
+**Main Maintainer: DivinusX** (https://github.com/DivinusX) — owns this repository,
+drives the Linux and Windows releases, performs the hardware verification with his own
+legally obtained game dump, and funds the development time behind this fork.
 Based on the upstream project by JulioCacko: https://github.com/JulioCacko/The-Order-1886_pc

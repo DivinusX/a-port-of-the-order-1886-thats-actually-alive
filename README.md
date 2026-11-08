@@ -165,6 +165,8 @@ not affiliated with or endorsed by them. No game executable, dump or save is dis
   <img src="docs/images/divinusx-avatar.png" width="120" alt="DivinusX: a pixel-art astronaut robot with a red scarf holding a game controller and giving a thumbs-up">
 </p>
 <p align="center">
-  Maintained by <a href="https://github.com/DivinusX"><b>DivinusX</b></a><br>
+  <b>Main Maintainer: <a href="https://github.com/DivinusX">DivinusX</a></b><br>
+  <sub>Runs the hardware verification, owns the releases, and funds the work behind this
+  fork — the Linux port and the Windows port exist because of that time and money.</sub><br>
   <sub>If this got the game running for you, a ⭐ helps others find it.</sub>
 </p>

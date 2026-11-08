@@ -82,6 +82,11 @@ problem as a bug, and see `docs/verification/2026-11-08-windows-port-checklist.m
 - **Antivirus flags the download** — unsigned PyInstaller/MinGW binaries trip heuristics;
   verify the `.sha256` next to the zip and add an exclusion if you trust the source.
 
+## Credits
+
+Main Maintainer: **DivinusX** (https://github.com/DivinusX) — this fork's releases, hardware
+verification and funding. Upstream base project by JulioCacko; see `notices/ATTRIBUTION.txt`.
+
 ## What is not verified yet
 
 Everything below is shipped as built-by-CI but untested on physical Windows hardware at the
@@ -181,6 +186,12 @@ oficial. Nenhum conteúdo de jogo está incluído — use sua própria cópia ex
   em pasta nova e copie a pasta `user` para junto do novo executável.
 - **Antivírus marca o download** — binários PyInstaller/MinGW não assinados disparam
   heurísticas; confira o `.sha256` ao lado do zip e crie uma exclusão se confiar na origem.
+
+## Créditos
+
+Maintainer principal: **DivinusX** (https://github.com/DivinusX) — os releases deste fork,
+a verificação em hardware real e o financiamento. Projeto base upstream por JulioCacko;
+veja `notices/ATTRIBUTION.txt`.
 
 ## O que ainda não foi verificado
 
