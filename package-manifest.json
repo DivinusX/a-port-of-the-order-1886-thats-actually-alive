@@ -3,7 +3,7 @@
   "launcher": "Go / Wails v2.17.0",
   "platform": "linux-x86_64",
   "status": "release",
-  "built_utc": "2026-11-07T07:09:36Z",
+  "built_utc": "2026-11-08T10:54:55Z",
   "runtime_sha256": "950a388ef107e5f775634de11cdb8f14b6b400df7e1464a0997baf9c4ca75974",
   "runtime_build": {
     "game_profile": "order1886",
@@ -21,31 +21,31 @@
     "htile_control": true,
     "effect_toggles": true,
     "runtime_sha256": "950a388ef107e5f775634de11cdb8f14b6b400df7e1464a0997baf9c4ca75974",
-    "source_revision": "77d055c30d4cf94a400f6f64c450b49727a66111",
+    "source_revision": "37482884cf72e8920b9c8357600b5f271befadfe",
     "source_dirty": true,
-    "source_files_sha256": "fa18c1c912f0f202c3b3899d4ccdcf87998d16f408e7c7a976fd093049509587",
+    "source_files_sha256": "5c5d7e486c99f2ce9fed9e16dad8dd9b24e0f358bd627551e67ee6978602228e",
     "submodules": [
       "c64f093404125e960813f95f1996c14780f0dd69 gpu/third_party/fsr-vulkan (c64f093)",
-      " f1cc2ae15e53a861a874c3034aae6798fde194ab gpu/third_party/imgui (f1cc2ae)",
-      " e046b69a3736d314fad813e159b1c192eaef92cd gpu/third_party/magic_enum (e046b69)",
-      " 2948eebafc5b9f1c69bebed80333e403a09bd62d gpu/third_party/miniz (heads/master)",
-      " cd6bad3cad2e07a3e277c23d2b1f065320024717 gpu/third_party/xbyak (cd6bad3)",
-      " efca2e3af35562a09a9bb6deed90e45b4b824dc4 third_party/LibAtrac9 (heads/master)"
+      " f1cc2ae15e53a861a874c3034aae6798fde194ab gpu/third_party/imgui (v1.62-5575-gf1cc2ae15)",
+      " e046b69a3736d314fad813e159b1c192eaef92cd gpu/third_party/magic_enum (v0.9.7)",
+      " 2948eebafc5b9f1c69bebed80333e403a09bd62d gpu/third_party/miniz (3.1.2-12-g2948eeb)",
+      " cd6bad3cad2e07a3e277c23d2b1f065320024717 gpu/third_party/xbyak (v3.71-1956-gcd6bad3)",
+      " efca2e3af35562a09a9bb6deed90e45b4b824dc4 third_party/LibAtrac9 (v0.0.3-16-gefca2e3)"
     ],
-    "compiler": "Ubuntu clang version 18.1.3 (1ubuntu1)",
+    "compiler": "cc (GCC) 16.2.1 20261029 (Red Hat 16.2.1-3)",
     "build_command": [
       "bash",
       "build.sh"
     ],
-    "built_utc": "2026-11-07T01:16:13.705819+00:00"
+    "built_utc": "2026-11-08T09:35:00+00:00"
   },
   "update_abi": "order1886-update-2",
-  "source_revision": "a0267d0fa4d2be1dc7fabc8c637299a704c6539f",
+  "source_revision": "37482884cf72e8920b9c8357600b5f271befadfe",
   "source_dirty": true,
   "files": [
     {
       "path": "CHANGES.md",
-      "sha256": "2e47502bdaadeb3c95af27244e3ed18d38b8c30211eb3dd83086d9c898872518"
+      "sha256": "25b32837c625a9159c0207c28310b55b0ef73d5ab012bb95ad66f8c371c31dc5"
     },
     {
       "path": "LICENSE",
@@ -57,7 +57,7 @@
     },
     {
       "path": "QUICKSTART.txt",
-      "sha256": "affd69fd160586fa5ff046580a49b8bf83e1aaaf521f179a84e08cb8151eb282"
+      "sha256": "8f570ccda1a675a8f0f5ed0024a36e1812d24214d32e799e33e22d0453c6f226"
     },
     {
       "path": "README-Order1886.txt",
@@ -65,11 +65,1155 @@
     },
     {
       "path": "README.md",
-      "sha256": "13cb22e72d1e6a3b8054f7cec691d84a6212d8a3187e6564bc47871647c4b7de"
+      "sha256": "417fbc9f4973e7957c5f53439abc7d857af447a4300e39b21f8a5e820f96d9ce"
     },
     {
       "path": "The Order 1886",
       "sha256": "10dc5ba33556aa1d46e537da11672df33a50e264205b94d1747a33462b013d12"
+    },
+    {
+      "path": "VP_VULKANINFO_AMD_Radeon_RX_9070_XT_(RADV_GFX1201)_26_2_6.json",
+      "sha256": "3f0258fb59b5536ff35b13be0e588373ef01822cb80e76499ff08326d24df19f"
+    },
+    {
+      "path": "bin/fsr4/LICENSE-FSR4-v07.txt",
+      "sha256": "1ba466516fa4270690c2b6e6a65f5b4b23d7ff0d7b1346603e187c1b3ad67f2a"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_1080_pass1.spv",
+      "sha256": "42ecc3732bae7cc5b22b0cf1bb25fc298963dd53a3f0233b343251d3ce43ffdf"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_1080_pass10.spv",
+      "sha256": "6a120cc64cfb7d49e4f354f8ecefdb5aedea0b639946a43f2231bcfafd11bf7c"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_1080_pass11.spv",
+      "sha256": "a2d23c0f7fea57f103f0880f59b71222808a858c7a891cecf88b6fc7a20e5799"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_1080_pass12.spv",
+      "sha256": "bea297cc9ef8f61441675c26c67bc7b7bde7021f9e533b58ab0d2e689a9ac436"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_1080_pass2.spv",
+      "sha256": "13ccbb9f1e13cd2a22102fe1b1a42583fc7f7bcf80a356c85d18974d0fc392f4"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_1080_pass3.spv",
+      "sha256": "c6b1726c32d84cd59ae789149f0f525fefbe411eb606214f979656fb2fb02651"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_1080_pass4.spv",
+      "sha256": "4e06a2ae4b9ec6f3b40b5b6da413f79059861a6d82e2a78a75408643abfb6e7e"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_1080_pass5.spv",
+      "sha256": "2423db5e97b0866845ccdf2533cb87f2c3bdcc30fdd0c2dca8d8530d9151c6c4"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_1080_pass6.spv",
+      "sha256": "2d8e45dd83b2c958373d7d638e01ca7d898ac9bb8f948145f1f1541dd8ffa755"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_1080_pass7.spv",
+      "sha256": "40d1748a7d8f289683e94de53415da736cb87a7428f3e557e03aee9553043dab"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_1080_pass8.spv",
+      "sha256": "5c6ccc301813075d4a94b06501fa7554892db0b650cdc6ee48e41346507ded93"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_1080_pass9.spv",
+      "sha256": "b91df130b7a74a1602d3d0dd50ca3ae4c816eb81812c52fbf8a74b215db0f220"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_1080_post.spv",
+      "sha256": "199dbd65eb1bf6ccb907fb19552001e90e338594d1d3bc681f978b74f074bbe8"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_1080_pre.spv",
+      "sha256": "95811aac5cc520d79437a1050b61c922b7a312922aa17f53be23566661cf212b"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_2160_pass1.spv",
+      "sha256": "80dcb61895b29191d40956e42eb0d1ad7e87a57da8d522ebd943ada1cf914747"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_2160_pass10.spv",
+      "sha256": "8d52f44e705aece4635989ad90888eb92a284cb743eac51630bd995518f0d3a0"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_2160_pass11.spv",
+      "sha256": "81506d9a1466b0d0988467708c0caf36d589c07ffd9657310258588ce1cfc95a"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_2160_pass12.spv",
+      "sha256": "69fadbc71a943c9e7f44f6dc7717bb0910f9425d78467194837dbdacaff6c4b5"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_2160_pass2.spv",
+      "sha256": "b975fa12ba103708a558bae90be9bbad66ec3b14fcb17f67541d62c0ba22308e"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_2160_pass3.spv",
+      "sha256": "a74793b0d4fbe34e18ee8d3d62d83cb5175a9d15e9980b6cc9423304cfa7e567"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_2160_pass4.spv",
+      "sha256": "44a5972a54e82363e6bd5e2ac265c3c39ed3db2084011abd5810278f05cc98c4"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_2160_pass5.spv",
+      "sha256": "bc1ae70b12d1364c310728f4f0a2e9ffd4217e5ba482664eaf722024f85d6ecd"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_2160_pass6.spv",
+      "sha256": "4414cf16ceedc4a3944451e40f20afff2fae6e7329c5865d92bb98a9ba591596"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_2160_pass7.spv",
+      "sha256": "b020a2a0fa8e4a08e206d7e3f6a141a2063d7e647efb4b550fe070c5b77fe35f"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_2160_pass8.spv",
+      "sha256": "77bc838f63bf67c07104bf94d5fb18784ee963ec2c485e790fe7e9850b0e455b"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_2160_pass9.spv",
+      "sha256": "2c9df601353bba22dbcf03faa679b2d373bad3758a1de54ada44e03a19d43bd9"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_2160_post.spv",
+      "sha256": "26ebfffbdb5e053e1ad37bb7bee408f96837e7ae83d7a2fc06a48400ff742bae"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_2160_pre.spv",
+      "sha256": "915e2523c6276d5f50dbe264217e78db04d43dcddf492416dd619e3678d91961"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_4320_pass1.spv",
+      "sha256": "c19b69b335ad04cb36a506d84cb4ad9a1849f83dacd96fecd3d835cdabad7d34"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_4320_pass10.spv",
+      "sha256": "a7173349df954d08421789ac2d47fd03adc3e6d4aed883c1e144b0526625fd76"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_4320_pass11.spv",
+      "sha256": "6b61b923d1e62b490f0c9874519f82378feff4da93bcd494ff9d45fe6d1abad3"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_4320_pass12.spv",
+      "sha256": "9aa735543a92d150e4caf90434039707c62fb014e65e26e103224bc0fe2bcac7"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_4320_pass2.spv",
+      "sha256": "d5efcd27f47ef026e2b1b47c06d23447dcfe2fbe8dc8182ca6d339657209b893"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_4320_pass3.spv",
+      "sha256": "a83aee19861d7631fb663ba11584212a7a6932ea48824c0146c7388d5f926c16"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_4320_pass4.spv",
+      "sha256": "1b2474a147213da36b1e89032699989da68e081d83b9a65d5ad774678736d1e1"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_4320_pass5.spv",
+      "sha256": "585acae8fc929497e5b6da3ba3dc6442890b2303eddf81934d133f77bf14ceae"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_4320_pass6.spv",
+      "sha256": "c5cdce043a652b092785f790ad9a675e699362dc7264b85fdf2572ad6abc807a"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_4320_pass7.spv",
+      "sha256": "6d14000a036ea46cfa88f28bf5dc036646e108015324f95bbb52312b9e1e7e94"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_4320_pass8.spv",
+      "sha256": "030c86c5ffc1c6a87d9877248e9c483adfdda8aab357e5fef4f4669a8db17b19"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_4320_pass9.spv",
+      "sha256": "091659d99cc0f866cdc41291c71d7e9a093f78c7741bf28cfc21d2cee46b7877"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_4320_post.spv",
+      "sha256": "35ca675cc9a5b1e6291090905029420878e8095189b67c9cd9c955a7f02d0552"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_4320_pre.spv",
+      "sha256": "6feea8e9f45b5de380efb0c9a136be49a692f119090c9b904e9c44691fc38c39"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_initializers.bin",
+      "sha256": "a8e96ddb0c2a5f937011a78381a7975e99cd6e455ce72ef92f2f7dbff742e4c2"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_post.spv",
+      "sha256": "26ebfffbdb5e053e1ad37bb7bee408f96837e7ae83d7a2fc06a48400ff742bae"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_pre.spv",
+      "sha256": "915e2523c6276d5f50dbe264217e78db04d43dcddf492416dd619e3678d91961"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_pre_weights.bin",
+      "sha256": "b9dd178acdd51c4298016d037bea4e15147358b4724c1da76b2a7bbf7009b069"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_balanced_shader_manifest.json",
+      "sha256": "9f0cac5ff61e725ec79b9ffc0f0105d64f27e154ce61583c971ade2726df85fc"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_1080_pass1.spv",
+      "sha256": "5ae840b515608cceaf8294bb561e826d4d0ca5105d9d1d4afc2d1201580e426d"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_1080_pass10.spv",
+      "sha256": "afcb7edba8f3024dc56a2c9a19b361812bc8de6e3f36709b9c8128d1f06b6324"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_1080_pass11.spv",
+      "sha256": "99d9d0bd724a63277d810c1d571d4af947c0d6a97c6a4abf3c1003c1e6ce8d6d"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_1080_pass12.spv",
+      "sha256": "8d265eee1462555764c67803177c7ddea752dc4e04bd29c134e8997ffc41e109"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_1080_pass2.spv",
+      "sha256": "e124c38430559fd73a5cd3c50c62bd975b6f000f3b34c7af717f27582560b588"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_1080_pass3.spv",
+      "sha256": "f4e0b3464bcee9fa2f1479f6804e31e8a02fb53e508d7d66f92cbe68c237ab2a"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_1080_pass4.spv",
+      "sha256": "e9bce1e23407f19abdb67a66595aefe62dcb87136ae9000810763c29ce85622a"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_1080_pass5.spv",
+      "sha256": "166d1d4e3c486cea93ac69684b6c5b3fb9fcfa8c6d8115238ff60e794144c82f"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_1080_pass6.spv",
+      "sha256": "0abd301791aaf1cfcb869150e06b837a3e8bd8a23fc04c178d8db12326aef3d2"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_1080_pass7.spv",
+      "sha256": "85a88983fcadd3a56956643c8723d325048f31018e0b081053441df78f74bf51"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_1080_pass8.spv",
+      "sha256": "b542a56479a036d5c700923260c718adc39d22dfc5fa57874eadc69c4b7f46a2"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_1080_pass9.spv",
+      "sha256": "a6a439ebaed302f4e4bd3ee3fbdaaee78e8d9bd44947c4712619bc6ce26ed9c6"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_1080_post.spv",
+      "sha256": "acd6263c648a754904b8a88475500ae3bf2ec553123931defe1edcbcf1c5d14f"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_1080_pre.spv",
+      "sha256": "06b0c47dfbba5fc4f3055a8bb11b5222f8cf90b81585a9337ad3344665e5f08f"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_2160_pass1.spv",
+      "sha256": "72e4eb081725849d771b235714d52a252138b50175a83084a225e85a1154fbea"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_2160_pass10.spv",
+      "sha256": "26f31ac70d557c005080ec3245ee2f2130971f7327edee069ab91794c50f708d"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_2160_pass11.spv",
+      "sha256": "48de4166c8c950133652d65590d2ec60ce1851d427e32f1ba8570b8ba5396b4a"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_2160_pass12.spv",
+      "sha256": "6d4be14c97ab3f0e0e6a6a9512be48c7e1812e57f2f10d30562ff91a3c9aab1a"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_2160_pass2.spv",
+      "sha256": "d52cea2d6bf7f67c8f3d87e4785caabd90613c960cdabe0adae6afb4c9307c0d"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_2160_pass3.spv",
+      "sha256": "06c27fcfe8bec9ee0f423ea7eb8ebc469407aae41866ecdfc83ce82df15008a2"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_2160_pass4.spv",
+      "sha256": "0df8b868f69e82dc55e9ecf1c9d47d639d6ab95cc5674aba8595b68eaa4db633"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_2160_pass5.spv",
+      "sha256": "30f25afc74219a3fdc015a0eab4d8db51171c406058880a6612731ab55418309"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_2160_pass6.spv",
+      "sha256": "cb437ab220352316d77af88756a4163c7ee4986c1653f3161f1abe0fe4ca2e4b"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_2160_pass7.spv",
+      "sha256": "53b48ab0339c9323925443e26d9fc9f2a5052f2033beae4ee5e4e16e320e47be"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_2160_pass8.spv",
+      "sha256": "c856e73415ddf7a0d8460a1b14cbc9a45096b6f7c1271107c3ad2f3e1e0aba6a"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_2160_pass9.spv",
+      "sha256": "5560295bed278a472bd9f2030100f0984c80fbacd9db3290cb61f00340c595bd"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_2160_post.spv",
+      "sha256": "9200841d128ca6923a7233170ee57a56e1bc7c8704ab8dd2782546f561a83ad6"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_2160_pre.spv",
+      "sha256": "13c2048f2ce41f040574779646b85745529a624c8b7322c3195b9e17631e58de"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_4320_pass1.spv",
+      "sha256": "42db7553456711b5458aa7a208b0bda7cbb4e8503d94c42de3afa7d32cac3620"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_4320_pass10.spv",
+      "sha256": "27e9d58753876dae3b491e678f8c49fe9a55028c6f3d339068a9912327760dfb"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_4320_pass11.spv",
+      "sha256": "2354cc985adf37b435dd5261f9b8bb331b37b3f91b9b118ef16c7086f70e3099"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_4320_pass12.spv",
+      "sha256": "f14e29f419d34e04ce17d7f65c63d1efed52cb2b03f8617b27bd29f8e035cbca"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_4320_pass2.spv",
+      "sha256": "b24954a71d1c955299e9867eb3dd69ef9ce24cf4ce2c9e8e7c872aaa1619445a"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_4320_pass3.spv",
+      "sha256": "0145ebfb38b6cbfc5dfdc2daacddc2a750339fa9dfdab9333805f0d120337164"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_4320_pass4.spv",
+      "sha256": "2ed525433b529df7449d6486e089efa8686ca7a016665abd310d71e375738e4f"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_4320_pass5.spv",
+      "sha256": "eb342aa176b6f7e0dace8ff3d4c1447f39695f4ca6251f0b8bb016a1241bf383"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_4320_pass6.spv",
+      "sha256": "83f73b43abf98ff9b0832d755482696c514ec79f25ae9f78e27e890bb3128b21"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_4320_pass7.spv",
+      "sha256": "fa52d2f9eeaf27ca2a9a75289de776dfb0c3e271307287e3bbac569f96da832e"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_4320_pass8.spv",
+      "sha256": "f105f6303aaa2b21851ab556ff2f7cd75700df37b08a5adc1e260747816fa6cb"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_4320_pass9.spv",
+      "sha256": "42efd37515bc73c86644e29d6df238f3e905903b0c1bd062b0aa5c7f424492a0"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_4320_post.spv",
+      "sha256": "b33e95347016199deb5b014ce5477949114d1e7425936f3dd2fd981e33ab76ef"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_4320_pre.spv",
+      "sha256": "2700a0a91f8a08a342583aeeffacddce2a320c3d25fde917759588f79c67c4a4"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_initializers.bin",
+      "sha256": "00ab0bc1fd12a823bb0fc8cd227b0e2d15718fe2a2082e972c6e0b6e46c77a8c"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_post.spv",
+      "sha256": "9200841d128ca6923a7233170ee57a56e1bc7c8704ab8dd2782546f561a83ad6"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_pre.spv",
+      "sha256": "13c2048f2ce41f040574779646b85745529a624c8b7322c3195b9e17631e58de"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_pre_weights.bin",
+      "sha256": "6277a5d340d1e229312bf72b2fb4f3572c1a9d64e3d037be9fd93eafbad3ff3e"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_drs_shader_manifest.json",
+      "sha256": "0cb8fc2e12bf1e5d1632983420c108f9eae624c91faee5f605d3fdd6585dad7b"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_1080_pass1.spv",
+      "sha256": "bb9f1bf97f1aeb4d122e4b3dfaf39e9c9abc3a6b8cd1bf6b73e4b5efc275e7d2"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_1080_pass10.spv",
+      "sha256": "908bfcbff12fb1c1753da2d88e0bba09dee2daa6bb6ea7118a7b1400940781ec"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_1080_pass11.spv",
+      "sha256": "dd17c45788dfc9aa2e693b43ceec0f021b6d549843ca0293014bfce75e91efc6"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_1080_pass12.spv",
+      "sha256": "17f35a3d7ea9635a01a140dc32179bdd1fec12f41f278bea800f9e97044ebe82"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_1080_pass2.spv",
+      "sha256": "a450b18536243d5b6f32d6e3e7cb056dc2bfb55333631d140fb55ef673266c08"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_1080_pass3.spv",
+      "sha256": "6bc0cc882bec201ed6f41f8114c0fd6c9c58febdb71beeafa0659a178ef1f295"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_1080_pass4.spv",
+      "sha256": "41329fcf5d9e0fa8cda3ace81f58312ad14294db6ceeeb9eb85a21aaad59fdb6"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_1080_pass5.spv",
+      "sha256": "17a3d0a262a25f0857289f3b2a2edf6a3b93bfcaa583f48409f1f16a0fc0a34e"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_1080_pass6.spv",
+      "sha256": "e21134b8c8c402672fba8697578fc6cdb67d213bef8f3604ea1e1e464e4e0df4"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_1080_pass7.spv",
+      "sha256": "d96ae1004e5d6b6b29df36dba63de491d2724c6f35d9223e2806b03ddf9c0316"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_1080_pass8.spv",
+      "sha256": "f410d69706e81c4fa5f13781bf14434e221691ba8f8123afc93ca3c91a831253"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_1080_pass9.spv",
+      "sha256": "b27ec22973c17ddc3ad9b784eec7b49e40528baf9ee8bce4cfb7ae50b1593985"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_1080_post.spv",
+      "sha256": "0c38a8229f6f8009e1facc8f1c0fe9292de2506c92d8f1141e628af1196d2eff"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_1080_pre.spv",
+      "sha256": "f6d7d4a19209f1bd2ff894520594c11ee9b842604a2356ccde8cddcbba66562f"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_2160_pass1.spv",
+      "sha256": "a5a9a00aa3a2853a0934e45fc4243051653f61d2db55a5e4447f716e4ea45088"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_2160_pass10.spv",
+      "sha256": "f418684fdc2b4bce068aa93de3ead6a5003915e73b91058decacf1b826a72d39"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_2160_pass11.spv",
+      "sha256": "4bb7d0ac14cf90e2af3d2eeb3ef7d931c4c16e324275e70b0e70e59c33ba82b5"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_2160_pass12.spv",
+      "sha256": "e38b3949be570a2dd0dc964bc74bd5de43428a4bf7d9c695849a990e0d1496d0"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_2160_pass2.spv",
+      "sha256": "6baa9bd4e41b7ad2564c746970e557583d96e9ce92e5e385fc5ea92694e4e4f0"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_2160_pass3.spv",
+      "sha256": "b4aa5d3c571e041b6d51947361aaa39edbfe60f74db5de507fb64026b5138668"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_2160_pass4.spv",
+      "sha256": "e7ec671fc72abcfe4ce728f43fccbcd75078b4a208de9eb0d7c0a4ddb25103ae"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_2160_pass5.spv",
+      "sha256": "ff3ca4ef214fcc28c318a3c53cba460690526cca7ea30798f6e3256013e70a08"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_2160_pass6.spv",
+      "sha256": "a612412bdf09fb37b5a83b80ac8714d8ed3a9a8f3d404bb64b5abfae306c4b99"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_2160_pass7.spv",
+      "sha256": "d65ae6055e9620ec59aa68e0f185e21a09e9548a0d0033b60f38b726c9cbf656"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_2160_pass8.spv",
+      "sha256": "4716125145a6a8f276278fef17b6d22c725e5eb37a2fb93bdcbe882cf327f268"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_2160_pass9.spv",
+      "sha256": "83bf2db52fe347c5e80199c7197eb5fc4badd8fb9f6a80608e1035d2b48eedda"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_2160_post.spv",
+      "sha256": "a086677be89454986004f64d4b79f1dfdf7b2e98c222553b30d5740ce9e3f8af"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_2160_pre.spv",
+      "sha256": "65c760f2199baf3b40c3ad577022996c44af75f9c9b21c32b2c25384775c6f0b"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_4320_pass1.spv",
+      "sha256": "8fe37465f715b71428e156aae2be82e39e16cb1521fe8b9f50ab8611cab0423e"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_4320_pass10.spv",
+      "sha256": "d9bc33b3b964056e0553047ce434458949e36912511009998667d9e0f968576a"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_4320_pass11.spv",
+      "sha256": "68b38ca60008c94a9ac4376f47a59734384a93d86badd9c2b8c5c52c8856929c"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_4320_pass12.spv",
+      "sha256": "160f78b474ba0c1365f6cca02f1339f34693b486a7eca1ef6bdb8bc2da55ae92"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_4320_pass2.spv",
+      "sha256": "e7e7fe23e65c84d7456805f36909c1962ca0adb8e4c73f332fab9a83df140957"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_4320_pass3.spv",
+      "sha256": "c4837c6de71e09a55602071c72c45f555919a98ffc337d2143dd4b162fe58623"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_4320_pass4.spv",
+      "sha256": "4c47522ffc3e2418468fb73d2537a3dce9edf4e8a4733bacf1695c4f723d7c22"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_4320_pass5.spv",
+      "sha256": "4d33458bd198c232e20700a28369474ba49af19fba91361ed41f6879b672ea7f"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_4320_pass6.spv",
+      "sha256": "53374419c91d6debb99885d135698a19ef5a1d1a47486915b9fc0bf9a8388c31"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_4320_pass7.spv",
+      "sha256": "459115527ef43b3b694482987126404bcf811b81b9890913f447ee08d573fbd0"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_4320_pass8.spv",
+      "sha256": "4d5a390752fe0055158dac123f4ba61dd854990a50059f3245c8629d1625ea12"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_4320_pass9.spv",
+      "sha256": "556cddcad26885fb96aaa26fe0c29699a817b135970686d341f21b7c56a70643"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_4320_post.spv",
+      "sha256": "dca856f83d155107e279b0b7af366d4c7eccab78b608e3922ff69f8c4d91277e"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_4320_pre.spv",
+      "sha256": "9defd72634f8b7eae3f567b99e9d823269148f7a33d0e52f664325185b015c13"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_initializers.bin",
+      "sha256": "629d42b1cc57432e9f003599ad0f305fb1d311669a819b4f22ebb8f504dece1e"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_post.spv",
+      "sha256": "a086677be89454986004f64d4b79f1dfdf7b2e98c222553b30d5740ce9e3f8af"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_pre.spv",
+      "sha256": "65c760f2199baf3b40c3ad577022996c44af75f9c9b21c32b2c25384775c6f0b"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_pre_weights.bin",
+      "sha256": "b6f2e8412d462ba207c1d5c7fe944486f474149bc3ee9234d6ae3f644235b102"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_native_shader_manifest.json",
+      "sha256": "04bc1f8d6688742bd50724e1101e072731cebf40e62c5da6531a5d23ebe7a75b"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_1080_pass1.spv",
+      "sha256": "bb86e58710ea35747d27449ae526108d4919bb2a547859111a2986112f4329c0"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_1080_pass10.spv",
+      "sha256": "7b84faf394e0c6c4b8129492659e37d2b6668de282c4d7acba1db4df51e7144e"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_1080_pass11.spv",
+      "sha256": "8f0d0e1726cfd4056e0df8f3c6f31336348a2b773b5282af537bd299649a53e0"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_1080_pass12.spv",
+      "sha256": "87c3f0eef91b23d15c313e15fb6791b256efd3475c1ef51a129eb7b9f2563356"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_1080_pass2.spv",
+      "sha256": "e1986a4ab9354fe03d5657764ed295c421ca0d507137fe27418b74396a93b019"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_1080_pass3.spv",
+      "sha256": "986a0bce8bd1f7666835477a962b81e8d75dcca1871d2a8c0d52ab65c1451743"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_1080_pass4.spv",
+      "sha256": "b0756a224d6171f0ff72b67b6c9e0a5eea48a07f5ba16366c0dc167b77b5ce03"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_1080_pass5.spv",
+      "sha256": "cfd9ebdb274c6e6c2501bbc4b5f516d069e9250090c7e40c3b13770091a3a097"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_1080_pass6.spv",
+      "sha256": "5195a92c78ee44681193c06c5ccda3ad6ecd6a02c0d8e34b7ff1f54826ec94e0"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_1080_pass7.spv",
+      "sha256": "7e8325676e00b3b943f7638c2babe49749a784becf862475c7d36b838791a1ab"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_1080_pass8.spv",
+      "sha256": "9cccd20b6089bb77c69880f5c85c8409bb37402df3154a680e39508fceec5e43"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_1080_pass9.spv",
+      "sha256": "0e17bbf4e0747b90a69d531587776c1c7f8ede4cbfef080aaea78437cb473685"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_1080_post.spv",
+      "sha256": "f27457ce9ad873ae47123267cb353aeffb265af61482b5359dd13cd46665aa72"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_1080_pre.spv",
+      "sha256": "8d811ec4c0bf88d166d38ecadac2b2fbfb9f759ea44648ce61c86cbb7001ff01"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_2160_pass1.spv",
+      "sha256": "f89114a3280e388cc5aa3666f959ec2cf12f9155d7680c162d2dae485bf19a44"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_2160_pass10.spv",
+      "sha256": "de1e02d07d66646fed5ef32da11ab38798d73ba6f220cc539bfa975def9c39a8"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_2160_pass11.spv",
+      "sha256": "3641d55ecb10c0b47e45d5f078483d2ffad1b2870d847020e302c4a823a9fe63"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_2160_pass12.spv",
+      "sha256": "38e00cbeab2f05f3bcb691b542ac7c1bd2bb5e051fef3493d71f6802e29a1e36"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_2160_pass2.spv",
+      "sha256": "1234f488e5747224adf412490e2ad93c47d3113afedae9455d0a0f97d2b783ca"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_2160_pass3.spv",
+      "sha256": "1324144389696699920940ec61082c0280e46e5ccabe8b9f16827b8d75281804"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_2160_pass4.spv",
+      "sha256": "5c01955f51623eba83864ef063cab75a8dcd0fcc0deacb42bdd6f6028c3810d4"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_2160_pass5.spv",
+      "sha256": "ea4d9963f9192f3ed20399e3ae21839bb65f10838333677b646981c25d994960"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_2160_pass6.spv",
+      "sha256": "fc2161e51c71ceaf44c2862327e37ae7c4ebe133ff8b047ff9d4d5c1f498ca4e"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_2160_pass7.spv",
+      "sha256": "fa315c856338d32c8652cf4cb31dd52f318058696c593a71325e734e65cf4435"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_2160_pass8.spv",
+      "sha256": "97ffa461397ed70128359b55c7709b290c34ffab09c4549f4be250ae6140f1c6"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_2160_pass9.spv",
+      "sha256": "5967520e9e84dc97091285d03e24a062df543d28e167ba1432dce9a58856e78d"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_2160_post.spv",
+      "sha256": "c4997be4034262e61bce100fadb81bf53aaefccc15a5e11dcc00f684a8f79fad"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_2160_pre.spv",
+      "sha256": "5cc564136eee0e72db37a2a046c65a411108d49ca5023df59479d72f6a8f65b8"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_4320_pass1.spv",
+      "sha256": "6e1107991742064cf3ca3e1b2fbfc0b080c38bdf336714e733a117f4b838b076"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_4320_pass10.spv",
+      "sha256": "e7cea622d35c066d6847110e22b69c32ee2ee7daace8ff8c91c82963acb36d1c"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_4320_pass11.spv",
+      "sha256": "152b996ccc2410ef0dc549ab7aac6a3ab24fa221413e0ca356fbf927f1cd7875"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_4320_pass12.spv",
+      "sha256": "6b5b70b9b76f826ccf590a8f9175b1ae266d2fe0b792ea2465f4751c4c9a86d1"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_4320_pass2.spv",
+      "sha256": "fef74fd3de941b36cba03588e41a5afc93f0729fb107cac6b8bfd04266c531c0"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_4320_pass3.spv",
+      "sha256": "8452e4f2e188c4edcd07d5dc3f3b78cc31b9ab59b5bbf96af378106855ad61a2"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_4320_pass4.spv",
+      "sha256": "dbe91b2670f790f923feb4340f33a937163351f21087a62c8d48e559c7c3afd3"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_4320_pass5.spv",
+      "sha256": "76e8b2ee98a3187cf128276f9e190f1ef52f27a3cc51c8f1fc7259c0b8b5bbec"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_4320_pass6.spv",
+      "sha256": "6106e23f86aab8928b69bca684d355815d08286acf0b9bd0b785236951668b85"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_4320_pass7.spv",
+      "sha256": "0baa61518e6d38c61476639a43d2cbb7a1321e4e7f7f4bbb974ad827532cd91e"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_4320_pass8.spv",
+      "sha256": "5eaadae253b2c82aafbde8ec4a7a2d3cf00baffe65faa22c5f9bd2668018e128"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_4320_pass9.spv",
+      "sha256": "e0f35d9571d1ff11fc0929929f423ed7bd0d100037dc7927b710f6be86491d09"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_4320_post.spv",
+      "sha256": "e42c683d34d662a47b292cd7ac4fb3e1dccf8933f3d96040ffbb500cf28d3184"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_4320_pre.spv",
+      "sha256": "71a766e3e06184ec6faf1419d158c7abb3538fd4a53be32cea0a870f3110030f"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_initializers.bin",
+      "sha256": "fe2ad00e9e7fc563bd9ee01ab72c82bb557bf0d8365a085e833749547e089aab"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_post.spv",
+      "sha256": "c4997be4034262e61bce100fadb81bf53aaefccc15a5e11dcc00f684a8f79fad"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_pre.spv",
+      "sha256": "5cc564136eee0e72db37a2a046c65a411108d49ca5023df59479d72f6a8f65b8"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_pre_weights.bin",
+      "sha256": "bb05b470e90f04d9eed0ea7600862992cc66be2b0d23c9d33142b907f9d50d68"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_performance_shader_manifest.json",
+      "sha256": "9ed4b2870a6e596ae449d798ae88b11d92e4c278463007078d789ad111e7d072"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_1080_pass1.spv",
+      "sha256": "7c1b054f4bab5aa750dbef6608375bdb68dcc54c3b70266f4a5e3c50b5ec51f8"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_1080_pass10.spv",
+      "sha256": "9c79eddfe54857763051e34f13228b30467d39e7bafa002140d7e4a9c6219b18"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_1080_pass11.spv",
+      "sha256": "76ff5502d19bc5aa40066ef1d3dbf8b63208e1b90726ac8c40d4347203e11d8c"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_1080_pass12.spv",
+      "sha256": "2de7d93e8cf55c3cd535f162a330d9046a6e935b316a328033542ddb7203f051"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_1080_pass2.spv",
+      "sha256": "9122d9ae53c86918459498d32f385b30183b9dd105d0e27bf112815a6c05f13a"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_1080_pass3.spv",
+      "sha256": "c873e592881004234837a6bbe6e1dba8060feea6208bde30d0ef2ac11ec05ce9"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_1080_pass4.spv",
+      "sha256": "f837e7eacd7818c1bb5fbb1e7b8fe6ec45f7ba00e929207e97d6e7b91f5d8e74"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_1080_pass5.spv",
+      "sha256": "4c4adf66da82ac501f7c1466e2e892f3060b6254ff62444bd292b1aac786174f"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_1080_pass6.spv",
+      "sha256": "172286386d8bf732f153641563f762a8f9ae50213aabffdac92418329e35f399"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_1080_pass7.spv",
+      "sha256": "229a50ec3a47302dc7492f5d2478bc60cf010cc451a45d010a62fe753ce7677f"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_1080_pass8.spv",
+      "sha256": "03dd20e4e1998bf2b3a298a66bbb03529a2b4fffc26ce41417a45b7d733fdf9d"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_1080_pass9.spv",
+      "sha256": "2a801fa58e8d51b3bb7635abe73bc859e07930752088ce74f41b5adb1f8ba120"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_1080_post.spv",
+      "sha256": "4e012f5e7ea6eaf064f74c3d29ab05501940353a89d4eea93c056640920244be"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_1080_pre.spv",
+      "sha256": "aec5ce1b0198acc3e18f875ce42ce8e77c6cf94ddf383837d3cbbb9252540170"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_2160_pass1.spv",
+      "sha256": "b5d89bd04770a9bc2cba2e97bfbc09e9b9787f63b0b8008797c06606bbfa6af9"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_2160_pass10.spv",
+      "sha256": "1441122d8a95e13badce462e5bbd89aeabb0fffe1f8fe4b4db61420789254525"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_2160_pass11.spv",
+      "sha256": "abed354b3a3885d40e1705308ac3fe913703e1be5e52537ad5ce7ebb1e76a474"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_2160_pass12.spv",
+      "sha256": "1b3231af40fcc2bd290b2860fd946e02e36abe0cf4f2c98f03cc18f8277fdbd1"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_2160_pass2.spv",
+      "sha256": "44112d6aee64ee7a324f733e3a39951e68e7c41379e90bb33bbfc679ef8baa60"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_2160_pass3.spv",
+      "sha256": "b3562f8ad174f73fc0453ef4b78938ddb41fab0db429a318f6e8b43ae69e8133"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_2160_pass4.spv",
+      "sha256": "2c250af329653d51c37787d459949b3e777900990ed5d7d44322a6d0c1e0407d"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_2160_pass5.spv",
+      "sha256": "1dbbcfc5ace98a70b73d8816825eddd75e9dbbdae8223cb94fde05f4c5f03912"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_2160_pass6.spv",
+      "sha256": "14478fdf678963ff4fbcdf627a6c1efeefbe02cede5d93bf17a8bdfdd27fedd9"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_2160_pass7.spv",
+      "sha256": "0a44277d3931766b48399c950c2b0908c0107bf7a7b2e68fb55be5c0893920ab"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_2160_pass8.spv",
+      "sha256": "e2a1cbfdc6944dbc8bd3e8efad864961465bb39a5feb43b91b6b16615d24121c"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_2160_pass9.spv",
+      "sha256": "e2496ce840906c13209e7427f3cdcafc61452c593892ad6a2e7b6af57bfc3cb6"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_2160_post.spv",
+      "sha256": "bda72ae411984ef203a0fe09afc21340ebb79f1cbedf7e59fadf356a134cf978"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_2160_pre.spv",
+      "sha256": "f25d56545b170eedf61e414d4409dbcdb30180f3c4f27759e2b51b73b99ba50b"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_4320_pass1.spv",
+      "sha256": "22955d014d6e24f6937bda767d777bc423ac6eeee9bef56286ad16c96d8eb30e"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_4320_pass10.spv",
+      "sha256": "b19ef7f93971f830e93851e99d0ec10952c74cd688ed48042e07ec49cd581b66"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_4320_pass11.spv",
+      "sha256": "8c1cc610ffa073939f2d9886e80c26dd7addc4405f624efeb7a82fd917899592"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_4320_pass12.spv",
+      "sha256": "7289310def7622d9a2b231d28df16fbe6df7615f7b53e00d21ffa23742fe5f40"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_4320_pass2.spv",
+      "sha256": "d014c8ff54909439290b695b684a11b7088d779084ae62d340de6fe646436b99"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_4320_pass3.spv",
+      "sha256": "22f6ce5e13c22a1bf8fca6302f3f26e523f3a4f5d8554d722b749e1c1986de78"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_4320_pass4.spv",
+      "sha256": "048454202a3ed03f9d55435ed728d224c20b7dfce429e25f1ecba1137352fafa"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_4320_pass5.spv",
+      "sha256": "7cb95bf001c51b07212f1631001f8ff3aca040bd5aa459ff77031166c89c7c76"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_4320_pass6.spv",
+      "sha256": "d2d75dfe4b2951e4c9585621ce9cf09c1915717bb54ceff6a68284e44dc332e8"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_4320_pass7.spv",
+      "sha256": "48a047649a642dd45948f49a4e6fa761066073cd104209f4876c66de4df09a86"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_4320_pass8.spv",
+      "sha256": "06d9c805f4c9f57a70b72d9900b86fbcc100a111a07798822bf5b23bb4a9e30c"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_4320_pass9.spv",
+      "sha256": "a7a6db2f5cf6f1a6ed57bf009dce8541845f0befe6970219c889fb7e46dc7c20"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_4320_post.spv",
+      "sha256": "c9e2a4bf459214235fd83484f07910425119e750f004edeb58e9c7579c85a842"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_4320_pre.spv",
+      "sha256": "ffca42464f78c0a4ed8bcdedce3be23104a4fea785dac3b88e01f06f0d809e4c"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_initializers.bin",
+      "sha256": "6fce93853235bbf8742210fb2bfd8653b70c90c722af17f5a37d1a3390156356"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_post.spv",
+      "sha256": "bda72ae411984ef203a0fe09afc21340ebb79f1cbedf7e59fadf356a134cf978"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_pre.spv",
+      "sha256": "f25d56545b170eedf61e414d4409dbcdb30180f3c4f27759e2b51b73b99ba50b"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_pre_weights.bin",
+      "sha256": "f125f216cbe7ea37ab621edf9b0c9a5ccc0e969f6a4d1d483c20637bac1fb046"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_quality_shader_manifest.json",
+      "sha256": "7ffc906ab0aeae98ad42c3798f18948bb4a8198fdf9804d5e6a40eff403edf6f"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_1080_pass1.spv",
+      "sha256": "6da83fd2bc2cf45b803afd11934663955703e32caf8ca3d17f7f36b7f09d0e6a"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_1080_pass10.spv",
+      "sha256": "369d6c3c511f37571e37aca6f5d2b827e3435a44b3548658f55908f4c34e8a75"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_1080_pass11.spv",
+      "sha256": "da68362919768cfd3a46b3b5dfd42b14fa5c2e212b4d123fab81386d0595d57d"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_1080_pass12.spv",
+      "sha256": "9ff101cf630d75b808ac3e6c1864031efc1398b385e3f491e615c07b5e7c51bd"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_1080_pass2.spv",
+      "sha256": "34df22b89cb8b5dd33c394e2ee156588b89eae6d4c51f227c2c96fd0ba0d206b"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_1080_pass3.spv",
+      "sha256": "58c7bcc16255d4cbebaa27fa8ba13624943573579157e80275aa15b350fa1e5e"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_1080_pass4.spv",
+      "sha256": "0c191d3c7cfd955b4dbff96f7b49501d7a18bea9df909251be6c6c6d44220d07"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_1080_pass5.spv",
+      "sha256": "fb0975554a59086c066a4dae87be5ef775fc6941cdd402918a5382f2ee34b408"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_1080_pass6.spv",
+      "sha256": "05a8cb810363187729227a9b73aef4f165437b6536e24756dd5a971142541678"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_1080_pass7.spv",
+      "sha256": "6fc9dd50a762d12d53179ecbc610f76097bd1e13f48f5728edfcb14ceaa94429"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_1080_pass8.spv",
+      "sha256": "3997d78a1236d339b756f2a6c7ebd22a9c7b05c433efdd186448a90a41b5840b"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_1080_pass9.spv",
+      "sha256": "c2227d479444faa34f5c0a4e1ce4b3b745748f67f9e0d26d52fb497804641d0b"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_1080_post.spv",
+      "sha256": "082c44372c1d0b41b0febef3c44e9ce51e2c590657989a67f61c16df91fa6419"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_1080_pre.spv",
+      "sha256": "c31b7c87af1157a481f49efc366bcd268622057530fcaa8309283b977694e199"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_2160_pass1.spv",
+      "sha256": "a914a44db260379879d4ab808333c06b08c5289a51e766636b7c60310c7989b6"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_2160_pass10.spv",
+      "sha256": "e776a69a65a4352f0d75c9fb97411411ec0d3ce9e864b91050a3a08c5955bc80"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_2160_pass11.spv",
+      "sha256": "e75347e2ce66f3d44ade3f5e6ad33c372cd1e74563020c611590d65d8a7cef07"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_2160_pass12.spv",
+      "sha256": "6c5e59d92efd60ac226772b37b6183d64f38eef046ccb98a83cfe924af36882b"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_2160_pass2.spv",
+      "sha256": "9d578dfe8a323e1efb89ea44b6e4c251b3c7a7b0a6df00cfd17be813a1ff7df5"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_2160_pass3.spv",
+      "sha256": "737409a8f72ab953597ce70ff0d7428992d35023183bc7d7fea054e9cc534ac2"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_2160_pass4.spv",
+      "sha256": "5ece35596533190735fa6bc7773b384cbb31563a3313e56d845e3177fbcfbe65"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_2160_pass5.spv",
+      "sha256": "e3292c79298a9a8e88a168d6fdb74d8992421cedbe02574cac624e37e274abd3"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_2160_pass6.spv",
+      "sha256": "2758143d40259ccaee37ae5351e69f69bac3955a46156745538e8ac5e150981f"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_2160_pass7.spv",
+      "sha256": "41e11d8eedb2ca30b037e8c294d497882b988cd55b3b44261bab331e214181d1"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_2160_pass8.spv",
+      "sha256": "d22371cf492097e4255de76ec5b9ea2e18a7d66c6e51c17fe0dd54aac060678c"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_2160_pass9.spv",
+      "sha256": "93a07e3843a7d695debcce1dc5e42379c87f09fc7c1f0598c64852d433903c98"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_2160_post.spv",
+      "sha256": "98155116bd0413af4e90514527e0193f606093bba6cafc026478f631a97031d0"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_2160_pre.spv",
+      "sha256": "bed4136dcae42ae12b9cc674c073af55145fb8c72cb9f30844a61265dbfcbc77"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_4320_pass1.spv",
+      "sha256": "08b29bc786f669bee0280b33a2719f951de4c209852875500f14b9cda653fd7d"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_4320_pass10.spv",
+      "sha256": "496d84fbb901fdcad2414838f83d5aa2668291f5c6ecddf1aebb10de518274ab"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_4320_pass11.spv",
+      "sha256": "cf4c0f9a1acc8bb92933d38f79863d15867b210777552945880bbff9b86f3de6"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_4320_pass12.spv",
+      "sha256": "e741039a8543bcc438776d494dceee64b177a29b4b60af1cce4c962cecef5835"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_4320_pass2.spv",
+      "sha256": "41629afb4c3453ce0bb5e4b274fead8990fb0c077da2d032a9fb8b0f69554440"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_4320_pass3.spv",
+      "sha256": "d1543bf5bc3c9bf02f384c10a747aff7e915015787aa9c3be416d182caab733c"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_4320_pass4.spv",
+      "sha256": "e77b7b6d73eb6043b70dfe3715991a7bf8ac4d6eed5ab5c51f44ba0743d379f7"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_4320_pass5.spv",
+      "sha256": "44535de03082d2ab0c6bfd11f442c2f8abcfbd231b4496dbbeccdbcdb369f954"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_4320_pass6.spv",
+      "sha256": "f83c7c353a502452ef764bcd36c4b9812a52ae7525587c11afbb647c6a57eb85"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_4320_pass7.spv",
+      "sha256": "7030b8e80c35d5adabea9d83da2e9b7532166f55cdf02f926ea58ea765008416"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_4320_pass8.spv",
+      "sha256": "8a9e408f49fbe70ded0e660ce6ae310a2de4c95dc01d67dba3802915baf0dff0"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_4320_pass9.spv",
+      "sha256": "e5b5dc98559144cb68a25161d9145c4238318b9baf432c5eea59f28b99667019"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_4320_post.spv",
+      "sha256": "efb84d0a21dcecbbe2ec9582fdbd731eb16147fde99168e1c53e73fc53f70b5e"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_4320_pre.spv",
+      "sha256": "0824b02b93f99727f5e6aa9fcdd52abcfbc0f8602defe0eb3711190a52428d47"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_initializers.bin",
+      "sha256": "666839fa4dd1232847a81231151f33391c4b8110a5c9808fc8c1cb7b4c5bb61b"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_post.spv",
+      "sha256": "98155116bd0413af4e90514527e0193f606093bba6cafc026478f631a97031d0"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_pre.spv",
+      "sha256": "bed4136dcae42ae12b9cc674c073af55145fb8c72cb9f30844a61265dbfcbc77"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_pre_weights.bin",
+      "sha256": "18a895fc45db6a2391339ed54839c97dd7b3fb911bf306095b184271ada52c13"
+    },
+    {
+      "path": "bin/fsr4/fsr4_model_v07_i8_ultraperf_shader_manifest.json",
+      "sha256": "045f6b34e1934ba3ed0529591282bdf2f8228ae36e88c5d57f1365d6a516ba98"
+    },
+    {
+      "path": "bin/fsr4/rcas.spv",
+      "sha256": "03aa0e0729f67bb9907667526ed2d5d5f933030e7faa3acd953e3de109a54950"
+    },
+    {
+      "path": "bin/fsr4/spd_auto_exposure.spv",
+      "sha256": "bf97092a75dcbd04ba2976278769beab15469df0eba8b986c10c2c5553c21595"
     },
     {
       "path": "bin/gpu/libOpenCL.so.1",
@@ -88,12 +1232,24 @@
       "sha256": "3095c902914cfa38fdad8f5bc892ccd9603147fdd57e7f5d5c25ae3cb122b402"
     },
     {
+      "path": "bin/gpu/libZycore.so.1",
+      "sha256": "7f11bd8503b3cb399f35f838bf395b42a134dc394bb921366ebb5e3e54795456"
+    },
+    {
       "path": "bin/gpu/libZycore.so.1.4",
       "sha256": "d5fea72ed21745e6982d7081c591337524d3e2c35d320d97eb5747332cf44c4f"
     },
     {
       "path": "bin/gpu/libZydis.so.4.0",
       "sha256": "9c07a79a1bcc6c2cfa9cd7bf4c3dcd291c1594156a0a816939e79fa7f168b7ec"
+    },
+    {
+      "path": "bin/gpu/libZydis.so.5",
+      "sha256": "cae39bc80a7c266ad6547658fa57d396c27ff63f8fa0cab39745302e71704fb1"
+    },
+    {
+      "path": "bin/gpu/libZydis.so.5.0.0",
+      "sha256": "cae39bc80a7c266ad6547658fa57d396c27ff63f8fa0cab39745302e71704fb1"
     },
     {
       "path": "bin/gpu/libaom.so.3",
@@ -381,7 +1537,7 @@
     },
     {
       "path": "bin/gpu/libps4gpu.so",
-      "sha256": "679a7f8f2bd845faf90dc90aa73aeda9f23abfccc04f8a9468e98f72789e70e0"
+      "sha256": "7e660f0dab5f989e490303c65f5b48804cfc671c38b34f071899f5983c3935fe"
     },
     {
       "path": "bin/gpu/librabbitmq.so.4",
@@ -556,344 +1712,756 @@
       "sha256": "950a388ef107e5f775634de11cdb8f14b6b400df7e1464a0997baf9c4ca75974"
     },
     {
-      "path": "bin/order1886-worker/_internal/PIL/_avif.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "c0c30b196f5e42fe990291eb0fb5aade70803399f6be4bc08da9fb7ced9957dd"
+      "path": "bin/order1886-runtime.bin",
+      "sha256": "68c79b9977ffa34db465897d6688b4a6567c78ebf33068ad5caa0110e5f7e377"
     },
     {
-      "path": "bin/order1886-worker/_internal/PIL/_imaging.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "94310f4a073e9773a067df88513804649f50a974f78bd85a52c52d21170783f2"
+      "path": "bin/order1886-worker/_internal/PIL/_avif.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "26c9503178b6b18ef678d395968a002c7494e298a113d60d93202b9c03f01adc"
     },
     {
-      "path": "bin/order1886-worker/_internal/PIL/_imagingcms.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "2d4600dbd8c29d7cb243560ddf6a7c6ce36d13e15cf359d14050623ad7d153ac"
+      "path": "bin/order1886-worker/_internal/PIL/_imaging.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "4b01e43a7299ef47b4178b4a847fb705e2686e8ca690e1e4b50282786dee6ee3"
     },
     {
-      "path": "bin/order1886-worker/_internal/PIL/_imagingft.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "31e284b6b2a9fd39d09cc6ab26cf24d0f20fdbd992f9e6bac98f926e38d584cb"
+      "path": "bin/order1886-worker/_internal/PIL/_imagingcms.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "db56bf5e13e7037506f965b34c9c4b641da53b4c7f5440c71dd50bea0a49a3a7"
     },
     {
-      "path": "bin/order1886-worker/_internal/PIL/_imagingmath.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "95bd69209560c9fd64e6665204f33207c7b61cccd4c29797f0f522561bc5c693"
+      "path": "bin/order1886-worker/_internal/PIL/_imagingtk.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "c8a3bac63c6fb418944ab77ef131023ca47804815e7256f940e6fab573557377"
     },
     {
-      "path": "bin/order1886-worker/_internal/PIL/_imagingmorph.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "c2f3731339aea5260810b6028f1c6940e54e9a8005bd119b1b9f8463f23fc089"
+      "path": "bin/order1886-worker/_internal/PIL/_webp.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "f729fe5a2eeabd43ee50a7ff95dea5fa02180f3b4f41617591197ab771060bba"
     },
     {
-      "path": "bin/order1886-worker/_internal/PIL/_imagingtk.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "e8f9d96fbfa0ccfd816d82d3c880eb05872f4d1079e09d63dfd7b513c9af73ff"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/PIL/_webp.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "54806394ca07d141f07663d6629108be51795e7371c3c13db94ba808fbf15fd8"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/_cffi_backend.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "b9699676243c8f8878106464d23bc86171f5b7dc663354f33bdc30c5c4d96b12"
+      "path": "bin/order1886-worker/_internal/_cffi_backend.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "a018fa9b2c1ed502419027c54d70c06d4fe130a282096b5d585130df5bb7ca69"
     },
     {
       "path": "bin/order1886-worker/_internal/base_library.zip",
-      "sha256": "18df749f63dac4d89da2f5b7e24402b9ac6f05b0a9ce85c741ad433bd37c2563"
+      "sha256": "41a1df3332e6e69cf7aa1f356a88e1268365a6a642599fcbb76a4c9e33152ed3"
     },
     {
-      "path": "bin/order1886-worker/_internal/cryptography-50.0.1.dist-info/INSTALLER",
-      "sha256": "e6184ce10e266134fdcfa401e8f1a95005bcd4f18d16b62b757323e2833fe9a9"
+      "path": "bin/order1886-worker/_internal/cryptography/hazmat/bindings/_rust.abi3t.so",
+      "sha256": "f4b8dda12668bb2447bd44faf4ccbd8cbc061e2dd74a7b2a1a8e29de3a94d757"
     },
     {
-      "path": "bin/order1886-worker/_internal/cryptography-50.0.1.dist-info/METADATA",
-      "sha256": "8e9b5570da4686848ee5c6bb83fffc224bcddf9793136731dd050ce0c05fffe2"
+      "path": "bin/order1886-worker/_internal/cryptography-50.0.2.dist-info/INSTALLER",
+      "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508"
     },
     {
-      "path": "bin/order1886-worker/_internal/cryptography-50.0.1.dist-info/RECORD",
-      "sha256": "7ab1ead99ccb58584efc331dd9874e4845092e9c73c14791f85e8934dd9b7e08"
+      "path": "bin/order1886-worker/_internal/cryptography-50.0.2.dist-info/METADATA",
+      "sha256": "047cfc71226409de4318b360aef15c63a2adf609731e3dcf7fe932f14ea042ee"
     },
     {
-      "path": "bin/order1886-worker/_internal/cryptography-50.0.1.dist-info/REQUESTED",
+      "path": "bin/order1886-worker/_internal/cryptography-50.0.2.dist-info/RECORD",
+      "sha256": "d01662f85b9f664e6f810161960f350846b83f7188c38044d9f7727f55eabc4c"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/cryptography-50.0.2.dist-info/REQUESTED",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
-      "path": "bin/order1886-worker/_internal/cryptography-50.0.1.dist-info/WHEEL",
-      "sha256": "39b425ce6c898e83f8b8cdeeb65dae690d3ab9f2382ca9c3860e77bf6d34077a"
+      "path": "bin/order1886-worker/_internal/cryptography-50.0.2.dist-info/WHEEL",
+      "sha256": "e5c353994ee5ad53161545c6b70dcbb960f1e5325312847e4d763356dff6ed51"
     },
     {
-      "path": "bin/order1886-worker/_internal/cryptography-50.0.1.dist-info/licenses/LICENSE",
+      "path": "bin/order1886-worker/_internal/cryptography-50.0.2.dist-info/licenses/LICENSE",
       "sha256": "3e0c7c091a948b82533ba98fd7cbb40432d6f1a9acbf85f5922d2f99a93ae6bb"
     },
     {
-      "path": "bin/order1886-worker/_internal/cryptography-50.0.1.dist-info/licenses/LICENSE.APACHE",
+      "path": "bin/order1886-worker/_internal/cryptography-50.0.2.dist-info/licenses/LICENSE.APACHE",
       "sha256": "aac73b3148f6d1d7111dbca32099f68d26c644c6813ae1e4f05f6579aa2663fe"
     },
     {
-      "path": "bin/order1886-worker/_internal/cryptography-50.0.1.dist-info/licenses/LICENSE.BSD",
+      "path": "bin/order1886-worker/_internal/cryptography-50.0.2.dist-info/licenses/LICENSE.BSD",
       "sha256": "602c4c7482de6479dd2e9793cda275e5e63d773dacd1eca689232ab7008fb4fb"
     },
     {
-      "path": "bin/order1886-worker/_internal/cryptography-50.0.1.dist-info/sboms/cryptography-rust.cyclonedx.json",
-      "sha256": "9bdac29ee4d9bfdb4241e04f0fdbd12e5b62fe31706bd3a8bed28c8cafcb55a0"
+      "path": "bin/order1886-worker/_internal/cryptography-50.0.2.dist-info/sboms/cryptography-rust.cyclonedx.json",
+      "sha256": "dfa3353496d4b83fc7405466514f20e31869e1787a43e6f24cb9d68a18b55086"
     },
     {
-      "path": "bin/order1886-worker/_internal/cryptography-50.0.1.dist-info/sboms/sbom.json",
-      "sha256": "4bd5cfec10cb95e3842dc5a52d63ab62e1b2dd1b6e697b4587903ec8de53f720"
+      "path": "bin/order1886-worker/_internal/cryptography-50.0.2.dist-info/sboms/sbom.json",
+      "sha256": "90a9c8d03d95672422f4e7c611fb6d35d1a7c5fed98d032d9dc57d8965e239e6"
     },
     {
-      "path": "bin/order1886-worker/_internal/cryptography/hazmat/bindings/_rust.abi3.so",
-      "sha256": "3d6423664bffe926fd91d1913d1c5ddda5c31ee7ff1cae06fc8b71c47c9501a1"
+      "path": "bin/order1886-worker/_internal/libXau-154567c4.so.6.0.0",
+      "sha256": "8b5a93469805d3550471766696d4755f05bc6ca0587f22c03037ca7d12545c8b"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libavif-c6062d5f.so.16.4.2",
+      "sha256": "d12ec0b696860b292114b130ecac6082fc75c198c1b4fa57b26089e9b0a7eb6a"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libbz2.so.1",
+      "sha256": "9911b43735fe91042f694df846ec738b3945cfebed8823c0fc4b61fd9c777db9"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libcrypto.so.4",
+      "sha256": "d7a694d6c0504aab4cbaf1d209d19c846f1407e4356f9f13a8c8638b51fa3f90"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libexpat.so.1",
+      "sha256": "dc0ea7c843f5408e3b1a1630a1fdd96d141c5bc868ed296f5b844b5107e99151"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libffi.so.8",
+      "sha256": "7ce42bdd960a488576dfe79458f1255d211cbc5375eaf1fd24fe264aea80d389"
     },
     {
       "path": "bin/order1886-worker/_internal/libgcc_s.so.1",
       "sha256": "91e0dd0a46dcb5abb5c704a73cac0b841edffcfad3f1bc211b2b28acf4a58033"
     },
     {
-      "path": "bin/order1886-worker/_internal/libpython3.12.so.1.0",
-      "sha256": "7eebd82249f6caba63ec4f4bfd827b202c90ff65d5bd06e7f9cb08fbd5e5c567"
+      "path": "bin/order1886-worker/_internal/libgfortran-83c28eba-468e71e5.so.5.0.0",
+      "sha256": "a6a368328d02a5d8a149746f13f6268f8cc9192df5c18777b25c3c9b5ef52160"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libjpeg-6dc8d115.so.62.4.0",
+      "sha256": "cc04bc42fd6296e81d24d13955fb95bd829624f6c74105eaf4a7fcf2ce42e048"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/liblcms2-88eaba2f.so.2.0.19",
+      "sha256": "4cf9f69016c7804bcb4fa56f5bbc55640cb1b7196ac7b93ba29ed9df9bd9ff4d"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/liblzma-de26b416.so.5.8.4",
+      "sha256": "ab4d2f260d6777088cc4bd96ce4997a5199d20b94e146a764b02c37d42477ce9"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/liblzma.so.5",
+      "sha256": "1d6722b63c8d4cca0d83f995e62d979434e6282a961c65c2f44d72b80cd1fcc8"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libmpdec.so.4",
+      "sha256": "a332cb6924f5458dd9c1e333393c1723d685f51f93b37aca7ef74d841cc19fe1"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libopenjp2-e530e1bf.so.2.5.4",
+      "sha256": "eea7a2058e0f2084d41ba88c561bddc866bd38e74f76b5ca4fccb965e2fb1c24"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libpython3.15.so.1.0",
+      "sha256": "448660fe8eeefaa1967b9f2c0a8ea84a7b5b9992731eab593fca5485bcce63e6"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libquadmath-2284e583-a9307bba.so.0.0.0",
+      "sha256": "6bc3069003caec1f075be3c51ae8355332f081fa9465910c4b5724e7fe7d8ad4"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libreadline.so.8",
+      "sha256": "bd2a51e020d94e0f8b58f1b1140e75cd145012b050262bae48574ca1684998a2"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libscipy_openblas64_-f48b354e.so",
+      "sha256": "432e1c1739731468ba305771af96773939e43016643e2d630f58cb45b6670e96"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libsharpyuv-0066295b.so.0.1.2",
+      "sha256": "8abd5c39ee3b26330288b2e833d4d9b5d4b5ed4c881649057354df17326b6996"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libssl.so.4",
+      "sha256": "7941af75795fa28c8284295fdcb53553d8f214c4e3ecc93c2dcc289908c80726"
     },
     {
       "path": "bin/order1886-worker/_internal/libstdc++.so.6",
       "sha256": "baa3610188cd93cec0d71ed1925b532dc3bc286637fa5a9b4e013cce1c49ab2b"
     },
     {
+      "path": "bin/order1886-worker/_internal/libtiff-20b7e810.so.6.3.0",
+      "sha256": "729883f61144533eb3215d405e4daad528a68f89e9a1fccf51e9862819f30020"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libtinfo.so.6",
+      "sha256": "b67a48b0dfb951e8749345e57cd896ee9cf94b90214dda04e4252d58e52d4799"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libuuid.so.1",
+      "sha256": "be9b46a14a7200ef03bf4f1096de9abfb8663b248b87b1b250598b9f35f4b8bc"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libwebp-51b0b3f7.so.7.2.0",
+      "sha256": "6a97159a7c36acacb112618eb74720c97bbab4ecc499a8bfeb495dd726285259"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libwebpdemux-9fe2abcc.so.2.0.17",
+      "sha256": "5d728787db553c48c74dccd93d2763ec88234850a5f2f821df11483c8d28d2a7"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libwebpmux-8fb1c9f6.so.3.1.2",
+      "sha256": "6bdb41f738f088e7420374d67a4a6523cc4786f340d355d2bf4f124dcf3d5820"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/libxcb-9065bb12.so.1.1.0",
+      "sha256": "f3707868b0b2e78dbdac0994d2977b0ec4303c9c6250f03576b1bd93c42cad63"
+    },
+    {
       "path": "bin/order1886-worker/_internal/libz.so.1",
       "sha256": "bcc97bb783dd4986a54482af2182841712728646ed19236aac3f4aad6605e172"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/INSTALLER",
-      "sha256": "e6184ce10e266134fdcfa401e8f1a95005bcd4f18d16b62b757323e2833fe9a9"
+      "path": "bin/order1886-worker/_internal/libzstd-40ad5e7e.so.1.5.7",
+      "sha256": "95a5af7845018639470635243c36b428f90af32b728804af6d951e7fcb08bbea"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/METADATA",
-      "sha256": "451a9b8028000588e66b0b415587b6aef0bbc51a96d8e8a0cba0dc23acf64f99"
+      "path": "bin/order1886-worker/_internal/libzstd.so.1",
+      "sha256": "fbcf5cff976a8f4e047a3978839e22f422598390112665703602304bf0e7d781"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/RECORD",
-      "sha256": "acf82f2fc9170b940169fe52eff0bf13f393cfcd6a1372f26578a5cb219e55f9"
+      "path": "bin/order1886-worker/_internal/numpy/_core/_multiarray_tests.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "f99eac38bd42cd8b7604feeed9d1f5617396a8a4b705a039a69bdd702d18fed1"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/REQUESTED",
+      "path": "bin/order1886-worker/_internal/numpy/_core/_multiarray_umath.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "e46e925f1f993acbce1e8395942241001a09d9cae36bb8dc632519f449358109"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/numpy/fft/_pocketfft_umath.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "e907047c87b6c88b8b031a789da6d6c7f488bdd95cc8ad154a6ade396472150b"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/numpy/linalg/_umath_linalg.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "ab10122fadb0962e90913f85438c192ff90f97d60f5593606eeab5cbb6d81629"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/numpy/random/_bounded_integers.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "bf1319ee41d0f60c52426204c438898b1781c7f5b75a01192651206ddfe2d1bc"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/numpy/random/_common.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "34675118a6fabf9956aa88afe6fb93fa62624c38cc0abafa6a3fa69051d422aa"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/numpy/random/_generator.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "c0e1006f4ff62edd1bddb0b985a573576a75510316e1f91d062dee3c3921e294"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/numpy/random/_mt19937.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "427b4e2d022e71de6c20fb05387ea916d2b2a8ccc15c5f349b4f4f70bc2a1bef"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/numpy/random/_pcg64.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "f2cfb7c831a7cc94873f8749c1a2c374504194152794db83bc5f0ebd435375ad"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/numpy/random/_philox.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "91a2027f577625ed1d2fe1a3b42b79b9a5b7c7db5bb40fe4c0c2443e8e62588d"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/numpy/random/_sfc64.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "bf85dc127882dd267933fe3cfe7b79398ba7449f46aabfe5413b5605dd5b4778"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/numpy/random/bit_generator.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "2a9d5b7d979c906aceab422bbd683a65aa4d37207f78f6c728d2722d2a3dd59a"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/numpy/random/mtrand.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "5ce77012f829db96abb4ab22d4d50a61542b039f23190c43c2b0ca083aade816"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/INSTALLER",
+      "sha256": "ceebae7b8927a3227e5303cf5e0f1f7b34bb542ad7250ac03fbcde36ec2f1508"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/METADATA",
+      "sha256": "e2b909d6a37d76c2bc130f528d7fed0c517322bce16dc7846b6a6df30e200403"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/RECORD",
+      "sha256": "b5a2d8bc2b6acf1ba702c0632d48aaa775a040b2ec08cb25034e5d15b551f8d4"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/REQUESTED",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/WHEEL",
-      "sha256": "ac90a994678616346852fc495a154e351832198199a0e921c9e8f4b372b28e82"
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/WHEEL",
+      "sha256": "21c67d60c8b53dd79cb78ef79833ffeaa2ec001012826252a9ac1f074104296b"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/entry_points.txt",
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/entry_points.txt",
       "sha256": "ec26fade0c8bdac211a6c1dd003a65eb16885b925395423e93fcaa115af4052c"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/licenses/LICENSE.txt",
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/licenses/LICENSE.txt",
       "sha256": "4860083caa0de2ac3292ca98bd074bd8f45d8b32624e37b1e70a240bff61e488"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/include/numpy/libdivide/LICENSE.txt",
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/licenses/numpy/_core/include/numpy/libdivide/LICENSE.txt",
       "sha256": "fbc539f47d0cf83bc61378080fb873d5c14630126cacbfe754035c3926daa5ec"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/common/pythoncapi-compat/COPYING",
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/licenses/numpy/_core/src/common/pythoncapi-compat/COPYING",
       "sha256": "3f2c1ffa76383a55ae0aac01c9737cd70050dff63e1f026694fbe9d662573c98"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/highway/LICENSE",
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/licenses/numpy/_core/src/highway/LICENSE",
       "sha256": "e340270d4f64384569a91d546acb5b094d69ce47f0c015db77abb74dc6f815af"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/multiarray/dragon4_LICENSE.txt",
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/licenses/numpy/_core/src/multiarray/dragon4_LICENSE.txt",
       "sha256": "f7b14309e5f54e5022b26448eefd419988ada2aec01d3c1162d84a0ea8f21f2c"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/npysort/x86-simd-sort/LICENSE.md",
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/licenses/numpy/_core/src/npysort/x86-simd-sort/LICENSE.md",
       "sha256": "211e7d737d6179a08f791ebb0a99897ce7cd2457410c542876d125576edfe910"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/licenses/numpy/_core/src/umath/svml/LICENSE",
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/licenses/numpy/_core/src/umath/svml/LICENSE",
       "sha256": "c17011467b4fe6e20fbfbeda4df09e58c2bca5480a063e55735a4000a379aad9"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/licenses/numpy/fft/pocketfft/LICENSE.md",
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/licenses/numpy/fft/pocketfft/LICENSE.md",
       "sha256": "a85ca13fdf90160b64a0698215868c13b74d835ad0a4e2ba44713b8c5058a056"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/licenses/numpy/linalg/lapack_lite/LICENSE.txt",
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/licenses/numpy/linalg/lapack_lite/LICENSE.txt",
       "sha256": "a14cc25e10d40a3aa705b7de2fb764a6535d8ee9b2db4e1724900585457dfd55"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/licenses/numpy/ma/LICENSE",
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/licenses/numpy/ma/LICENSE",
       "sha256": "05f3b88351988ecfad10abe92c0c50e5875c6452d5009a0084cc291551ffcca6"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/licenses/numpy/random/LICENSE.md",
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/licenses/numpy/random/LICENSE.md",
       "sha256": "103166b62b80443afb9eb3488e052ea06be0cff566b908f199e561fde49af19f"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/distributions/LICENSE.md",
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/licenses/numpy/random/src/distributions/LICENSE.md",
       "sha256": "469778be8f33d54e1bcaab28c281cc472916d2d273f835e55bc487d30503face"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/mt19937/LICENSE.md",
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/licenses/numpy/random/src/mt19937/LICENSE.md",
       "sha256": "0e111337b25494a773106695f0e799f642b8567aaacca4f116a74a8177179156"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/pcg64/LICENSE.md",
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/licenses/numpy/random/src/pcg64/LICENSE.md",
       "sha256": "e7d4f4fb20358f314210a892ae17351e04993813646f697ec387385ca2a36918"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/philox/LICENSE.md",
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/licenses/numpy/random/src/philox/LICENSE.md",
       "sha256": "6f5828a57223d4cc7f8ea505a2623e7b978b242752c1515e355f46ba2cec1800"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/sfc64/LICENSE.md",
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/licenses/numpy/random/src/sfc64/LICENSE.md",
       "sha256": "9d4098846018319cd68e228ee6220361787f73bccbf00237a85e4fc9621b998f"
     },
     {
-      "path": "bin/order1886-worker/_internal/numpy-2.5.3.dist-info/licenses/numpy/random/src/splitmix64/LICENSE.md",
+      "path": "bin/order1886-worker/_internal/numpy-2.5.4.dist-info/licenses/numpy/random/src/splitmix64/LICENSE.md",
       "sha256": "268b0ca06759d31ea3ca68dd35f20e877916e927b1c2a835e4592a3c4354b1f9"
     },
     {
       "path": "bin/order1886-worker/_internal/numpy.libs/libgfortran-83c28eba-468e71e5.so.5.0.0",
-      "sha256": "a6a611aa56eee7ea499beb8c59de81e3910cc54721a0008db0b1148bfe03c9ea"
+      "sha256": "a6a368328d02a5d8a149746f13f6268f8cc9192df5c18777b25c3c9b5ef52160"
     },
     {
       "path": "bin/order1886-worker/_internal/numpy.libs/libquadmath-2284e583-a9307bba.so.0.0.0",
-      "sha256": "8b07c41a298d8df7a0a9b2db7296da872c5bff7c79affb7f1a79514385456b3c"
+      "sha256": "6bc3069003caec1f075be3c51ae8355332f081fa9465910c4b5724e7fe7d8ad4"
     },
     {
       "path": "bin/order1886-worker/_internal/numpy.libs/libscipy_openblas64_-f48b354e.so",
-      "sha256": "b2a214da7f82ffaa74cbcdd0de2e8f3563c8da2de1ccb028cd464b12b15673a3"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/numpy/_core/_multiarray_tests.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "01fbdfb35211b8e07d1b0c395f84f15f709e78859fe7a3f4a89915a5d7aa7309"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/numpy/_core/_multiarray_umath.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "ceec5ba13ab88318632307fdd2df74f317fa293ce77be559c4298ddd1f4306b0"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/numpy/fft/_pocketfft_umath.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "29a1547b480b7ddc1e45cdc772b3f4b614cccced70204181bf5d3ad138a04ebb"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/numpy/linalg/_umath_linalg.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "19d024507f73b42889baeb00f9da0004e33a42ed7a78fd77662fd6236e930d78"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/numpy/random/_bounded_integers.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "73bf58f374a46edac9bd1fbb3fc16f199b4a8e8ed12a222a23897e722655adcd"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/numpy/random/_common.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "232d131170bce32fbe3bfed38a5f14a0104d7efd7bff521162c2e0b6e2ac4bee"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/numpy/random/_generator.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "e362c7a4c9d5d97404ee1fcbf00c2b345ecec945df50f6ea3e0f4631d4ab336e"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/numpy/random/_mt19937.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "3f06703c3971d813adda172ffd2de8af16df18875242e4b1542d9e8e8f33919f"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/numpy/random/_pcg64.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "61175f3da7d43f4811277cdf743906b8d405d1800cee79632a17fbca478e6964"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/numpy/random/_philox.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "51f2c84d85fbd199adf32b234e2558b3add7f7a8b86d0797fb36d3ee068619ef"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/numpy/random/_sfc64.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "cb9c0d024e0e30dbc6bbec4bad8fbee6ba2aeaa4f444c5ea66473d8c8c31a609"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/numpy/random/bit_generator.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "3734537d37d6d54654e33890ec17cf6e54cca3aba8cfc5e6160786c236457df3"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/numpy/random/mtrand.cpython-312-x86_64-linux-gnu.so",
-      "sha256": "53a0dea25039fd6e55ce2a6c94789c9273fdfa1cc4bda60dde6e813f455c9bc5"
+      "sha256": "432e1c1739731468ba305771af96773939e43016643e2d630f58cb45b6670e96"
     },
     {
       "path": "bin/order1886-worker/_internal/pillow.libs/libXau-154567c4.so.6.0.0",
-      "sha256": "5c553cdf8f9c39a00f1020b9b139ae3c3450e569674683beca74c0a58cf103f9"
+      "sha256": "8b5a93469805d3550471766696d4755f05bc6ca0587f22c03037ca7d12545c8b"
     },
     {
-      "path": "bin/order1886-worker/_internal/pillow.libs/libavif-8a7f9d56.so.16.4.2",
-      "sha256": "e222d333ce0a81f0c91f0e6d6d85f2e3ec878c36d495ce07c46fc3f14402f0df"
+      "path": "bin/order1886-worker/_internal/pillow.libs/libavif-c6062d5f.so.16.4.2",
+      "sha256": "d12ec0b696860b292114b130ecac6082fc75c198c1b4fa57b26089e9b0a7eb6a"
     },
     {
-      "path": "bin/order1886-worker/_internal/pillow.libs/libbrotlicommon-53534446.so.1.2.0",
-      "sha256": "2d877d3c765c067f9435180bb7d0f9e2345edfc9b707e7b98f700b760eb12522"
+      "path": "bin/order1886-worker/_internal/pillow.libs/libjpeg-6dc8d115.so.62.4.0",
+      "sha256": "cc04bc42fd6296e81d24d13955fb95bd829624f6c74105eaf4a7fcf2ce42e048"
     },
     {
-      "path": "bin/order1886-worker/_internal/pillow.libs/libbrotlidec-7e5462ba.so.1.2.0",
-      "sha256": "e21c4ea6cc7672a91043af3e2414767d1b7b2acb2399d0b3fe61a7eb827289c9"
+      "path": "bin/order1886-worker/_internal/pillow.libs/liblcms2-88eaba2f.so.2.0.19",
+      "sha256": "4cf9f69016c7804bcb4fa56f5bbc55640cb1b7196ac7b93ba29ed9df9bd9ff4d"
     },
     {
-      "path": "bin/order1886-worker/_internal/pillow.libs/libfreetype-9fc94c80.so.6.20.6",
-      "sha256": "d4b1497f604a1c56bc03015fda2e5985a688ea182114760ebde75985a0ed269c"
+      "path": "bin/order1886-worker/_internal/pillow.libs/liblzma-de26b416.so.5.8.4",
+      "sha256": "ab4d2f260d6777088cc4bd96ce4997a5199d20b94e146a764b02c37d42477ce9"
     },
     {
-      "path": "bin/order1886-worker/_internal/pillow.libs/libharfbuzz-172d1f63.so.0.61421.0",
-      "sha256": "b4f979da2eb54461864653041d24442d849bcd95de332a42b6945d8cca943b7e"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/pillow.libs/libjpeg-31e2ca52.so.62.4.0",
-      "sha256": "eb623b0eb63dcf20f4cd002a55ac29852857489d2dabe3b81f50c074564235c1"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/pillow.libs/liblcms2-dade1fbf.so.2.0.19",
-      "sha256": "162d350b4c4da5c0ba8aaf7d920c9cb1a8ac48919e0b7d9bfe29476ae8087e24"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/pillow.libs/liblzma-2be87c3e.so.5.8.3",
-      "sha256": "71b459e29a18da73484a4bd93a3ef875da3eb94a2df64c78d3ecdf1df506eb0f"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/pillow.libs/libopenjp2-b07f72ad.so.2.5.4",
-      "sha256": "1c20dd47c0e53d2d4fcf46035589cd9e3fa79fa4855613ecd5d05dde284bc408"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/pillow.libs/libpng16-abb096d5.so.16.58.0",
-      "sha256": "4c5bce304832aa44b669486368e3122151f631b0dc18340e877637b4b563546d"
+      "path": "bin/order1886-worker/_internal/pillow.libs/libopenjp2-e530e1bf.so.2.5.4",
+      "sha256": "eea7a2058e0f2084d41ba88c561bddc866bd38e74f76b5ca4fccb965e2fb1c24"
     },
     {
       "path": "bin/order1886-worker/_internal/pillow.libs/libsharpyuv-0066295b.so.0.1.2",
-      "sha256": "4522e3b495ecd2f21eca2cf8f3469d0c830332f301b2c12da759172f8cfbbdb7"
+      "sha256": "8abd5c39ee3b26330288b2e833d4d9b5d4b5ed4c881649057354df17326b6996"
     },
     {
-      "path": "bin/order1886-worker/_internal/pillow.libs/libtiff-fc87e79d.so.6.2.0",
-      "sha256": "484df52b83353866d361b9a803cffc5b9e032057dc4e0ab0163c4b9f95960146"
+      "path": "bin/order1886-worker/_internal/pillow.libs/libtiff-20b7e810.so.6.3.0",
+      "sha256": "729883f61144533eb3215d405e4daad528a68f89e9a1fccf51e9862819f30020"
     },
     {
       "path": "bin/order1886-worker/_internal/pillow.libs/libwebp-51b0b3f7.so.7.2.0",
-      "sha256": "14dba32664f59939454101b14ee0075c4d5769fd016ffc9a56793b73fd44970f"
+      "sha256": "6a97159a7c36acacb112618eb74720c97bbab4ecc499a8bfeb495dd726285259"
     },
     {
       "path": "bin/order1886-worker/_internal/pillow.libs/libwebpdemux-9fe2abcc.so.2.0.17",
-      "sha256": "35d68c7cf4166610f1a7cfbf4ad532f4cca93514d723d3468e8b52b336e69581"
+      "sha256": "5d728787db553c48c74dccd93d2763ec88234850a5f2f821df11483c8d28d2a7"
     },
     {
       "path": "bin/order1886-worker/_internal/pillow.libs/libwebpmux-8fb1c9f6.so.3.1.2",
-      "sha256": "8817b5a3cb0aea74eca08a7cbeafb9e336654722bc7a122ba058345a561bc68d"
+      "sha256": "6bdb41f738f088e7420374d67a4a6523cc4786f340d355d2bf4f124dcf3d5820"
     },
     {
-      "path": "bin/order1886-worker/_internal/pillow.libs/libxcb-ad31f5a3.so.1.1.0",
-      "sha256": "28d078d3cf0900271cb7e524c7a4b4afb8b2272a99e7abe0111d48aea34db01e"
+      "path": "bin/order1886-worker/_internal/pillow.libs/libxcb-9065bb12.so.1.1.0",
+      "sha256": "f3707868b0b2e78dbdac0994d2977b0ec4303c9c6250f03576b1bd93c42cad63"
     },
     {
-      "path": "bin/order1886-worker/_internal/pillow.libs/libzstd-44be1190.so.1.5.7",
-      "sha256": "720a7c14ce2999133fd7317108bb659c875d87c67dc8f7e8aa0a3016139c6fdf"
+      "path": "bin/order1886-worker/_internal/pillow.libs/libzstd-40ad5e7e.so.1.5.7",
+      "sha256": "95a5af7845018639470635243c36b428f90af32b728804af6d951e7fcb08bbea"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_bisect.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "51df43b83587ffa8b1d62d765ec6013a2b7770f751481550e1b8d08c88af35d0"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_blake2.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "df51696cbc3d6860769b54985bafebba219acd60f5bc02b00c63a7e5dcfd81d9"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_bz2.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "b4c7458fa19debd3f62a0ae0433ba3f24cab517e1583925685ec64ec277caddf"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_codecs_cn.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "66c4991cbbedec9eb43ee1ab183684cfc9ed41865f36d90d954a83e1dfe30a92"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_codecs_hk.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "70f0617664ef5f63b5a9b1ac3e00f7a3d5696c8301a116aef370aee2312ab717"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_codecs_iso2022.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "8860bbf1ab0389f33d5dcaf405a8a3abb84e60780843d360c1d9e181d18353a0"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_codecs_jp.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "2cbcf9340db7a11b364ca60d61048f1955f86d03ef92e2d90f5f6942f9bbd0b5"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_codecs_kr.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "1c80fbbed85fb2938a5372782aae237925bdad7035a2d78ca5890ef071b71be5"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_codecs_tw.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "92e7d6b13df03df1e5854361d7c46def7f7cf6d2a1229b3d455212ab93209463"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_csv.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "12228f0dea86057ef4292ccc02502ba03a0d080b817a046442865bb605c15d12"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_ctypes.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "8b6150d2ce92f63a0d5f265d1188a3166c036cb135fa4c646b8884e60ed3967b"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_decimal.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "4a730d2727f8ab3cd2a5a3d90b00cf2cdecdaee1c73f28899c9feb3de6b70238"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_elementtree.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "6495386945f4e2cc449f43d127c182a2a0ec49723909c496c92f385f21ca4441"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_hashlib.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "b3fe2004eee3cf61c952cf6f9504b5ebaba09419a7c8c91bc4aa6c64e4e59ff1"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_heapq.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "a3ac19795ce89cefd7da9c4caf07b63525c1c52c62b1def587b6f15fb5276e79"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_hmac.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "1ea2779577d2b142dafce785dce854ed641fa4666cf404dc89c5571071015db3"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_interpqueues.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "be518d5b547c319cdb6756b3f8683a09c22b222dbca27de92a9dda2537b40b80"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_interpreters.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "2e8a4813bb8de2bba5240430a570c0f962935ed11c1f018e95dcfc9dbcb31fda"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_json.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "46e5dbf7d3bda947a978a24a0c5cd8e6748670372501327aeb7001123ca00341"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_lzma.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "1df81e4cfc27e34fd8d11f2561d12e828eeba39bf3fa51cbede9b62fb713769b"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_math_integer.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "97b59d97227675fdd1755a3f8f1117fd959f8dff282870f8ea0ab9b36d179a98"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_md5.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "d21685a6fdf4da2cd1d90d691fa6f8e80223f381d6db12c700f7093b48721cdf"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_multibytecodec.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "0e52fd68e79d8232aecf0a24850a87ffda2dd93fa779d1aa30182df153c10ff2"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_multiprocessing.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "5f64d4c276c943ce4987f50f21d047852b87db5bfaa0941269189304f12f5ec1"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_pickle.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "bbb42d5cb7cd8688abcbd0ce8a2052b254642da22f9d5a5c0893e290a2846df2"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_posixshmem.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "ece9963f8e163020532050fd525494616600a8fa5443fe0980e1d4d36aa28eec"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_posixsubprocess.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "68573cb484d79e813771f0547491b2758087df315c831dd7dcad1add06afdf42"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_queue.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "2fb80d5e05f7df047d76b252a928fcfdc26b3328aa3f7faf1ce718198e2cd9de"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_random.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "dd0091a253ae68a5589d30739112f20ffc064ea79c2681e78c05a87b47dd1388"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_sha1.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "aea715116d947acd9c5f3c2001ac36bcb7c73de546b60a18e820836d44891945"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_sha2.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "0459dae57f68e221fb281195011960ecc08b423336a2e5cffd95e043c2ed638d"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_sha3.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "92929ee3022c8efc5d04b69425418cf1e617cfd223b971ba6b0ef21dbf99b2b7"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_socket.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "6c6ccd73a23fd9192ddfd635f82f207fd79c6091df5f569e5857382a0b6c28ab"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_ssl.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "7e8144a39d087e2593fdd7d0be7bd708fd6980a429b7195b2dfc9e55d490c4af"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_statistics.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "2340b2db01f60511835b7e8de79fad1bb4363f28b57b29ca2b5e12cf67342f28"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_struct.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "f83e51aecdc387816340de4a2345dbf211273ad6cb2e0d9b739042a723ead298"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_uuid.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "dccea432ad4c7409fda9d4cc847f058bc4516a12f8c84a9eebed8a2869f4bd26"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/_zstd.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "730539a5e8a369ea95811c8b17d25a1eec2198396fc7119097731b8aaa4bea21"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/array.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "ad8180cfed6860dc37497516ee0c2a6e641a35743ffa45bfcc129175c6d36f72"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/binascii.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "1dac556203056483354dbff55e2066b69e6a5f45f5394b738a9e8c7401f1adda"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/fcntl.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "827b6266714f6ee6240e3476a2a313504c314bb5898a827d14c1ec1df5b89fd5"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/grp.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "4197ac8e23f5c14b0401e37b15699579352a93b6e8d2fe3a17d2e54879aa89a3"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/math.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "3483f3deb063c02ac38c497245c7a2aa38de95909c2b41f7984152403fdd9e1c"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/mmap.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "4efde2d9b9dc07353255c3032eccd3a1e58c86965ab05b9f62b09ac3e6e2a7ea"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/pyexpat.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "7718e3b1a5227ae084ea775e524e67afdbb7da07e4128d2cf996cf8ccb551d8c"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/readline.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "c566af1e39bf4e43776ce6976a7f104b4dd52974f0ac5cc817e3033ddbd631e4"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/resource.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "796acb723aa9903d8d32a34a5f09a37c411b3902dd89e8c6e141183104ee48b6"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/select.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "7f57a077aa12dec8b8d2970c73280623adfa3a4555a66f5be385d91739d33ca8"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/termios.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "a423ebc84adc61f429dbddb6a5e101d0d2af60d4c93f0a6059661472da1968c9"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/unicodedata.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "8453958929754e3869f595b5a59698a951831e77bbb21b7ffc89aa55e3346e26"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/python3.15/lib-dynload/zlib.cpython-315-x86_64-linux-gnu.so",
+      "sha256": "22976e7474ec64ea34a78739ee4f1620deeb62ef6cc800d806bb8136926276d9"
     },
     {
       "path": "bin/order1886-worker/_internal/scripts/button_prompts/README.md",
-      "sha256": "02cfa2924f6a4335e8fe22c45855282eabc0bb0ac10346e9b348646e47bfc893"
+      "sha256": "d3a896550757f8f654601949f6d093384f0e188dd5cbb1f5dc8f150bb4221b54"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/keyboard/key-ESC.png",
+      "sha256": "1f8a94c301237ec02458576d6a1baf9606d5eaa4357b1fe8540b5b9d1299e927"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/keyboard/key-R.png",
+      "sha256": "b7f1edea3fa754b87673867cdb5a16c2e9d3d3066803f03ff28c8a913f2fc2cd"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/keyboard/key-X.png",
+      "sha256": "67fec43e2df57376b494257a3e973dc72ff98f989c932a121d4e216e2ed1be36"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/keyboard/key-Y.png",
+      "sha256": "24d378db089a0bc5b437d76a353d22e3ce880f2d676265bfd95ceaf29cb39479"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/keyboard/key-square.png",
+      "sha256": "33b1724735c3016acd29db50cfac277deb6ac5ea0a0c00e93d6080a2bbfd461e"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/keyboard/key-wide.png",
+      "sha256": "151cf3631917c2414976fde1a9936ea16349ce454dc56f1b0c4382b0743aee20"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/keyboard/mouse-left.png",
+      "sha256": "bd1294128101a6279a8c5e744306797ad8d56c74a1a1b203ca7ca9b750ea0847"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/keyboard/mouse-move.png",
+      "sha256": "8c8b311746ec1dc09a6987b20c8bf124543a071564682005b72fd090759fc276"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/keyboard/mouse-right.png",
+      "sha256": "c25422f5adfd677e2066c52a36d5464a64cba162354c55117a1dfa0cc379a2aa"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/keyboard/number-2.png",
+      "sha256": "96640f9e945e6c7517172ed7966f4a4dcc5971592af4fea95501315ac4746e18"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/keyboard/number-5.png",
+      "sha256": "c631a6ee93bef70e9af2fe1f4a4bcd38c2a2a2932ca6e3b2076a49b3d2c8f285"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/keyboard/number-6.png",
+      "sha256": "44c4d9dbd7676cde56a2bbea0c80d79e262de6f8dbdc396d5e72e2459f2a1dc8"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/keyboard/wasd.png",
+      "sha256": "a1605b6de1b50118f7f67935ef4a5a18f24707d9c21ce01148d0397db9f5eef9"
     },
     {
       "path": "bin/order1886-worker/_internal/scripts/button_prompts/keyboard-bindings.json",
       "sha256": "2615178339e4258908e8611c69a26b1584ce9a36b4fa6a49d59531bcb01b6da8"
     },
     {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/1.png",
+      "sha256": "57684c689e645f229ca6aee97597ffceefdb2c630409608159f1be0f70c6f7e2"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/A.png",
+      "sha256": "1058288a05a97ba3471c6bd9d08538febafcbfe20aa143b5202cb771ea719826"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/B.png",
+      "sha256": "3bb4655c1f08cc6bcd1b97a1af59713f2684844f1fddda07bfbb49f7781809e8"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/C.png",
+      "sha256": "8f6fa821e146c5fd2bc3f8c75490d3c0ca34c3ee7d5e4d7442294bfb8378ef5c"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/E.png",
+      "sha256": "a7c0729ca5ac7e150d9a7f3807e84104a7f673db8651d819669f2db56fdd2a21"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/LB.png",
+      "sha256": "002e4df284842dbc900002c9136f296502c149ad50f9eb80ae8bb810a1e630de"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/LS.png",
+      "sha256": "3a13ef95ec5c8eb202f5ef18e2e431606a2428b972ba5e28823c2cedca75eabb"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/LT.png",
+      "sha256": "62506855016a04f84b8bf93616678c8ae36bce9fe59f1aaf5a9372c14c66cea2"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/MENU.png",
+      "sha256": "5663a48742ccadbca7e3415debdc36dbe816adeafeda4cf28e3bd2d4c0b75aae"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/Q.png",
+      "sha256": "debe6e54d19fdc1493f8094761b883994cdd752552a02bf0bb1e6820a65d2843"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/RB.png",
+      "sha256": "b3e1a39b442024169d38438b5b9432eff7def5c35cee8685b3738d906ad614b5"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/RS.png",
+      "sha256": "3f9ac89d35b85b57de3c2f14faefe6a7298f434395e690c24134ac53545fbb9b"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/RT.png",
+      "sha256": "b32474931b91e7408db95b2d6ff49d095251273c7550420169febf017945ba27"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/SHIFT.png",
+      "sha256": "c429ce7a4a8c20f6ea0125fbe2e965fd0e61a97423d2c82ac7f7dad4b29d6fbc"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/SPACE.png",
+      "sha256": "3344460655edc69521ee8514dae72f62ff017839bd96674b26ac8ce0c2221149"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/TAB.png",
+      "sha256": "1c108c8c42633fdf57f2cbd6ccc3cb3d9c055184247a3e592680cdd7b955e6d6"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/VIEW.png",
+      "sha256": "a193e822b62ef3483c459d877e828ff4a9897d96d00f15a5c2e337d6c877da31"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/X.png",
+      "sha256": "49ba34a7f2810dbd86ed309067c629ad9575e33a63c50f0550a4e9d47b4185ab"
+    },
+    {
+      "path": "bin/order1886-worker/_internal/scripts/button_prompts/marks/Y.png",
+      "sha256": "4447243b325685c8334749666fc6d593410612726327894843db4bf40c8d6b8b"
+    },
+    {
       "path": "bin/order1886-worker/_internal/scripts/button_prompts/plan.json",
-      "sha256": "b408878ade40cc01562b7cdaf77d646a448000d15e1a2186837deb354b1a2adb"
+      "sha256": "f7d543b8841f9e96944dbbc00cb4d12eb60ba5e5e171fdb4934679cad91720b1"
     },
     {
       "path": "bin/order1886-worker/_internal/scripts/game_update.py",
@@ -949,19 +2517,15 @@
     },
     {
       "path": "bin/order1886-worker/_internal/scripts/order1886_glyph_mod.py",
-      "sha256": "0600bac337f54b4d9eeaf3cb8c1463e82169a4a5ede086d0001c6e35a93e0f32"
+      "sha256": "cc305874c7dca3ff8b12f72a01cc1ad3eded2db69dfc4b18d004cad4ad83376f"
     },
     {
       "path": "bin/order1886-worker/_internal/scripts/order1886_input.py",
       "sha256": "6b24353359dd3e27e590bd43c37cc761a44b27465493e4343cf1888742eab719"
     },
     {
-      "path": "bin/order1886-worker/_internal/scripts/order1886_merge_update.py",
-      "sha256": "dbb3e53e31bd4ad7b4c422ed72226e042402c6c4e80c159389e5bdc44f847503"
-    },
-    {
       "path": "bin/order1886-worker/_internal/scripts/order1886_mods.py",
-      "sha256": "1add24d7f4a7f586fd2a996db434c27c2feb47f51fea2763de12da7b7538e48a"
+      "sha256": "1fe4cbb6cec126f922872f99b51253177a4d21aea570c4576320b98dd847e351"
     },
     {
       "path": "bin/order1886-worker/_internal/scripts/order1886_patches.py",
@@ -977,7 +2541,7 @@
     },
     {
       "path": "bin/order1886-worker/_internal/scripts/order1886_prompts.py",
-      "sha256": "cd0af121babf1e0d432153e78ef4d035dfcaa1b7a112bff23cd93f7d7fc5f5ea"
+      "sha256": "97011afe69c0a7de18faa5bc7c3e2d33f05755cf10b88f4bfae8b5d082a0385e"
     },
     {
       "path": "bin/order1886-worker/_internal/scripts/order1886_resolution.py",
@@ -997,7 +2561,7 @@
     },
     {
       "path": "bin/order1886-worker/_internal/scripts/order1886_ui_extract.py",
-      "sha256": "b9768335a0f1b5c5ee2fd583291769be1504cbf5b136aa3549efe55345804fc7"
+      "sha256": "f8fe40397c0e9c2690289da1bdf34ae7280162601f4f9f25cd4477ee2bd33ea4"
     },
     {
       "path": "bin/order1886-worker/_internal/scripts/prepare.py",
@@ -1012,184 +2576,52 @@
       "sha256": "e96fad6e55f7f11a6463d223cb80a8c17c2b83aa2a4904622edf267e082e08c1"
     },
     {
-      "path": "bin/order1886-worker/_internal/setuptools/_vendor/jaraco/text/Lorem ipsum.txt",
-      "sha256": "37fedcffbf73c4eb9f058f47677cb33203a436ff9390e4d38a8e01c9dad28e0b"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn-2.1.4.dist-info/INSTALLER",
-      "sha256": "e6184ce10e266134fdcfa401e8f1a95005bcd4f18d16b62b757323e2833fe9a9"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn-2.1.4.dist-info/METADATA",
-      "sha256": "ce96de4160dc06c1bbcf35074cb542c9f296219f740aa0f34606f8837650c2e8"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn-2.1.4.dist-info/RECORD",
-      "sha256": "17d9ce3cdd54ac0fcc28d4a6be6e1614499a7200ecef64993532a261afe5ef29"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn-2.1.4.dist-info/REQUESTED",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn-2.1.4.dist-info/WHEEL",
-      "sha256": "aff9a6f0c94636672ace5c2e50b7d8db7cabbfbd1a1929d58d9af031c6a65273"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn-2.1.4.dist-info/top_level.txt",
-      "sha256": "ec0c03f370a783d55b68e240432c15850ec60ac7b8aa1cbb20eafec6dd512b71"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/__init__.py",
-      "sha256": "9ad32123bca674cf205c308fd4d0d2a4db877c9dc2afac4feab7c84c8cf7043b"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/arm64_const.py",
-      "sha256": "92f91a2b0a36cd34deee16db4f8da4ac0c9ae35c3ea1089296e5ef9d170a5be9"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/arm_const.py",
-      "sha256": "44fdb7a9f7a9d8c62be07fefaf21e20060813b2a503b6228e378e6bbff7f7b41"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/include/unicorn/arm.h",
-      "sha256": "de68a0b8f91035baa32cf76fdbd677a16dac433e93c75b084ecd0eeef67be7de"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/include/unicorn/arm64.h",
-      "sha256": "7fc1a00cfe6234ea8859026e4e27cb625e4cecedbc95a06bec9c694137831981"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/include/unicorn/m68k.h",
-      "sha256": "1511ee296557a3de03f71e25b1378761dc7213bfb2f5b2df7aa2d3ef8722b449"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/include/unicorn/mips.h",
-      "sha256": "f6a8d3a5056330a7431954cfe19ec1b4927fa0e8f0a9d83ceac8aeeb98a2a030"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/include/unicorn/platform.h",
-      "sha256": "10ec4c482940d039fcbbf2f7e5791d3dc3f991f0a3c5b16e22f378ae1829fdde"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/include/unicorn/ppc.h",
-      "sha256": "2645d9f4448ab0c1ff28d2096262335d53a9479f210567d546cd76de85dbd530"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/include/unicorn/riscv.h",
-      "sha256": "c2efc0644c236feca3f17e2957a28149498b9f6e06772ced7e11204797fd0327"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/include/unicorn/s390x.h",
-      "sha256": "43ba5d9eed2495ae129da50a8e3f59902d05dc4601bfad12d2b3f4454953d0b4"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/include/unicorn/sparc.h",
-      "sha256": "f30427a1738b7bc9c46dd00cee2097ae375f95ad8db9c386f3d61a14574b3624"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/include/unicorn/tricore.h",
-      "sha256": "053f337160ab3b0cb29bc564e301950fed4c2f93bde50918a3d428b85d0a3f45"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/include/unicorn/unicorn.h",
-      "sha256": "66fdf8f39df34e507a163eb550549669cec3399c2103b8dc84bc4131f600e55a"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/include/unicorn/x86.h",
-      "sha256": "6b01b368f4d1bd0e0ac93a6107cd2edb3b5abfef578f94bf82a00e0ae34ed76f"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/lib/libunicorn.a",
-      "sha256": "bb556269ec90752e3b3ded2f3fc6a397427ca73e30ca4818d3cfb05621b5e210"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/lib/libunicorn.so.2",
-      "sha256": "ddb196ec82b52e502c18e4a34478bf7b9f61c83c2ebaa95c74d8ded45a95da9c"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/m68k_const.py",
-      "sha256": "7503e32454751bf66bdf1fcb19dd847537bcf6a5538e18125d8f53d8d448fed9"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/mips_const.py",
-      "sha256": "3a04993d82610ea5f492af2d74fa79d849224a044ac0448281033ee331b58dac"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/ppc_const.py",
-      "sha256": "154aaa45f947dab3e488e58e74ad99a09c8d772766c561ff92ecb85cdedd61af"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/py.typed",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/riscv_const.py",
-      "sha256": "278e10baf05cfb7c8675475081ae7f2d2037616c79cb907d51963aa2c5b490e4"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/s390x_const.py",
-      "sha256": "54d7026dd70b5bfca1d02e00e7a58d652eaa974b9ea980ba49ed4b80911b9fde"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/sparc_const.py",
-      "sha256": "bcdb0491b6e42c647b104ee53d61610504a97831302dd5280fd2123e05572e95"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/tricore_const.py",
-      "sha256": "1b6005a147d77a3fc1ab5c81fc878eeac3b9bb0b68d518e4a4226830d1356c4c"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/unicorn.py",
-      "sha256": "e823b17649d0610c6f52b665902ac9dc46962785feebcac8465a0d7c477f25b7"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/unicorn_const.py",
-      "sha256": "556c6a27336dc6dd3e0d49348951bde17e1b0f69166f2217773e6b3a7199f45d"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/unicorn_py2.py",
-      "sha256": "66e2555d679e4f56a0117c2b8de0895a0a138fa3827e3a8a3621255e348d145a"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/unicorn_py3/__init__.py",
-      "sha256": "ee70d3a7de9ea545406d727436ee835f9d644aeb7428f0e4f1510f9190b28726"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/unicorn_py3/arch/__init__.py",
-      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/unicorn_py3/arch/arm.py",
-      "sha256": "c28693f90d8681c091f0ff92caed0a290350a969ea0a38343bb843a26b726711"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/unicorn_py3/arch/arm64.py",
-      "sha256": "62963378864bae452f7cd2a784ddcd64ab6bdc8a6a69e033d48e8faaab0b2515"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/unicorn_py3/arch/intel.py",
-      "sha256": "8a04281923b5f4dd65ce5f122e222bd86df3e8efc7eae99086e0d372fd7a1a75"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/unicorn_py3/arch/types.py",
-      "sha256": "2e103854e371ef576680073f44ead45b8177a73c450a6125e609b7c54e0bc844"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/unicorn_py3/unicorn.py",
-      "sha256": "62ffe84341f4288e309040e06555b81798031817d32fd19a945e250813f872f0"
-    },
-    {
-      "path": "bin/order1886-worker/_internal/unicorn/x86_const.py",
-      "sha256": "3b33c55b97503ab25e8ed8bbe576c1cee693f495df6785b04adc1c8ab47a79c4"
-    },
-    {
       "path": "bin/order1886-worker/order1886-worker",
-      "sha256": "3bef6f26abc598d23c1c35e0d3c2801beff9f07b0c9d68ddbedb5085732a04fd"
+      "sha256": "1d39d83357e0e0d1e4aed2e1ba89a8ae7e430a9a16989aa25963799e7e3f5b31"
+    },
+    {
+      "path": "bin/order1886_fsr3.so",
+      "sha256": "04b35e1df43edc1899c01682f43a7cafd9b1a08a5891e6cdb98f469e44b2c707"
+    },
+    {
+      "path": "bin/order1886_fsr4.so",
+      "sha256": "7b4f5a56b21c0d8c96da9bcb8063aba87a790ebb3132c41e41447abc2c9b7295"
     },
     {
       "path": "bin/runtime-build.json",
-      "sha256": "58c93778a03b9330e6d0ca89f930226a1659700d6c354427fc05939bf89222c0"
+      "sha256": "a3b4cecfdbf17143cdc714513e92c0ac2f059c80c8c577f1515ea8b922fb63a9"
+    },
+    {
+      "path": "docs/verification/2026-11-07-cinematic-bars/README.md",
+      "sha256": "2a0a83cb2a6b9a4e7da49256c11cbce347745008d8dbfc5df7867481f8e96dcc"
+    },
+    {
+      "path": "docs/verification/2026-11-07-cinematic-bars/bars-on-95s.png",
+      "sha256": "95cd20adda3d0498b96ccf4dad8c4e4cdcd804983522f171c0b39089ffb6ea54"
+    },
+    {
+      "path": "docs/verification/2026-11-07-cinematic-bars/baseline-35s.png",
+      "sha256": "32917bd250a03229e7a6dfe5a9e18aa6d815a73457e2dc90421dfbb9c620fae0"
+    },
+    {
+      "path": "docs/verification/2026-11-07-cinematic-bars/final-graphics.png",
+      "sha256": "5abc66079a35e847c692cfb14d7b1c633e67bdc98d083601e156d6d6a6593e9b"
+    },
+    {
+      "path": "docs/verification/2026-11-07-cinematic-bars/home-chip.png",
+      "sha256": "6dc71d0fb6085217a0e6c41f697eff6829d67c7df946c194380ad3832ac365db"
+    },
+    {
+      "path": "docs/verification/2026-11-07-cinematic-bars/nobars-50s.png",
+      "sha256": "dcb93f3a925227f7ec4684bb01f8da600d490bdc2b0866c47794e40f49cd4ce1"
+    },
+    {
+      "path": "docs/verification/2026-11-08-fsr4-linux.md",
+      "sha256": "78885a96493a0fd83e339693a24294193787f2c547cbcf43b2eea19eda9d3b0b"
+    },
+    {
+      "path": "docs/verification/2026-11-08-fsr4-linux.patch",
+      "sha256": "d03b2e90b1149120dc437b2801b76f272316c2ed0753430971896771891f3acb"
     },
     {
       "path": "music/README.txt",
@@ -1280,12 +2712,12 @@
       "sha256": "dda12a98c1979cf3d94df1cff45d27a4cb3f04a60c76f76902ac54cac03ec0ce"
     },
     {
-      "path": "notices/python/pyinstaller-hooks-contrib/licenses/LICENSE",
-      "sha256": "91d0baaff00773038e72c0a1fc9d5d2d38706b7a2b9c04f34296608f931b9cd0"
-    },
-    {
       "path": "notices/python/pyinstaller/licenses/COPYING.txt",
       "sha256": "dcf75fdb959db1e3b41c0f8505069d2ece781b5ec6b3d0a4d30975cfc6580245"
+    },
+    {
+      "path": "notices/python/pyinstaller-hooks-contrib/licenses/LICENSE",
+      "sha256": "91d0baaff00773038e72c0a1fc9d5d2d38706b7a2b9c04f34296608f931b9cd0"
     },
     {
       "path": "notices/python/unicorn/NOTICE.txt",

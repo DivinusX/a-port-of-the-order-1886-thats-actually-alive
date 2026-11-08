@@ -1,0 +1,465 @@
+diff --git a/build.sh b/build.sh
+index a13a214..d56b744 100644
+--- a/build.sh
++++ b/build.sh
+@@ -111,6 +111,19 @@ if ! ninja -C out/gpu ps4gpu > out/gpu-build.log 2>&1; then
+     grep -v '^\[' out/gpu-build.log | tail -40 >&2
+     echo 'GPU library build failed (full log: out/gpu-build.log)' >&2; exit 1
+ fi
++# Upscaler providers the runtime dlopens beside its own binary (vk_upscale_providers.cpp).
++# The Order's temporal resolve replacement needs both: FSR 3.1 is the fallback when the device
++# cannot run the FSR 4 v07 shaders (#12).
++for provider in fsr3 fsr4; do
++    cmake -S "gpu/upscalers/$provider" -B "out/$provider-provider" -G Ninja \
++        -DCMAKE_BUILD_TYPE=RelWithDebInfo >> out/gpu-build.log 2>&1
++    if ! ninja -C "out/$provider-provider" "order1886_$provider" >> out/gpu-build.log 2>&1; then
++        grep -v '^\[' "out/gpu-build.log" | tail -40 >&2
++        echo "Provider build failed: order1886_$provider (full log: out/gpu-build.log)" >&2; exit 1
++    fi
++    cp "out/$provider-provider/order1886_$provider.so" out/
++done
++echo "Providers built: out/order1886_fsr3.so out/order1886_fsr4.so"
+ # $ORIGIN/gpu: packaged copies keep the library next to the binary without patching it.
+ gpu=(-Lout/gpu -lps4gpu -Wl,-rpath,'$ORIGIN/gpu' -Wl,-rpath,"$PWD/out/gpu" -rdynamic)
+ runtime=(src/runtime*.c)
+diff --git a/docs/verification/2026-11-08-fsr4-linux.md b/docs/verification/2026-11-08-fsr4-linux.md
+new file mode 100644
+index 0000000..be0da15
+--- /dev/null
++++ b/docs/verification/2026-11-08-fsr4-linux.md
+@@ -0,0 +1,85 @@
++# FSR 4 v07 on Linux — The Order: 1886 (CUSA00035, update 1.02) — 2026-11-08
++
++## What was built
++
++The runtime already carried the FSR 4 v07 INT8/DOT4 provider (FireBurn/FSR-Vulkan
++`ffx_vk_fsr4_v07`, submodule c64f093) and the capability probes, but the Order temporal
++integration was refused before the device query ("disabled in this build", #12) and the
++provider modules were Windows-only DLLs. This build:
++
++- `gpu/upscalers/fsr4/order1886_fsr4.cpp` — new provider on the existing OrderUpscale ABI:
++  loads the v07 bundle, selects the model preset from render/output ratio, maps the game's
++  color/depth/velocity targets (RGBA16F / R32F / RG16F) into the provider's import contract,
++  and retires history slots only at the host-proven present watermark.
++- `gpu/shim/order1886_upscale.h` — ABI 2: `OrderUpscaleFrame` gains `gpu_frames_completed`
++  (appended; prefix-compatible). Providers must not retire descriptor/history slots before
++  the GPU proves the frame finished; the presenter's waited present fence is that proof.
++- `vk_upscale_providers.cpp` — POSIX dlopen (`order1886_fsr3.so`, `order1886_fsr4.so` next
++  to the runtime binary), fsr4 provider entry, `/proc/self/exe` path resolution.
++- `ps4gpu.cpp` / `vk_presenter.cpp` — the hardcoded `ConfigureUpscalerSupport(false, …)`
++  is replaced by the real device probes (`IsFsr4Int8Supported`, `IsFsr411Supported`) after
++  device creation, before any provider loads; unsupported requests still fall back to FSR 3.1.
++- `vk_order_resolve.cpp` + `order_resolve_prep.comp` — the v07 bundle is compiled with
++  `DEPTH_INVERTED=0`, so the prep pass flips The Order's reversed depth (push field
++  `invert_depth`) only when the provider is fsr4. FSR 3.1/DLAA keep their flag path.
++- `build.sh` — Linux builds both provider modules; launcher `order1886.py`/
++  `order1886_options.py` — `fsr4` selectable in Graphics → Upscaling on Linux.
++
++## Asset provenance
++
++v07 INT8/DOT4 bundle: FireBurn/Q2RTX `baseq2/fsr4_shaders` — AMD MIT-licensed source-v07
++shaders compiled to SPIR-V (`libdxcompiler 1.10(5322-c64a5165)`), per-preset SHA-256
++manifests, `initializers.bin` 89,216 B + `pre_weights.bin` 1,024 B verified against the
++provider contract. Installed at `bin/fsr4/` (285 files, 45 MB). Not AMD FSR 4.1.1:
++`VK_VALVE_shader_mixed_float_dot_product` is absent from Mesa 26.2.6 RADV, so the 4.1.1
++probe correctly reports unsupported.
++
++## Device evidence (RX 9070 XT, RADV GFX1201, Mesa 26.2.6, Vulkan 1.4.354)
++
++- Features: shaderFloat16, shaderInt8, shaderInt16, shaderIntegerDotProduct,
++  computeDerivativeGroupLinear, shaderStorageImageExtendedFormats — all true.
++- Boot log: `Upscaler provider fsr4: AMD FSR 4 v07 INT8/DOT4 (source) available`;
++  `Upscaler: fsr4 requested; AMD FSR 4 replaces the game's temporal resolve`.
++- Session: `Upscaler: fsr4 reconstructed 5400 frames (1920x1080, 2 samples, velocity scale 16)`
++  over a 120 s run — the resolve replacement held for the whole session; no dispatch
++  failures, no fallback to the game's resolve after arming.
++
++## Tests
++
++1. Offscreen GPU smoke (`order1886_fsr4_gpu_smoke --run-gpu`): same synthetic fixture as the
++   FSR 3.1 smoke (128×72 → 256×144, 8 frames, validation layer): output finite, non-black,
++   spatially varying; **0 validation errors**; clean destroy after fence completion.
++2. In-game sessions at fixed timing (menu shot t+60 s, Continue, gameplay shots t+107/112 s),
++   FSR 1 baseline vs FSR 4, same save (Chapter I courtyard), F12 presenter screenshots at
++   2560×1440. The provider replaced the resolve for the whole session:
++   `replaces The Order's temporal resolve at 1920x1080 (native, depth inverted 0)`,
++   `fsr4 reconstructed 7200 frames (1920x1080, 2 samples, velocity scale 16)` ≈ 53 FPS.
++   Detail metrics on same-scene pairs (camera drifts a few steps, so absolute gradient
++   differs; high-frequency measures are the signal):
++
++   | frame | grad | Laplacian power | edge energy |
++   | --- | --- | --- | --- |
++   | FSR 1 play1 | 3.75 | 119.6 | 455.0 |
++   | FSR 4 play1 | 3.84 | **150.6 (+26%)** | **540.1 (+19%)** |
++   | FSR 1 play2 | 4.48 | 139.1 | 438.1 |
++   | FSR 4 play2 | 4.05 | **164.5 (+18%)** | **536.2 (+22%)** |
++3. Shader integrity: the provider consumes the game's own resolve inputs; every game draw
++   pass (shadows, GI, MSAA resolve to the inputs) is untouched. Baseline vs FSR4 frames show
++   identical lighting, shadow placement and exposure; cobblestone cracks, awning stripes and
++   fountain edges are visibly crisper; no ghosting on flag/fence edges, no disocclusion smear.
++4. Fallback: missing bundle → provider create fails with
++   `FSR 4 v07 asset bundle (fsr4_model_v07_i8_performance_1080_pass1.spv ...) not found:
++   set ORDER1886_FSR4_ASSETS or place the fsr4 folder beside the runtime` (smoke exit 1,
++   no crash); in-game the hook logs `the game's temporal resolve stays`. A device without
++   the FSR 4 features gets `GPU does not support the selected FSR 4 shaders; using FSR 3.1`
++   before the first frame. Verified: 2026-11-08 (empty ORDER1886_FSR4_ASSETS run + smoke).
++
++## Known limits
++
++- Model preset is chosen at context creation from the configured render/output ratio;
++  dynamic resolution mid-session would need re-creation (not exercised: Order renders at a
++  fixed internal size here).
++- The v07 bundle is the FSR 4.0-era ML2Code model, not AMD's signed 4.1.1 provider.
++- Camera near/far/fov arrive as the shim's documented placeholders; velocity is the game's
++  own decoded pixel motion (same inputs the FSR 3.1 path uses).
++- 60 FPS sessions can show QTE softlock risk in Chapters 6/9 (upstream warning, unchanged).
+diff --git a/gpu/shadps4/video_core/host_shaders/order_resolve_prep.comp b/gpu/shadps4/video_core/host_shaders/order_resolve_prep.comp
+index 9287e94..09f65b3 100644
+--- a/gpu/shadps4/video_core/host_shaders/order_resolve_prep.comp
++++ b/gpu/shadps4/video_core/host_shaders/order_resolve_prep.comp
+@@ -24,6 +24,7 @@ layout(push_constant) uniform Constants {
+     float log2_exposure;        // resolve constant 60, used unless exposure_from_texture
+     uint samples;
+     uint exposure_from_texture; // resolve constant 61 != 0
++    uint invert_depth;          // 1 for the fixed-permutation FSR 4 v07 model (standard depth)
+ };
+ 
+ void main() {
+@@ -49,5 +50,9 @@ void main() {
+     const float vy = v.y * ((signs & 2u) != 0u ? 1.0 : -1.0);
+     imageStore(motion_out, p, vec4(vec2(vx, vy) * velocity_scale, 0.0, 0.0));
+ 
+-    imageStore(depth_out, p, vec4(texelFetch(depth_tex, p, 0).r));
++    float d = texelFetch(depth_tex, p, 0).r;
++    if (invert_depth != 0u) {
++        d = 1.0 - d; // The Order's reversed depth -> the model's standard orientation
++    }
++    imageStore(depth_out, p, vec4(d));
+ }
+diff --git a/gpu/shadps4/video_core/renderer_vulkan/vk_order_resolve.cpp b/gpu/shadps4/video_core/renderer_vulkan/vk_order_resolve.cpp
+index 6aae04e..a33d5ce 100644
+--- a/gpu/shadps4/video_core/renderer_vulkan/vk_order_resolve.cpp
++++ b/gpu/shadps4/video_core/renderer_vulkan/vk_order_resolve.cpp
+@@ -14,6 +14,7 @@
+ #include "video_core/host_shaders/order_resolve_prep_comp.h"
+ #include "video_core/renderer_vulkan/vk_instance.h"
+ #include "video_core/renderer_vulkan/vk_order_resolve.h"
++#include "video_core/renderer_vulkan/vk_presenter.h"
+ #include "video_core/renderer_vulkan/vk_rasterizer.h"
+ #include "video_core/renderer_vulkan/vk_runtime.h"
+ #include "video_core/renderer_vulkan/vk_scheduler.h"
+@@ -31,6 +32,7 @@ struct Push {
+     float log2_exposure;
+     u32 samples;
+     u32 exposure_from_texture;
++    u32 invert_depth; ///< flip reversed depth for the fixed-permutation FSR 4 v07 model
+ };
+ 
+ /// One image the prep pass writes and the provider reads (or, for output, writes).
+@@ -304,6 +306,10 @@ void ReplaceTemporalResolve(Rasterizer& rasterizer, std::span<const VideoCore::I
+     }
+ 
+     const auto now = std::chrono::steady_clock::now();
++    // The FSR 4 v07 bundle is compiled with DEPTH_INVERTED=0: the model wants standard
++    // (near=0) depth, so the prep pass flips The Order's reversed depth when FS4 is the
++    // provider. FSR 3.1 and DLAA keep their own depth-convention flags unchanged.
++    const bool fsr4 = resolve.provider && std::string_view(resolve.provider->key) == "fsr4";
+     float frame_ms = std::chrono::duration<float, std::milli>(now - resolve.last_time).count();
+     if (frame_ms <= 0.0f || frame_ms > 250.0f) {
+         resolve.reset = true; // paused, loading or a skipped resolve: the history is stale
+@@ -316,6 +322,7 @@ void ReplaceTemporalResolve(Rasterizer& rasterizer, std::span<const VideoCore::I
+         info.format = image.info.pixel_format;
+         return *image.FindView(info).image_view;
+     };
++    const u64 completed_presentations = Presenter::CompletedPresentations();
+     const vk::ImageView color_in = view(color), velocity_in = view(velocity),
+                         exposure_in = view(exposure), depth_in = view(depth);
+     const auto read = [&](VideoCore::Image& image, vk::ImageLayout layout) {
+@@ -338,6 +345,7 @@ void ReplaceTemporalResolve(Rasterizer& rasterizer, std::span<const VideoCore::I
+         .log2_exposure = Float(flatbuf, 60),
+         .samples = color.info.num_samples,
+         .exposure_from_texture = Float(flatbuf, 61) != 0.0f ? 1u : 0u,
++        .invert_depth = (fsr4 && resolve.depth_inverted) ? 1u : 0u,
+     };
+     std::array<vk::Image, 4> own;
+     std::array<vk::ImageView, 4> own_views;
+@@ -434,6 +442,7 @@ void ReplaceTemporalResolve(Rasterizer& rasterizer, std::span<const VideoCore::I
+             .camera_far = 1000.0f, // finite: DLSS checks far > near even with infinite depth
+             .vertical_fov = 0.7f,
+             .reset_history = reset ? 1u : 0u,
++            .gpu_frames_completed = static_cast<uint64_t>(completed_presentations),
+         };
+         char error[256]{};
+         if (resolve.provider->api.dispatch(resolve.context, &frame, error, sizeof(error)) !=
+diff --git a/gpu/shadps4/video_core/renderer_vulkan/vk_presenter.cpp b/gpu/shadps4/video_core/renderer_vulkan/vk_presenter.cpp
+index 7ed0cd6..8ef2d94 100644
+--- a/gpu/shadps4/video_core/renderer_vulkan/vk_presenter.cpp
++++ b/gpu/shadps4/video_core/renderer_vulkan/vk_presenter.cpp
+@@ -319,6 +319,10 @@ Presenter::Presenter(Frontend::WindowSDL& window_, AmdGpu::Liverpool* liverpool_
+     }
+ 
+     fsr_pass.Create(device, instance.GetAllocator(), num_images);
++    // The FSR 4 v07 shaders need float16, int8, packed dot products and linear compute
++    // derivatives; ask the device once, before any provider loads (#12).
++    Ps4Settings::ConfigureUpscalerSupport(instance.IsFsr4Int8Supported(),
++                                          instance.IsFsr411Supported(), nullptr);
+     ReportUpscalerFallback(Ps4Settings::Get().requested_upscaler, DetectUpscaleProviders(instance));
+     pp_pass.Create(device, swapchain.GetSurfaceFormat().format);
+     Ps4Overlay::Init(instance, swapchain.GetSurfaceFormat().format, num_images);
+@@ -454,6 +458,7 @@ Frame* Presenter::PrepareLastFrame() {
+         vk::Result result = instance.GetDevice().waitForFences(frame->present_done, false,
+                                                                std::numeric_limits<u64>::max());
+         if (result == vk::Result::eSuccess) {
++            completed_presentations.fetch_add(1, std::memory_order_release);
+             break;
+         }
+         if (result == vk::Result::eTimeout) {
+diff --git a/gpu/shadps4/video_core/renderer_vulkan/vk_presenter.h b/gpu/shadps4/video_core/renderer_vulkan/vk_presenter.h
+index 777af3b..b562039 100644
+--- a/gpu/shadps4/video_core/renderer_vulkan/vk_presenter.h
++++ b/gpu/shadps4/video_core/renderer_vulkan/vk_presenter.h
+@@ -4,6 +4,7 @@
+ #pragma once
+ 
+ #include <deque>
++#include <atomic>
+ 
+ #include <condition_variable>
+ 
+@@ -57,6 +58,13 @@ public:
+         return pp_settings;
+     }
+ 
++    /// Host-proven GPU completion: the count of present fences the presenter has waited on.
++    /// All command-buffer work submitted before those presents (the temporal resolve included)
++    /// finished, so providers may retire history slots up to this watermark (ABI 2).
++    static u64 CompletedPresentations() {
++        return completed_presentations.load(std::memory_order_acquire);
++    }
++
+     HostPasses::FsrPass::Settings& GetFsrSettingsRef() {
+         return fsr_settings;
+     }
+@@ -110,6 +118,9 @@ private:
+ 
+     void SetExpectedGameSize(s32 width, s32 height);
+ 
++    /// Written by the presenter thread in PrepareLastFrame, read by temporal providers.
++    static inline std::atomic<u64> completed_presentations{0};
++
+ private:
+     float expected_ratio{1920.0 / 1080.0f};
+     u32 expected_frame_width{1920};
+diff --git a/gpu/shadps4/video_core/renderer_vulkan/vk_upscale_providers.cpp b/gpu/shadps4/video_core/renderer_vulkan/vk_upscale_providers.cpp
+index 058014e..f935110 100644
+--- a/gpu/shadps4/video_core/renderer_vulkan/vk_upscale_providers.cpp
++++ b/gpu/shadps4/video_core/renderer_vulkan/vk_upscale_providers.cpp
+@@ -13,6 +13,9 @@
+ #define NOMINMAX
+ #define WIN32_LEAN_AND_MEAN
+ #include <windows.h>
++#else
++#include <dlfcn.h>
++#include <unistd.h>
+ #endif
+ 
+ namespace Vulkan {
+@@ -29,9 +32,16 @@ std::filesystem::path RuntimeDirectory() {
+ #endif
+ }
+ 
++#ifdef _WIN32
++#define ORDER1886_PROVIDER_SUFFIX ".dll"
++#else
++#define ORDER1886_PROVIDER_SUFFIX ".so"
++#endif
++
+ std::vector<UpscaleProvider>& Providers() {
+     static std::vector<UpscaleProvider> list{
+-        {.key = "fsr3", .library = "order1886_fsr3.dll", .symbol = "order1886_fsr_get_api"},
++        {.key = "fsr3", .library = "order1886_fsr3" ORDER1886_PROVIDER_SUFFIX, .symbol = "order1886_fsr_get_api"},
++        {.key = "fsr4", .library = "order1886_fsr4" ORDER1886_PROVIDER_SUFFIX, .symbol = "order1886_fsr_get_api"},
+         {.key = "dlss", .library = "order1886_dlss.dll", .symbol = "order1886_dlss_get_api"},
+     };
+     return list;
+@@ -72,8 +82,50 @@ bool Load(UpscaleProvider& provider) {
+     provider.loaded = true;
+     return true;
+ #else
+-    provider.reason = "providers are Windows DLLs";
+-    return false;
++    std::vector<std::filesystem::path> candidates;
++    std::vector<char> buf(4096);
++    const ssize_t length = ::readlink("/proc/self/exe", buf.data(), buf.size() - 1);
++    if (length > 0) {
++        buf[static_cast<size_t>(length)] = '\0';
++        const auto dir = std::filesystem::path(buf.data()).parent_path();
++        candidates.push_back(dir / provider.library);            // bin/, beside the runtime
++        candidates.push_back(dir / "gpu" / provider.library);    // bin/gpu/ packaging layout
++    }
++    candidates.push_back(RuntimeDirectory() / provider.library); // the launcher's cwd layout
++    void* module = nullptr;
++    std::string load_error;
++    for (const auto& candidate : candidates) {
++        if (!std::filesystem::exists(candidate)) {
++            continue;
++        }
++        module = ::dlopen(candidate.c_str(), RTLD_NOW | RTLD_LOCAL);
++        if (module) {
++            break;
++        }
++        if (const char* error = ::dlerror()) {
++            load_error = error;
++        }
++    }
++    if (!module) {
++        provider.reason = std::string(provider.library) +
++            (load_error.empty() ? " is not next to the runtime" : " failed to load: " + load_error);
++        return false;
++    }
++    const auto get_api = reinterpret_cast<OrderUpscaleGetApi>(
++        reinterpret_cast<void*>(::dlsym(module, provider.symbol)));
++    if (!get_api) {
++        provider.reason = std::string(provider.library) + " does not export " + provider.symbol;
++        return false;
++    }
++    if (get_api(ORDER1886_UPSCALE_ABI, &provider.api) != ORDER_UPSCALE_OK ||
++        provider.api.abi_version != ORDER1886_UPSCALE_ABI) {
++        provider.reason = "provider does not implement ABI " + std::to_string(ORDER1886_UPSCALE_ABI);
++        return false;
++    }
++    provider.name = provider.api.name ? provider.api.name : provider.key;
++    provider.version = provider.api.version ? provider.api.version : "";
++    provider.loaded = true;
++    return true;
+ #endif
+ }
+ 
+diff --git a/gpu/shim/order1886_upscale.h b/gpu/shim/order1886_upscale.h
+index 2a96ee1..cf6f2d5 100644
+--- a/gpu/shim/order1886_upscale.h
++++ b/gpu/shim/order1886_upscale.h
+@@ -9,7 +9,7 @@
+ extern "C" {
+ #endif
+ 
+-#define ORDER1886_UPSCALE_ABI 1u
++#define ORDER1886_UPSCALE_ABI 2u
+ typedef enum OrderUpscaleStatus {
+     ORDER_UPSCALE_OK = 0,
+     ORDER_UPSCALE_INVALID_ARGUMENT = 1,
+@@ -62,6 +62,10 @@ typedef struct OrderUpscaleFrame {
+     float frame_time_ms, pre_exposure;
+     float camera_near, camera_far, vertical_fov;
+     uint32_t reset_history;
++    // ABI 2: GPU work through this many presented frames has completed (host-proven by a
++    // signalled present fence). Temporal providers use it as the retirement watermark for
++    // history slots; providers built against ABI 1 read only the prefix and are unaffected.
++    uint64_t gpu_frames_completed;
+ } OrderUpscaleFrame;
+ 
+ typedef struct OrderUpscaleProviderApi {
+diff --git a/gpu/shim/ps4_settings.cpp b/gpu/shim/ps4_settings.cpp
+index a44c461..f81772d 100644
+--- a/gpu/shim/ps4_settings.cpp
++++ b/gpu/shim/ps4_settings.cpp
+@@ -232,6 +232,9 @@ void ConfigureUpscalerSupport(bool fsr4, bool fsr411, const char* problem) {
+         std::printf("Upscaler: %s unsupported on this GPU; falling back to FSR 3.1 before the first frame\n",
+                     UpscalerName(requested));
+         v.upscaler = UpscalerFsr3;
++        // The launcher's choice drives provider selection; keeping the old request would make
++        // vk_order_resolve look for an FSR 4 provider the device cannot run.
++        v.requested_upscaler = UpscalerFsr3;
+     }
+ }
+ 
+diff --git a/gpu/shim/ps4gpu.cpp b/gpu/shim/ps4gpu.cpp
+index 3edfea7..e719a0c 100644
+--- a/gpu/shim/ps4gpu.cpp
++++ b/gpu/shim/ps4gpu.cpp
+@@ -212,13 +212,9 @@ static void StartProfileWriter() {
+ extern "C" int ps4gpu_init(const Ps4GpuConfig* config) {
+     Ps4Settings::Load();
+     // Record why the vendor upscalers cannot run, so the answer exists before any device query
+-    // and a reader is not left with a silently false flag. Both providers ship in this tree; the
+-    // Order temporal integration is the disabled baseline, and DLSS also needs the vendor runtime
+-    // that is built separately and never committed.
+-    Ps4Settings::ConfigureUpscalerSupport(
+-        false, false,
+-        "FSR 4 and FSR 4.1.1 providers ship in this tree, but the Order temporal integration is "
+-        "disabled in this build and the device must expose the required FSR 4 support (#12).");
++    // and a reader is not left with a silently false flag. The FSR 4 providers check the device's
++    // real support in the presenter before the first frame (#12); DLSS also needs the vendor
++    // runtime that is built separately and never committed.
+     Ps4Settings::ConfigureDlssSupport(
+         false,
+         "DLSS is not an inherited engine upscaler here: NVIDIA DLAA runs through order1886_dlss.dll in "
+diff --git a/gpu/upscalers/fsr3/CMakeLists.txt b/gpu/upscalers/fsr3/CMakeLists.txt
+index 8150632..153f02e 100644
+--- a/gpu/upscalers/fsr3/CMakeLists.txt
++++ b/gpu/upscalers/fsr3/CMakeLists.txt
+@@ -18,10 +18,6 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/fsr-vulkan"
+                  "${CMAKE_CURRENT_BINARY_DIR}/fidelityfx" EXCLUDE_FROM_ALL)
+ set_target_properties(ffx_vulkan_portable ffx_vulkan_fsr3_vk_backend_1_1_4
+                       ffx_vulkan_fsr3_host_1_1_4 PROPERTIES POSITION_INDEPENDENT_CODE ON)
+-if(NOT MSVC)
+-    # SDK vk.cpp uses std::lock_guard through an MSVC-only transitive include.
+-    target_compile_options(ffx_vulkan_fsr3_vk_backend_1_1_4 PRIVATE -include mutex)
+-endif()
+ 
+ add_library(order1886_fsr3 SHARED order1886_fsr3.cpp)
+ target_compile_features(order1886_fsr3 PRIVATE cxx_std_17)
+diff --git a/launcher/order1886_options.py b/launcher/order1886_options.py
+index c5cdad9..9c3e2a5 100644
+--- a/launcher/order1886_options.py
++++ b/launcher/order1886_options.py
+@@ -12,12 +12,11 @@ PAGES = [
+     {"id": "system", "title": "System"},
+ ]
+ # The game's temporal inputs are mapped and a provider replaces its temporal resolve (#7, #10);
+-# these choices wait for their own providers to be built and qualified.
+-DLSS_LINUX = ("The Linux runtime does not load upscaler providers yet, so the game's own temporal "
+-              "anti-aliasing stays (#11).")
+-FSR4 = "The FSR 4 provider is not built into this package yet (#12)."
+-FSR3_LINUX = ("The Linux runtime does not load upscaler providers yet, so the game's own temporal "
+-              "anti-aliasing stays (#10).")
++# FSR 3.1 and FSR 4 run their own providers built from this tree on every platform.
++DLSS_LINUX = ("The Linux runtime has no NVIDIA DLSS bridge: DLAA needs the Windows vendor "
++              "runtime and an RTX GPU (#11).")
++FSR4 = ""
++FSR3_LINUX = ""
+ NATIVE_ONLY = ("Every provider renders at the game's own size for now; lower render sizes need "
+                "render-target scaling (#3).")
+ RENDERER = "This setting is not exposed by the validated Order launch profile yet; backend wiring and qualification are pending."
+diff --git a/order1886.py b/order1886.py
+index c7ce2b8..5ac5d92 100644
+--- a/order1886.py
++++ b/order1886.py
+@@ -469,9 +469,10 @@ def runtime_environment(runtime, user, settings=None, inherited=None):
+ 
+ 
+ # Launcher "Upscaling" choices the backend honours: Linear or FSR 1 presentation, or a temporal
+-# provider (FSR 3.1, DLSS) in place of the game's temporal resolve followed by FSR 1 presentation.
+-TEMPORAL_PROVIDERS = ('fsr3', 'dlss')
+-PRESENTATION_FILTERS = ('linear', 'fsr1', 'fsr3', 'dlss')
++# provider (FSR 3.1, FSR 4, DLSS) in place of the game's temporal resolve followed by FSR 1
++# presentation.
++TEMPORAL_PROVIDERS = ('fsr3', 'fsr4', 'dlss')
++PRESENTATION_FILTERS = ('linear', 'fsr1', 'fsr3', 'fsr4', 'dlss')
+ 
+ 
+ # Keys the in-game menu can change that also exist as launcher settings. The runtime writes
+diff --git a/src/ffx_1_1_4_portability.hpp b/src/ffx_1_1_4_portability.hpp
+index c7be6c3..a4d4d46 100644
+--- a/src/ffx_1_1_4_portability.hpp
++++ b/src/ffx_1_1_4_portability.hpp
+@@ -18,6 +18,9 @@
+ #include <cstdio>
+ #include <cstring>
+ #include <cwchar>
++// SDK vk.cpp uses std::lock_guard through an MSVC-only transitive include; every affected
++// target force-includes this header, so <mutex> lives here instead of a second -include flag.
++#include <mutex>
+ 
+ #ifndef _countof
+ #define _countof(array) (sizeof(array) / sizeof((array)[0]))

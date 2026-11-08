@@ -1,4 +1,55 @@
-# Changes Made - November 7, 2026
+# Changes Made - November 8, 2026
+
+## v0.2.15 — November 8, 2026
+
+### New: AMD FSR 4 replaces the game's temporal anti-aliasing on Linux
+
+The runtime already carried the FSR 4 v07 (INT8/DOT4) provider from
+FireBurn/FSR-Vulkan and its capability probes, but the Order temporal
+integration was refused before the device query ("disabled in this build",
+#12) and the provider modules loaded only as Windows DLLs. This build wires
+it end to end:
+
+- Graphics → Upscaling → **AMD FSR 4**: the ML provider runs in place of the
+  game's own temporal resolve at the game's render size (keep Render
+  resolution on Original 1920); FSR 1 still scales the result to the output.
+  Boot log: `AMD FSR 4 v07 INT8/DOT4 (source) replaces The Order's temporal
+  resolve at 1920x1080 (native, depth inverted 0)`.
+- **AMD FSR 3.1 is selectable on Linux** too (providers now dlopen as `.so`
+  beside the runtime) and is the automatic fallback when the FSR 4 shaders
+  cannot run: `GPU does not support the selected FSR 4 shaders; using
+  FSR 3.1` is logged before the first frame.
+- Provider ABI 2: `OrderUpscaleFrame` gains `gpu_frames_completed`, the
+  presenter's waited present-fence count, so history slots retire only at
+  host-proven completion; a queue-drain retry covers a badly lagged GPU.
+- The v07 bundle is compiled with `DEPTH_INVERTED=0`, so the prep pass flips
+  The Order's reversed depth into the model's orientation — only when FSR 4
+  is the provider. FSR 3.1 and DLAA keep their own flag path; no game draw
+  pass (shadows, GI, MSAA) is touched by the integration.
+- Assets: MIT-licensed AMD source-v07 shaders + model weights, compiled to
+  SPIR-V by Q2RTX's recipe, installed as `bin/fsr4/` (285 files, 45 MB,
+  per-preset SHA-256 manifests verified against the provider contract at
+  load). This is the FSR 4.0-era v07 model, not AMD's signed 4.1.1: Mesa
+  26.2.6 RADV does not expose `VK_VALVE_shader_mixed_float_dot_product`, so
+  the 4.1.1 probe correctly reports unsupported.
+- Verified on RX 9070 XT / RADV: 7200-frame session with the resolve
+  replaced and no fallback; offscreen smoke (`order1886_fsr4_gpu_smoke`)
+  with 0 validation errors; same-save A/B screenshots show Laplacian detail
+  +18–26% and edge energy +19–22% over FSR 1 with shadows, bounce light and
+  exposure unchanged; missing-bundle and unsupported-GPU fallbacks verified.
+  Evidence: `docs/verification/2026-11-08-fsr4-linux.md`; the complete
+  source patch: `docs/verification/2026-11-08-fsr4-linux.patch`.
+- Known limits: providers render at the game's own size (sub-native FSR 4
+  quality modes need presenter-side output sizing); the camera near/far/fov
+  still arrive as the shim's placeholders; 60 FPS QTE warnings unchanged.
+
+### Regression: sun shadows are missing again
+
+**[mateussmeneses/theorder1886-port#26](https://github.com/mateussmeneses/theorder1886-port/issues/26)
+is back.** The fix chain verified in that issue's 2026-11-07 retest
+([comment](https://github.com/mateussmeneses/theorder1886-port/issues/26#issuecomment-6700803190))
+does not hold in this build: outdoor scenes lose the sun's shadows again.
+FSR 4 ships first as agreed; the shadow fix lands as a follow-up release.
 
 ## v0.2.14 — November 7, 2026
 

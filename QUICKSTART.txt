@@ -60,6 +60,15 @@ To get the launcher window on SteamOS anyway, install WebKitGTK through
 Homebrew and expose only its two libraries; see issue #114 on GitHub for the
 exact commands.
 
+FSR 4 (THIS INSTALLATION)
+
+This copy was rebuilt with AMD FSR 4 support: Graphics -> Upscaling ->
+AMD FSR 4 replaces the game's own temporal anti-aliasing at the game's render
+size (keep Render resolution on Original 1920). FSR 3.1 is selectable on
+Linux here too and is the automatic fallback. The bin/fsr4 folder must stay
+beside the runtime; without it the game's own anti-aliasing stays and the
+session log says why. Details: docs/verification/2026-11-08-fsr4-linux.md.
+
 CONTROLLERS (XBOX, PLAYSTATION AND OTHER GAMEPADS)
 
 Connect the pad before you launch, then start the game. When the runtime opens a

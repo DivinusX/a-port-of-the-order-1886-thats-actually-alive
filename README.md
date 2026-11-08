@@ -335,3 +335,24 @@ Exact revisions and reuse decisions are recorded in the
 The Order: 1886 belongs to its respective rights holders, including Sony
 Computer Entertainment and Ready at Dawn. This project is not affiliated with
 or endorsed by them. No game executable, dump or player save is distributed.
+
+## Local build: AMD FSR 4 enabled (2026-11-08)
+
+This installation was rebuilt from the source tree with the FSR 4 v07 (INT8/DOT4)
+provider wired into the Order temporal resolve path (#12):
+
+* Graphics → Upscaling → **AMD FSR 4** replaces the game's own temporal
+  anti-aliasing at the game's render size; FSR 1 still scales to the output.
+  Requires the `bin/fsr4/` asset bundle (MIT-licensed AMD source-v07 shaders
+  and model, compiled by Q2RTX's recipe) beside the runtime; without it the
+  game's own anti-aliasing stays and the log says why.
+* **AMD FSR 3.1** is selectable on Linux in this build as well (the provider
+  modules now load as `.so`); it is the automatic fallback when a GPU cannot
+  run the FSR 4 shaders.
+* Validated on RX 9070 XT / RADV: 7200-frame session replacing the resolve,
+  offscreen smoke with 0 validation errors, missing-bundle and unsupported-GPU
+  fallbacks verified. Evidence: docs/verification/2026-11-08-fsr4-linux.md;
+  the complete patch: docs/verification/2026-11-08-fsr4-linux.patch.
+
+Keep `bin/fsr4/` when copying the `user` folder to a future official package;
+official releases will carry their own signed or source-v07 bundles separately.
