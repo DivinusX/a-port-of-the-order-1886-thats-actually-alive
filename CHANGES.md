@@ -1,5 +1,38 @@
 # Changes Made - November 8, 2026
 
+## v0.2.18 (in progress) — Windows x86-64 port — NOT YET RELEASED
+
+### New: the Windows package
+
+The Windows build runs from the same source as the Linux one, through the project's
+existing Windows pipeline (MSYS2 CLANG64 + `packaging/windows/order1886-go-build.ps1` +
+the `order1886-go-package.yml` workflow), now carrying the fork's v0.2.15–17 work:
+
+- `build.sh` (Windows branch): builds the **FSR 4 v07 provider** (`order1886_fsr4.dll`)
+  beside FSR 3.1; the provider code was already platform-neutral.
+- `gpu/upscalers/fsr4/order1886_fsr4.cpp`: the v07 asset bundle is now found beside the
+  `.exe` on Windows too (the beside-binary search was Linux-only, and the worker starts
+  the runtime with a different cwd).
+- `src/pad_diag_windows.c` (new): the runtime wrapper's "pad check" rewritten for Windows
+  — XInput slots + SetupAPI HID vendor scan + SDL ground truth, same
+  `Order1886: pad check:` log lines, no sysfs or udev. Runs on real boots only, skippable
+  with `ORDER1886_PAD_DIAG=0`.
+- The package workflow stages the platform-neutral FSR 4 v07 bundle from the published
+  v0.2.17 Linux package (the bundle is not in any git tree) and ships
+  `order1886-win-x86_64-<version>.zip` + `.sha256`.
+- Release repo: `packaging/windows/order1886-win-package.py` (manifest gate + finalizer),
+  `WINDOWS.md` (EN+PT) and the manual test checklist under `docs/verification/`.
+- Linux behavior is unchanged: every edit is inside `#ifdef _WIN32`, the Windows branch of
+  `build.sh`, the Windows PS1/workflow, or new Windows-only files.
+
+**Unverified on hardware:** no Windows machine was available where this was written. The
+CI is the first compile of the new C; the checklist has not been executed. FSR 4 on
+Windows, the pad-check wording, SmartScreen/Defender, long sessions and 4K/60 are all
+open items. The sun-flicker fix itself is the same code path verified on Linux in v0.2.17
+(0 brightness flips at the video's framing), but Windows page protection and drivers
+differ. See `docs/verification/2026-11-08-windows-port-plan.md` and
+`docs/verification/2026-11-08-windows-port-checklist.md`.
+
 ## v0.2.17 — November 8, 2026
 
 ### Fixed: the sun flicker in The Chase (staging readback sync)
