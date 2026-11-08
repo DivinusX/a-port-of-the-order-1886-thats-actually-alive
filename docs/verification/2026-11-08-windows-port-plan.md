@@ -1,6 +1,7 @@
 # Windows x86-64 port — file-by-file change plan with risks (v0.2.18 target)
 
-Status: PLAN — awaiting approval before the push. All changes below are implemented on
+Status: PLAN — awaiting approval before the push. When approved, execute
+`2026-11-08-windows-port-runbook.md` step by step. All changes below are implemented on
 dedicated local branches (`windows-port`) in the two repos; nothing is pushed.
 
 ## 0. Ground truth (verified 2026-11-08, this machine)
@@ -154,6 +155,15 @@ keyboard fallback, save + resume, 30-minute session, The Chase flicker parity
      `mkdir -p extra/docs/verification && cp WINDOWS.md CHANGES.md README.md extra/ && cp docs/verification/2026-11-08-windows-port-checklist.md extra/docs/verification/`.
   Still CI-first: actual linking (`setupapi`, PE subsystem), the native build itself,
   PyInstaller/worker, and everything runtime-behavioural.
+  Deeper since: `src/pad_diag_windows.c` now cross-compiles to a real COFF object
+  (clang `-target x86_64-w64-mingw32`, 0 errors, 3 header-internal warnings that MSYS2's
+  patched headers do not emit; the warnings were outside the file). The FSR 4 provider's
+  new Windows branch could not be given the same treatment: this machine has no Windows
+  C++ standard library (MSYS2 clang64 ships its own), and mixing Linux libstdc++ headers
+  with the mingw target produces only environment noise. The added block is a verbatim
+  structural copy of the `_WIN32` pattern in `vk_upscale_providers.cpp`
+  (`GetModuleFileNameW` → `std::filesystem::path(std::wstring(...))`), which the existing
+  upstream Windows CI already compiles.
 * Linux regression after all edits: `ninja -C out/gpu` no work, 589 launcher tests OK,
   fsr4 provider rebuilds (guards the untouched POSIX branch), build.sh `bash -n`,
   workflow YAML parse, bundle extraction rehearsed against the real v0.2.17 tarball
