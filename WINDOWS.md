@@ -19,6 +19,8 @@ problem as a bug, and see `docs/verification/2026-11-08-windows-port-checklist.m
   game does not need it (`Play The Order 1886.exe` works without the window).
 - No Python, no MSYS2, no Visual C++ redistributable: every runtime library the build needs
   is inside the package.
+- No firewall rules needed: the runtime never listens on a port and the launcher only makes
+  outbound HTTPS when you press Check for updates.
 - Your own extracted game folder that directly contains `eboot.bin`, `archivemap.bin`,
   `_data`, `sce_sys` and `sce_module` (CUSA00076 tested; CUSA00035, CUSA00070, CUSA00100,
   CUSA00670, CUSA00785 experimental). Update 1.02 optional. The original files are only
@@ -115,6 +117,8 @@ oficial. Nenhum conteúdo de jogo está incluído — use sua própria cópia ex
   (`Play The Order 1886.exe` funciona sem janela).
 - Sem Python, sem MSYS2, sem redistribuível do Visual C++: todas as bibliotecas do runtime
   estão dentro do pacote.
+- Nenhuma regra de firewall é necessária: o runtime nunca escuta portas e o lançador só faz
+  HTTPS de saída quando você clica em Check for updates.
 - Sua própria pasta de jogo extraída, contendo diretamente `eboot.bin`, `archivemap.bin`,
   `_data`, `sce_sys` e `sce_module` (CUSA00076 testado; CUSA00035, CUSA00070, CUSA00100,
   CUSA00670 e CUSA00785 experimentais). Atualização 1.02 opcional. Os arquivos originais
