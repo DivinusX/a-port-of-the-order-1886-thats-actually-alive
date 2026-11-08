@@ -227,4 +227,11 @@ keyboard fallback, save + resume, 30-minute session, The Chase flicker parity
 * Unverified until the checklist runs: FSR 4 on Windows, pad-check output, WebView2 on
   clean Win 10, Defender/SmartScreen behavior, long sessions, 4K/60, driver-specific
   paths, the zip layout.
-* Pushes: none. Awaiting approval; the source repo also needs a `DivinusX` fork first.
+* Pushes: approved and executed (v0.2.18 push): aport `windows-port`, source fork
+  `DivinusX/The-Order-1886_pc` (`windows-port` + `main`). First CI run compiled ps4gpu,
+  the runtime and the launcher on MSYS2, then failed in the AMD FFX 1.1.4 provider
+  sources (`_countof`, `swprintf_s`) - a genuine first-ever compile of that code on
+  Windows that the local llvm-mingw build had masked with a global include shim.
+  Fixed properly: a guarded compat header force-included on the FFX targets only
+  (submodule untouched), proven locally against clang 23 + libc++ (both provider DLLs
+  build with no global hacks) and re-dispatched on CI.

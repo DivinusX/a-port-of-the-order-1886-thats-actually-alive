@@ -20,6 +20,10 @@ the `order1886-go-package.yml` workflow), now carrying the fork's v0.2.15–17 w
 - The package workflow stages the platform-neutral FSR 4 v07 bundle from the published
   v0.2.17 Linux package (the bundle is not in any git tree) and ships
   `order1886-win-x86_64-<version>.zip` + `.sha256`.
+- mingw-w64 FFX compatibility: the first CI compile of the FSR 3.1 provider on Windows
+  failed inside the AMD FFX 1.1.4 sources (`_countof`, `swprintf_s`, transitive includes).
+  A guarded compat header is now force-included on the FFX targets only - submodule
+  untouched, idempotent on libstdc++, proven against clang 23 + libc++ locally.
 - Updater safety: the built-in updater and the UI releases/issues links now name the fork's
   repository. Upstream's release receipt would have let in-app updates silently replace
   this lineage's fixes; the fork's releases publish no receipt, so the updater reports
