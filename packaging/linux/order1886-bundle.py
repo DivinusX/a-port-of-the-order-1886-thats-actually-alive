@@ -159,6 +159,19 @@ def host_library(name: str) -> Path | None:
     return None
 
 
+def same_library(bundled: Path, host: Path, patchelf: str) -> bool:
+    """True when bundled is host's file plus at most a RUNPATH of $ORIGIN."""
+    if bundled.read_bytes() == host.read_bytes():
+        return True
+    import tempfile
+    with tempfile.TemporaryDirectory() as folder:
+        copy = Path(folder) / host.name
+        shutil.copy2(host, copy)
+        copy.chmod(0o755)
+        subprocess.run([patchelf, '--set-rpath', '$ORIGIN', str(copy)], check=True)
+        return copy.read_bytes() == bundled.read_bytes()
+
+
 def fix(package: Path, patchelf: str) -> list[str]:
     """Bundle the closure into bin/gpu/ with RUNPATH $ORIGIN everywhere.
 
@@ -187,7 +200,9 @@ def fix(package: Path, patchelf: str) -> list[str]:
             target = gpu / name
             host = host_library(name)
             if host is not None:
-                if not target.is_file() or target.read_bytes() != host.read_bytes():
+                # A bundled copy differs from the host's only by the RUNPATH set below; compare
+                # with that cleared, so a package fixed before is not reported as replaced.
+                if not target.is_file() or not same_library(target, host, patchelf):
                     action = 'replaced' if target.is_file() else 'added'
                     target.unlink(missing_ok=True)
                     shutil.copy2(host, target)

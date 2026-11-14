@@ -21,8 +21,8 @@ filter.
 
 | file | replaces in the worker | what it does |
 |---|---|---|
-| `launcher/order1886_options.py` | `launcher.order1886_options` | adds the `game_language` field (21 languages + Follow) right after the game folder, and removes the two disabled placeholders |
-| `launcher/order1886_common.py` | `launcher.order1886_common` | `backend_command` passes the chosen language as `--system-language` |
+| `launcher/order1886_options.py` | `launcher.order1886_options` | adds the `game_language` field (21 languages + Follow) right after the game folder, removes the two disabled placeholders, and replaces the opt-in `in_game_menu` with **In-game menu (F1)** (`game_menu`, on by default) |
+| `launcher/order1886_common.py` | `launcher.order1886_common` | `backend_command` passes the chosen language as `--system-language`, and `--in-game-menu` from `game_menu` |
 | `repack_worker.py` | — | puts the two modules above, plus `scripts/order1886_patches.py` and `scripts/order1886_editions.py`, into a built worker |
 
 The overlay modules wrap the shipped ones: each imports `launcher._<name>_base` (the original,
@@ -60,3 +60,10 @@ dump containing its assets.
   `scripts/order1886_merge_update.py --apply`.
 - If a language crashes or hangs, the session log's `open(...) -> not found` lines name the
   missing resource.
+
+## In-game menu (F1)
+
+`game_menu` (default on) decides `--in-game-menu`, which sets `ORDER1886_SETTINGS_MENU=1` for
+the runtime. It is a new key because the launcher saves every setting: players who opened
+Settings once have the old `in_game_menu=False` stored. That old key is now ignored. The menu
+itself is in the runtime (`docs/verification/2026-11-14-in-game-menu.md`).

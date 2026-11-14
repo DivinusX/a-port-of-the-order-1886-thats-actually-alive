@@ -53,6 +53,22 @@ _fields = _base.FIELDS
 _item = _fields.pop()
 _fields.insert(next((i + 1 for i, f in enumerate(_fields) if f["key"] == "game_dir"), 0), _item)
 
+# In-game menu (F1). It replaces the old opt-in "in_game_menu" field with a new key that is on
+# by default: the launcher saves every key, so most players already have in_game_menu=False
+# stored and a new default on the old key would never apply. order1886_common maps game_menu
+# onto in_game_menu for the launch command.
+_old = next((i for i, f in enumerate(_base.FIELDS) if f["key"] == "in_game_menu"), None)
+_page = _base.FIELDS[_old]["page"] if _old is not None else "performance"
+if _old is not None:
+    del _base.FIELDS[_old]
+_base.field(
+    "game_menu", "In-game menu (F1)", _page, "boolean", True,
+    "Press F1 in game (or R3+L2 on a controller) to change the frame rate, window mode, V-Sync, "
+    "output resolution and FPS counter while you play. Changes apply immediately and last for "
+    "that session.")
+_fields = _base.FIELDS
+_fields.insert(_old if _old is not None else len(_fields) - 1, _fields.pop())
+
 _base.GAME_LANGUAGES = GAME_LANGUAGES
 _base.GAME_LANGUAGE_IDS = GAME_LANGUAGE_IDS
 sys.modules[__name__] = _base
