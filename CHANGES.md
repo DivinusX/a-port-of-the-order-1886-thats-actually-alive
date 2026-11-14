@@ -1,5 +1,32 @@
 # Changes Made - November 14, 2026
 
+## Unreleased
+
+### New: choose the game's language (Game & Content → Game language)
+
+The game took its language only from the launcher language, and in practice every language
+came out in English: without a `-sku` argument the executable runs as SKU 0, whose filter
+keeps only US English, Korean and Chinese.
+
+- `scripts/order1886_patches.py`: a recipe applied to every prepared image points SKU 0's
+  entry in the executable's SKU jump table at the unfiltered store (`0xa81b00`,
+  `87fbffff` → `98fbffff`). `order1886_editions.py` drops the pt-BR → pt-PT substitution
+  that was based on that filter.
+- `launcher-py-overlay/`: the `game_language` field (21 languages, including **Español
+  (Latinoamérica)**, plus "Follow launcher language") and the launch argument, as an overlay
+  for the worker, with `repack_worker.py` to apply it. See its README.
+- Verified on a CUSA00035 dump: Latin American Spanish in game. Spain Spanish lacks one
+  resource in that dump and stops on a black screen. Assets differ per dump, and
+  mixed-case dumps need `order1886_merge_update.py --apply` first.
+- `tests/test_order1886_game_language.py`.
+
+### Fixed: the search magnifier was not centred in its bubble
+
+The collapsed search bubble centred the icon together with the 8 px gap before its zero-width
+input, so the magnifier sat 4 px to the left. The gap is now 0 while collapsed and 8 px
+once expanded (`launcher-frontend/assets/index-NM6hMv8S.css`). It takes effect with the next
+launcher build.
+
 ## v0.2.19 — November 14, 2026 (Linux)
 
 Linux package built on the v0.2.17 runtime (the engine binaries are unchanged) with the fixes
