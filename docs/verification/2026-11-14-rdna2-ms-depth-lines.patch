@@ -1,0 +1,132 @@
+diff --git a/gpu/shadps4/video_core/amdgpu/ps4_msaa.h b/gpu/shadps4/video_core/amdgpu/ps4_msaa.h
+index 5e47a19..191be91 100644
+--- a/gpu/shadps4/video_core/amdgpu/ps4_msaa.h
++++ b/gpu/shadps4/video_core/amdgpu/ps4_msaa.h
+@@ -1,8 +1,26 @@
+ // SPDX-License-Identifier: GPL-2.0-or-later
++// Guest multisampled images created and sampled as single-sampled ones, on drivers that cannot
++// read a compressed multisampled depth buffer from a shader.
++//
++// The native PS4 baseline keeps the guest's sample counts, and every driver known to read the
++// game's multisampled depth correctly keeps them. AMD's proprietary driver does not on RDNA2
++// (RX 6600 family): a shader fetch of a multisampled depth buffer (texelFetch on a
++// sampler2DMS) returns zero in the lower half of many 8x8 pixel tiles, the ones with little
++// depth variation, which looks like compressed depth read without being expanded. Lighting
++// that uses that depth then shows black lines 4 pixels tall every 8 render rows, only where
++// light falls (issue #4 of the DivinusX port; gow3_pc #65 found and fixed the same fault on
++// the same emulation core). Sampling in the General layout does not help, so on that driver
++// the images lose their extra samples instead: the depth test and the shaders then use the
++// same single-sampled buffer. Guest sizes and addresses still use the real sample count
++// (GuestNumSamples).
++//
++// The default per driver is ps4_msaa_default.h; ORDER1886_NO_MSAA=0 or 1 decides otherwise
++// (vk_instance.cpp).
+ #pragma once
+ #include <atomic>
+ namespace AmdGpu {
+-// Preserve the guest's multisampling semantics in the native PS4 baseline.
+ inline std::atomic<bool> no_msaa{false};
+-inline bool NoMsaa() { return false; }
++inline bool NoMsaa() {
++    return no_msaa.load(std::memory_order_relaxed);
++}
+ } // namespace AmdGpu
+diff --git a/gpu/shadps4/video_core/amdgpu/ps4_msaa_default.h b/gpu/shadps4/video_core/amdgpu/ps4_msaa_default.h
+new file mode 100644
+index 0000000..bf8dc06
+--- /dev/null
++++ b/gpu/shadps4/video_core/amdgpu/ps4_msaa_default.h
+@@ -0,0 +1,22 @@
++// SPDX-License-Identifier: GPL-2.0-or-later
++// The Vulkan drivers where the game's multisampled images are created single-sampled unless
++// ORDER1886_NO_MSAA says otherwise (ps4_msaa.h). Plain C, so tests and tools can include it.
++//
++// AMD's proprietary driver: the RX 6600 family reads a multisampled depth buffer wrong from a
++// shader and the lighting shows black lines (DivinusX port #4, gow3_pc #65, where five RX
++// 6600/6650 XT owners confirmed the fix). NVIDIA, RADV, AMDVLK, Mesa ANV and MoltenVK read it
++// correctly as far as known and keep the game's multisampling: the native baseline.
++#pragma once
++
++#include <vulkan/vulkan_core.h>
++
++static inline int order1886_no_msaa_default(VkDriverId driver) {
++    return driver == VK_DRIVER_ID_AMD_PROPRIETARY;
++}
++
++/* "0" or "1" in ORDER1886_NO_MSAA wins; anything else (or unset) uses the driver default. */
++static inline int order1886_no_msaa(VkDriverId driver, const char* env) {
++    if (env && (env[0] == '0' || env[0] == '1') && env[1] == '\0')
++        return env[0] == '1';
++    return order1886_no_msaa_default(driver);
++}
+diff --git a/gpu/shadps4/video_core/renderer_vulkan/vk_instance.cpp b/gpu/shadps4/video_core/renderer_vulkan/vk_instance.cpp
+index c6f2b76..c9c59aa 100644
+--- a/gpu/shadps4/video_core/renderer_vulkan/vk_instance.cpp
++++ b/gpu/shadps4/video_core/renderer_vulkan/vk_instance.cpp
+@@ -13,6 +13,7 @@
+ #include "imgui/renderer/imgui_core.h"
+ #include "sdl_window.h"
+ #include "video_core/amdgpu/ps4_msaa.h"
++#include "video_core/amdgpu/ps4_msaa_default.h"
+ #include "video_core/renderer_vulkan/liverpool_to_vk.h"
+ #include "video_core/renderer_vulkan/vk_amd_paths.h"
+ #include "video_core/renderer_vulkan/vk_instance.h"
+@@ -846,11 +847,14 @@ void Instance::CollectDeviceParameters() {
+     driver_id = driver.driverID;
+     vendor_name = driver.driverName.data();
+ 
+-    // see video_core/amdgpu/ps4_msaa.h; the default per driver is ps4_msaa_default.h.
+-    constexpr bool no_msaa = false; // Preserve the guest sample counts.
++    // see video_core/amdgpu/ps4_msaa.h; the default per driver is ps4_msaa_default.h. Every
++    // driver but AMD's proprietary one keeps the guest sample counts (the native baseline).
++    const bool no_msaa =
++        order1886_no_msaa(static_cast<VkDriverId>(driver_id), std::getenv("ORDER1886_NO_MSAA")) != 0;
+     AmdGpu::no_msaa.store(no_msaa, std::memory_order_relaxed);
+     std::printf("GPU: guest multisampling %s\n",
+-                no_msaa ? "off (single-sampled images; ORDER1886_NO_MSAA=0 keeps it)" : "on");
++                no_msaa ? "off (single-sampled images for this driver; ORDER1886_NO_MSAA=0 keeps it)"
++                        : "on");
+ 
+     const std::string model_name{GetModelName()};
+     const std::string driver_version = GetDriverVersionName();
+diff --git a/tests/test_order1886_render_baseline.cpp b/tests/test_order1886_render_baseline.cpp
+index 7df2261..0e09494 100644
+--- a/tests/test_order1886_render_baseline.cpp
++++ b/tests/test_order1886_render_baseline.cpp
+@@ -8,6 +8,7 @@
+ #include "video_core/renderer_vulkan/order1886_render_baseline.h"
+ #include "video_core/renderer_vulkan/vk_blend_rewrite.h"
+ #include "video_core/amdgpu/ps4_msaa.h"
++#include "video_core/amdgpu/ps4_msaa_default.h"
+ 
+ using namespace Vulkan;
+ static_assert(!CameraMotion::Enabled() && !CameraMotion::Ready());
+@@ -85,8 +86,27 @@ int main() {
+         assert(loaded.requested_upscaler == Ps4Settings::UpscalerFsr3);
+         std::remove(ini);
+     }
+-    AmdGpu::no_msaa.store(true);
++    // The native baseline keeps the guest's sample counts on every driver that reads a
++    // multisampled depth buffer correctly; only AMD's proprietary driver (RDNA2 black lines,
++    // ps4_msaa.h) single-samples by default, and ORDER1886_NO_MSAA=0/1 overrides either way.
++    assert(!order1886_no_msaa_default(VK_DRIVER_ID_NVIDIA_PROPRIETARY));
++    assert(!order1886_no_msaa_default(VK_DRIVER_ID_MESA_RADV));
++    assert(!order1886_no_msaa_default(VK_DRIVER_ID_AMD_OPEN_SOURCE));
++    assert(!order1886_no_msaa_default(VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA));
++    assert(!order1886_no_msaa_default(VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS));
++    assert(!order1886_no_msaa_default(VK_DRIVER_ID_MOLTENVK));
++    assert(order1886_no_msaa_default(VK_DRIVER_ID_AMD_PROPRIETARY));
++    assert(order1886_no_msaa(VK_DRIVER_ID_AMD_PROPRIETARY, nullptr));
++    assert(!order1886_no_msaa(VK_DRIVER_ID_AMD_PROPRIETARY, "0"));
++    assert(order1886_no_msaa(VK_DRIVER_ID_MESA_RADV, "1"));
++    assert(!order1886_no_msaa(VK_DRIVER_ID_MESA_RADV, ""));
++    assert(order1886_no_msaa(VK_DRIVER_ID_AMD_PROPRIETARY, "yes"));   // not 0/1: the default
++    assert(!order1886_no_msaa(VK_DRIVER_ID_MESA_RADV, "10"));
++    AmdGpu::no_msaa.store(false);
+     assert(!AmdGpu::NoMsaa());
++    AmdGpu::no_msaa.store(true);
++    assert(AmdGpu::NoMsaa());
++    AmdGpu::no_msaa.store(false);
+     using Factor = AmdGpu::BlendControl::BlendFactor;
+     using Function = AmdGpu::BlendControl::BlendFunc;
+     BlendEquation scaled{Factor::SrcColor, Function::Min, Factor::DstColor};
