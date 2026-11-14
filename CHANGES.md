@@ -1,6 +1,14 @@
 # Changes Made - November 14, 2026
 
-## Unreleased
+## v0.2.21 — November 14, 2026 (Linux)
+
+**First package whose engine is built from this repository**:
+`packaging/linux/build-engine.sh`, i.e. upstream `3748288` plus every patch in
+`docs/verification/`, compiled on Arch (GCC 16.2.1). `bin/runtime-build.json` records that
+origin. It replaces the earlier engine from a private revision (`489693a`). The engine
+matched v0.2.20's in an A/B on the same save. The FSR 4 provider module is carried over
+(its source was never committed). Needs glibc 2.44+, as before.
+
 
 ### New: in-game menu on F1 — frame rate, resolution and V-Sync while you play
 
