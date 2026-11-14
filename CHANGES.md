@@ -19,6 +19,41 @@ libraries.
   fails with exit 127, while the fixed package starts and reaches the main menu. Details:
   `docs/verification/2026-11-14-linux-bundled-libraries.md`.
 
+### Fixed: black stripes on RX 6600-class GPUs (#4)
+
+On AMD's Windows driver, RDNA2 cards (RX 6600 family) showed dark horizontal bands on every
+sunlit surface: 4 rows dark out of every 8 render rows, never in shadow. A pass reads the
+game's multisampled depth buffer from a shader, and that driver returns 0 for the lower half
+of compressed 8x8 tiles. The same fault was found and fixed on this emulation core in
+gow3_pc #65. The fix's plumbing survived the switch to The Order, but it was hard-disabled.
+
+- Runtime patch `docs/verification/2026-11-14-rdna2-ms-depth-lines.patch`: on
+  `VK_DRIVER_ID_AMD_PROPRIETARY` only, guest multisampled images are created and sampled
+  single-sampled (guest sizes and addresses keep the real sample count). Every other driver
+  keeps the native multisampling baseline. `ORDER1886_NO_MSAA=0/1` overrides when running
+  the runtime directly.
+- The session log says `GPU: guest multisampling off (...)` when it applies.
+- Details, measurements and what is still untested: `docs/verification/2026-11-14-rdna2-ms-depth-lines.md`.
+
+### Fixed: dumps whose eboot.bin already has the 60 FPS or 16:9 patch (#3)
+
+Some dumps ship an `eboot.bin` with illusion's published 60 FPS patch already applied
+(CUSA00785 v1.02 in #3): the `mov dword [0x15c0d54], 2` at RVA `0x4507be` already writes
+`1`. Every recipe insisted on the stock `02`, so selecting 60 FPS stopped with
+*"Experimental 60 FPS does not match this executable at RVA 0x4507be: expected
+c7058c05170102000000, found c7058c05170101000000"*.
+
+- The source check accepts either the stock instruction or the published patch's at
+  that site (and the same for the 16:9 instruction at `0x44ce86`), and records the site
+  in `source_prepatched`. Any other bytes are still refused.
+- 60 FPS and 16:9 on such a dump write nothing: the value is already there.
+- 90 FPS and Unlocked write their own interval over the published one.
+- 30 FPS and Original put the stock instruction back in the prepared image, so the native
+  baseline no longer silently runs at 60 FPS (or 16:9) on a pre-patched dump. Original
+  game files are still never modified.
+- `tests/test_order1886_prepatched_source.py` covers both executables for every rate and
+  for both framings.
+
 ## v0.2.17 — November 8, 2026
 
 ### Fixed: the sun flicker in The Chase (staging readback sync)
