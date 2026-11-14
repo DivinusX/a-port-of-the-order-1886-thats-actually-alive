@@ -15,7 +15,7 @@ parchment `#f1ede4`, gold `#d8bd77`). Every row applies immediately:
 
 | row | values | how it applies |
 |---|---|---|
-| Game frame rate | 30 FPS (the console's) / 60 FPS | writes the engine's vblank interval global (below) and moves the presentation cap with it |
+| Game frame rate | 30 (native) / 60 / 90 / 120 / 144 / 165 / 240 / Unlocked | one row, as the launcher's choices: 30 and 60 write the engine's vblank interval (2, 1); higher rates run the engine uncapped (interval 0) with the presentation cap at that rate; Unlocked removes the cap |
 | Window mode | Window / Borderless / Fullscreen | `display_mode`, already live (`window.cpp`) |
 | V-Sync | Off / On | `vsync`; `Swapchain::UpdateVsync` recreates the swapchain |
 | Output resolution | Automatic (window) / 720p / 1080p / 1440p / 2160p | `output_res`, now read every present (below) |
@@ -31,8 +31,12 @@ works too. Changes last for the session.
   - The runtime now tells the GPU library where it loaded the image
     (`ps4gpu_set_guest_image`, called from `probe.c` right after `ps4gpu_init`).
   - `ps4_guest_image.h` hands out the global only when RVA `0x4507be` holds the
-    `mov dword [rip+disp32], imm32` that writes it, with immediate 1 or 2, i.e. the verified
-    01.02 code. Otherwise the row is shown as unavailable.
+    `mov dword [rip+disp32], imm32` that writes it, with immediate 0, 1 or 2 (the launcher's
+    90 FPS and Unlocked recipes write 1 or 0), i.e. the verified 01.02 code. Otherwise the row
+    is shown as unavailable.
+  - 90 FPS and above do **not** patch the pacer instruction the launcher's 90 FPS recipe edits
+    (RVA `0x835b9c`): changing code pages while game threads execute them is not safe. The
+    engine's uncapped mode (interval 0) paced by the presentation cap reaches the same rate.
   - After the player picks a rate, `Menu::EnforceFrameRate` keeps it every present, because the
     game resets the interval at a few scripted moments.
   - `fps_limit` follows (30 or 60), since the launcher caps presentation at the game frame rate.
@@ -58,7 +62,7 @@ menu:
 **The menu**, through the launcher's own protocol (`settings.set` + `session.start`), with a
 player's real settings, which have the old `in_game_menu=False` stored:
 - The launch command carried `--in-game-menu`, and F1 opened the menu.
-- **Game frame rate 30 → 60:** the overlay went from 30.0 to "Game output 60.0 FPS ·
+- **Game frame rate 30 → 60** (90 and Unlocked were added after this run and confirmed working by the maintainer): the overlay went from 30.0 to "Game output 60.0 FPS ·
   Presentation 60.0 FPS · 16.7 ms" without a restart. "Running at 60 FPS" means
   `IntervalGlobal()` verified the instruction.
 

@@ -5,7 +5,7 @@
 ### New: in-game menu on F1 — frame rate, resolution and V-Sync while you play
 
 Press **F1** (or R3+L2 on a controller) in game for a Graphics tab laid out like Longshot's,
-in the game's colours. Game frame rate (30/60 FPS), window mode, V-Sync, output resolution and
+in the game's colours. Game frame rate (30, 60, 90, 120, 144, 165, 240 or Unlocked), window mode, V-Sync, output resolution and
 the FPS counter all apply immediately, without restarting.
 
 - Runtime patch `docs/verification/2026-11-14-in-game-menu.patch`:

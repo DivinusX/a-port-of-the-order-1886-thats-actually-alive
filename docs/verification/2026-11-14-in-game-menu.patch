@@ -1,4 +1,4 @@
-From de147c08d42798e7dda1c0933d0a780d2ca913af Mon Sep 17 00:00:00 2001
+From 1d360aa49d057944d6dff3149a249e9b350bfdb2 Mon Sep 17 00:00:00 2001
 From: DivinusX <145181461+DivinusX@users.noreply.github.com>
 Date: Sat, 14 Nov 2026 02:58:38 -0500
 Subject: [PATCH] In-game menu (F1): live frame rate, window mode, V-Sync,
@@ -7,11 +7,11 @@ Subject: [PATCH] In-game menu (F1): live frame rate, window mode, V-Sync,
 ---
  gpu/ps4gpu.h                                  |   3 +
  .../renderer_vulkan/vk_presenter.cpp          |   5 +-
- gpu/shim/ps4_guest_image.h                    |  39 ++
- gpu/shim/ps4_overlay.cpp                      | 339 +++++++++++++++++-
+ gpu/shim/ps4_guest_image.h                    |  40 ++
+ gpu/shim/ps4_overlay.cpp                      | 367 +++++++++++++++++-
  gpu/shim/ps4gpu.cpp                           |   5 +
  src/probe.c                                   |   1 +
- 6 files changed, 388 insertions(+), 4 deletions(-)
+ 6 files changed, 417 insertions(+), 4 deletions(-)
  create mode 100644 gpu/shim/ps4_guest_image.h
 
 diff --git a/gpu/ps4gpu.h b/gpu/ps4gpu.h
@@ -53,10 +53,10 @@ index 8ef2d94..f2b3196 100644
      }
 diff --git a/gpu/shim/ps4_guest_image.h b/gpu/shim/ps4_guest_image.h
 new file mode 100644
-index 0000000..ba0cc50
+index 0000000..27d3e30
 --- /dev/null
 +++ b/gpu/shim/ps4_guest_image.h
-@@ -0,0 +1,39 @@
+@@ -0,0 +1,40 @@
 +// SPDX-License-Identifier: GPL-2.0-or-later
 +// Where the runtime loaded the game executable's image (ps4gpu_set_guest_image), so the in-game
 +// menu can change the engine's frame interval live. Image-relative addresses (RVAs) are the ones
@@ -73,8 +73,9 @@ index 0000000..ba0cc50
 +inline std::atomic<size_t> size{0};
 +
 +// `mov dword [rip+disp32], imm32` at RVA 0x4507be writes the vblank interval global at RVA
-+// 0x15c0d54 (2 = 30 FPS, 1 = 60 FPS). The menu only writes the global when this instruction is
-+// there with either immediate, i.e. the 01.02 code the timing recipes were verified against.
++// 0x15c0d54 (2 = 30 FPS, 1 = 60 FPS, 0 = the engine's uncapped mode). The menu only writes the
++// global when this instruction is there with one of those immediates (the launcher's 90 FPS and
++// Unlocked recipes write 1 or 0), i.e. the 01.02 code the timing recipes were verified against.
 +inline constexpr size_t IntervalWriteRva = 0x4507be;
 +inline constexpr size_t IntervalGlobalRva = 0x15c0d54;
 +inline constexpr unsigned char IntervalWritePrefix[6] = {0xc7, 0x05, 0x8c, 0x05, 0x17, 0x01};
@@ -89,7 +90,7 @@ index 0000000..ba0cc50
 +    const unsigned char* instruction = image + IntervalWriteRva;
 +    uint32_t immediate = 0;
 +    std::memcpy(&immediate, instruction + 6, 4);
-+    if (std::memcmp(instruction, IntervalWritePrefix, 6) != 0 || (immediate != 1 && immediate != 2)) {
++    if (std::memcmp(instruction, IntervalWritePrefix, 6) != 0 || immediate > 2) {
 +        return nullptr;
 +    }
 +    return reinterpret_cast<volatile uint32_t*>(image + IntervalGlobalRva);
@@ -97,7 +98,7 @@ index 0000000..ba0cc50
 +
 +} // namespace Ps4GuestImage
 diff --git a/gpu/shim/ps4_overlay.cpp b/gpu/shim/ps4_overlay.cpp
-index ebbe859..fa343f3 100644
+index ebbe859..fd60d47 100644
 --- a/gpu/shim/ps4_overlay.cpp
 +++ b/gpu/shim/ps4_overlay.cpp
 @@ -16,6 +16,7 @@
@@ -108,7 +109,7 @@ index ebbe859..fa343f3 100644
  
  extern "C" void runtime_restart(void); // src/probe.c: starts run.py again, ends this process
  #include "common/elf_info.h"
-@@ -471,6 +472,334 @@ void Notice() {
+@@ -471,6 +472,362 @@ void Notice() {
      ImGui::End();
  }
  
@@ -150,34 +151,61 @@ index ebbe859..fa343f3 100644
 +};
 +
 +int focused = 0;
-+// 0: the game decides its own interval; 1 or 2: the interval the menu set, kept every frame.
++// 0: the game decides its own interval; otherwise the interval the menu set, plus one (the
++// interval itself can be 0), kept every frame.
 +std::atomic<u32> chosen_interval{0};
 +
 +const int OutputChoices[] = {Ps4Settings::OutputAutomatic, 0, 1, 2, 3};
++// One frame-rate row. 30 and 60 are the engine's own intervals (2 and 1); every higher rate runs
++// the engine uncapped (interval 0) and lets the presentation cap pace it, so no executable code
++// is changed live. Unlocked removes the cap: V-Sync or the GPU sets the limit.
++constexpr int Rates[] = {30, 60, 90, 120, 144, 165, 240, 0};
++constexpr int RateCount = int(sizeof(Rates) / sizeof(Rates[0]));
 +
 +void SetGameFrameRate(int index) {
-+    const u32 interval = index == 1 ? 1u : 2u;
-+    chosen_interval = interval;
++    const int rate = Rates[index];
++    const u32 interval = rate == 30 ? 2u : rate == 60 ? 1u : 0u;
++    chosen_interval = interval + 1;
 +    if (volatile uint32_t* global = Ps4GuestImage::IntervalGlobal()) {
 +        *global = interval;
 +    }
-+    // The launcher caps presentation at the game frame rate; follow the new rate.
-+    Ps4Settings::Get().fps_limit = interval == 1 ? 60 : 30;
++    Ps4Settings::Get().fps_limit = rate;
 +}
 +
 +std::vector<Row> BuildRows() {
 +    auto& s = Ps4Settings::Get();
 +    std::vector<Row> rows;
 +    volatile uint32_t* global = Ps4GuestImage::IntervalGlobal();
-+    const bool sixty = global && *global == 1;
-+    rows.push_back({"Frame rate", "Game frame rate", Kind::Choice, {"30 FPS (the console's)", "60 FPS"},
-+                    sixty ? 1 : 0, global != nullptr, "Game frame rate",
-+                    "How many frames the game itself runs per second. Changes right away. 60 FPS is "
-+                    "smoother; the published 60 FPS patch warns that some quick-time events in "
-+                    "Chapters 6 and 9 can get stuck, so go back to 30 there if one does.",
-+                    global ? (sixty ? "Running at 60 FPS." : "Running at 30 FPS, as on the console.")
-+                           : "Not available: this executable is not the verified 01.02 build.",
-+                    SetGameFrameRate});
++    const u32 interval = global ? *global : 2u;
++    const int limit = s.fps_limit.load();
++    int rate = interval >= 2 ? 0 : interval == 1 ? 1 : RateCount - 1;
++    if (interval == 0) {
++        for (int i = 2; i < RateCount - 1; ++i) {
++            if (Rates[i] == limit) {
++                rate = i;
++            }
++        }
++    }
++    std::vector<std::string> labels;
++    for (int i = 0; i < RateCount; ++i) {
++        labels.push_back(Rates[i] == 0    ? "Unlocked \xe2\x80\x94 experimental"
++                         : Rates[i] == 30 ? "30 FPS \xe2\x80\x94 native"
++                                          : std::to_string(Rates[i]) + " FPS \xe2\x80\x94 experimental");
++    }
++    std::string note = "Not available: this executable is not the verified 01.02 build.";
++    if (global) {
++        note = rate == 0 ? "Running at 30 FPS, as on the console."
++               : rate == RateCount - 1
++                   ? "Running uncapped: V-Sync or the GPU sets the limit."
++                   : "Running at " + std::to_string(Rates[rate]) + " FPS.";
++    }
++    rows.push_back({"Frame rate", "Game frame rate", Kind::Choice, labels, rate, global != nullptr,
++                    "Game frame rate",
++                    "How many frames the game runs per second. Changes right away. 30 FPS is native; "
++                    "the rest are experimental: the game clock follows measured time, but some "
++                    "quick-time events in Chapters 6 and 9 can get stuck, so go back to 30 there if one "
++                    "does. With V-Sync on, the display's refresh rate is the most you will see.",
++                    note, SetGameFrameRate});
 +    const int mode = std::clamp(s.display_mode.load(), 0, int(Ps4Graphics::DisplayModeCount) - 1);
 +    rows.push_back({"Screen", "Window mode", Kind::Choice, {"Window", "Borderless", "Fullscreen"}, mode,
 +                    true, "Window mode",
@@ -429,10 +457,11 @@ index ebbe859..fa343f3 100644
 +
 +// Keep the interval the menu chose: the game writes its own at a few scripted moments.
 +void EnforceFrameRate() {
-+    const u32 interval = chosen_interval.load(std::memory_order_relaxed);
-+    if (!interval) {
++    const u32 chosen = chosen_interval.load(std::memory_order_relaxed);
++    if (!chosen) {
 +        return;
 +    }
++    const u32 interval = chosen - 1;
 +    if (volatile uint32_t* global = Ps4GuestImage::IntervalGlobal(); global && *global != interval) {
 +        *global = interval;
 +    }
@@ -443,7 +472,7 @@ index ebbe859..fa343f3 100644
  } // namespace
  
  void OnPresented(bool loading_frame) {
-@@ -674,9 +1003,11 @@ bool HandleEvent(const SDL_Event& event) {
+@@ -674,9 +1031,11 @@ bool HandleEvent(const SDL_Event& event) {
              Vulkan::FrameCapture::Request();
              return true;
          }
@@ -457,7 +486,7 @@ index ebbe859..fa343f3 100644
              return true;
          }
          if (!is_open) {
-@@ -828,6 +1159,7 @@ void Render(vk::CommandBuffer cmdbuf, vk::ImageView view, vk::Extent2D extent) {
+@@ -828,6 +1187,7 @@ void Render(vk::CommandBuffer cmdbuf, vk::ImageView view, vk::Extent2D extent) {
      const float ms = std::chrono::duration<float, std::milli>(now - last_ui_frame).count();
      last_ui_frame = now;
      ConfirmRestart();
@@ -465,7 +494,7 @@ index ebbe859..fa343f3 100644
      if (!Visible()) {
          return;
      }
-@@ -867,6 +1199,9 @@ void Render(vk::CommandBuffer cmdbuf, vk::ImageView view, vk::Extent2D extent) {
+@@ -867,6 +1227,9 @@ void Render(vk::CommandBuffer cmdbuf, vk::ImageView view, vk::Extent2D extent) {
      if (choice_active && !menu_open) {
          ChoiceBox();
      }
