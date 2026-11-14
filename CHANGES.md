@@ -18,6 +18,25 @@ gow3_pc #65. The fix's plumbing survived the switch to The Order, but it was har
 - The session log says `GPU: guest multisampling off (...)` when it applies.
 - Details, measurements and what is still untested: `docs/verification/2026-11-14-rdna2-ms-depth-lines.md`.
 
+### Fixed: dumps whose eboot.bin already has the 60 FPS or 16:9 patch (#3)
+
+Some dumps ship an `eboot.bin` with illusion's published 60 FPS patch already applied
+(CUSA00785 v1.02 in #3): the `mov dword [0x15c0d54], 2` at RVA `0x4507be` already writes
+`1`. Every recipe insisted on the stock `02`, so selecting 60 FPS stopped with
+*"Experimental 60 FPS does not match this executable at RVA 0x4507be: expected
+c7058c05170102000000, found c7058c05170101000000"*.
+
+- The source check accepts either the stock instruction or the published patch's at
+  that site (and the same for the 16:9 instruction at `0x44ce86`), and records the site
+  in `source_prepatched`. Any other bytes are still refused.
+- 60 FPS and 16:9 on such a dump write nothing: the value is already there.
+- 90 FPS and Unlocked write their own interval over the published one.
+- 30 FPS and Original put the stock instruction back in the prepared image, so the native
+  baseline no longer silently runs at 60 FPS (or 16:9) on a pre-patched dump. Original
+  game files are still never modified.
+- `tests/test_order1886_prepatched_source.py` covers both executables for every rate and
+  for both framings.
+
 ## v0.2.17 — November 8, 2026
 
 ### Fixed: the sun flicker in The Chase (staging readback sync)
