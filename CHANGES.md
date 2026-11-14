@@ -1,6 +1,13 @@
-# Changes Made - November 8, 2026
+# Changes Made - November 14, 2026
 
-## Unreleased
+## v0.2.19 — November 14, 2026 (Linux)
+
+Linux package built on the v0.2.17 runtime (the engine binaries are unchanged) with the fixes
+below applied to it. **Needs glibc 2.44 or newer** (Fedora/Bazzite 45, current Arch and
+derivatives): the bundled FFmpeg asks for it, and the v0.2.17 runtime already needed 2.43.
+The RX 6600 fix (#4) is source-only for now. It is a patch to the GPU engine, which this
+package does not rebuild, so it ships in the next engine build.
+
 
 ### Fixed: Linux packages fail with "libZydis.so.5: cannot open shared object file" (#5)
 
