@@ -1,5 +1,24 @@
 # Changes Made - November 8, 2026
 
+## Unreleased
+
+### Fixed: Linux packages fail with "libZydis.so.5: cannot open shared object file" (#5)
+
+The 0.2.17 Linux package was not self-contained. `bin/gpu/libps4gpu.so` kept the build
+machine's RUNPATH (`/tmp/ffmstage/usr/lib64`), so the dynamic linker never looked next to it
+and missed the bundled Zydis 5. FFmpeg 63 and libfmt 12 were not bundled at all, which only
+works on distributions that ship exactly those versions. `bin/gpu/` also still held FFmpeg 6's
+libraries.
+
+- New `packaging/linux/order1886-bundle.py`. `check` reads the package's ELF files and fails
+  on any dependency that would come from the build machine or the system instead of the
+  package. `fix` bundles the closure into `bin/gpu/` with RUNPATH `$ORIGIN`, replacing stale
+  copies (FFmpeg 6's `libva.so.2` broke the new `libavutil.so.61`).
+- Release steps: run `fix` and then `check` on every Linux package before publishing.
+- Verified in a `bubblewrap` sandbox with the host's copies of 120 libraries hidden: 0.2.17
+  fails with exit 127, while the fixed package starts and reaches the main menu. Details:
+  `docs/verification/2026-11-14-linux-bundled-libraries.md`.
+
 ## v0.2.17 — November 8, 2026
 
 ### Fixed: the sun flicker in The Chase (staging readback sync)
