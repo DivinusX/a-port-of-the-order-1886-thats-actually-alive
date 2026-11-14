@@ -3,7 +3,7 @@
  "launcher": "Go / Wails v2.17.0",
  "platform": "linux-x86_64",
  "status": "release",
- "built_utc": "2026-11-14T05:56:00Z",
+ "built_utc": "2026-11-14T06:17:22Z",
  "runtime_sha256": "7d368b75930fa8b1241c87dc5631da01704380f7aeb00a9b807f4d9fa4d857c2",
  "runtime_build": {
   "game_profile": "order1886",
@@ -45,7 +45,7 @@
  "files": [
   {
    "path": "CHANGES.md",
-   "sha256": "7b4e7156e21889340098238785b48f099a01afd67e4aa3c174f3a672ded54cb9"
+   "sha256": "b6db32754e9302ece35b80fa50c19b4a4fa64f56781748edea1ac7ccde2b311d"
   },
   {
    "path": "LICENSE",
@@ -65,7 +65,7 @@
   },
   {
    "path": "README.md",
-   "sha256": "e5add01aed11815d6e14ff8f976c4a8c37d6f37a6143a8bc1b059568759de7cc"
+   "sha256": "6e4772b1b3ac8f43f72398976aba3d9c9f781cfbd2726a5c0bf82579e2ce7b48"
   },
   {
    "path": "The Order 1886",
@@ -1845,7 +1845,7 @@
   },
   {
    "path": "bin/order1886-launcher",
-   "sha256": "34d5ba80f84eec8c6778467ea27e81981f3e1051bc6ea1aa6778f38f49cc863c"
+   "sha256": "ab1b567abd517cbd4f4b21687404914b97569a826a4eb8d68b33a93a5655f720"
   },
   {
    "path": "bin/order1886-runtime",
@@ -2645,7 +2645,7 @@
   },
   {
    "path": "bin/order1886-worker/_internal/scripts/order1886_editions.py",
-   "sha256": "b35aaa991c416d679be415613ed85869bff4a2507206e12be3615cf472cf8a9b"
+   "sha256": "705c60a972d2cd67c9cc5a44e6c667478d97646d9da44daad2227dbde283f749"
   },
   {
    "path": "bin/order1886-worker/_internal/scripts/order1886_frame_rate.py",
@@ -2669,7 +2669,7 @@
   },
   {
    "path": "bin/order1886-worker/_internal/scripts/order1886_patches.py",
-   "sha256": "cdd0a4a0a19c87e48dfec32e81828ec94744d337995516735d57eb4e2c136e1c"
+   "sha256": "36c3af32b5d45cf45e8c9d80ec15ce983e9c98d9260b036b8fbff1e9a9c53372"
   },
   {
    "path": "bin/order1886-worker/_internal/scripts/order1886_perf_report.py",
@@ -2717,7 +2717,7 @@
   },
   {
    "path": "bin/order1886-worker/order1886-worker",
-   "sha256": "be950712094235074ff38f3f9c46b573369290cec8be353c5e9b94f78208d133"
+   "sha256": "a7f67190aa2a92bdb624ca0d6e593448537cb213485157b30bf089588a173446"
   },
   {
    "path": "bin/order1886_fsr3.so",
@@ -2945,7 +2945,7 @@
   },
   {
    "path": "scripts/order1886_editions.py",
-   "sha256": "b35aaa991c416d679be415613ed85869bff4a2507206e12be3615cf472cf8a9b"
+   "sha256": "705c60a972d2cd67c9cc5a44e6c667478d97646d9da44daad2227dbde283f749"
   },
   {
    "path": "scripts/order1886_frame_rate.py",
@@ -2973,7 +2973,7 @@
   },
   {
    "path": "scripts/order1886_patches.py",
-   "sha256": "cdd0a4a0a19c87e48dfec32e81828ec94744d337995516735d57eb4e2c136e1c"
+   "sha256": "36c3af32b5d45cf45e8c9d80ec15ce983e9c98d9260b036b8fbff1e9a9c53372"
   },
   {
    "path": "scripts/order1886_perf_report.py",

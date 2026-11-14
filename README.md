@@ -74,7 +74,8 @@ Every release has a full write-up in [CHANGES.md](CHANGES.md), with evidence in
 
 | Version | Date | Highlights |
 | --- | --- | --- |
-| **v0.2.19** | Nov 14, 2026 | 🐧 Linux. **The game starts on Bazzite, Fedora and other distros**: every library now ships inside the package (the `libZydis.so.5` error, #5). Copies with the 60 FPS or 16:9 patch already applied are accepted, and 30 FPS really runs at 30 (#3). Needs glibc 2.44+ |
+| **v0.2.20** | Nov 14, 2026 | 🐧 Linux. **Choose the game's language**: Game & Content → Game language, 21 languages including **Español (Latinoamérica)** (before, every language came out in English). Search magnifier centred |
+| v0.2.19 | Nov 14, 2026 | 🐧 Linux. **The game starts on Bazzite, Fedora and other distros**: every library now ships inside the package (the `libZydis.so.5` error, #5). Copies with the 60 FPS or 16:9 patch already applied are accepted, and 30 FPS really runs at 30 (#3). Needs glibc 2.44+ |
 | **v0.2.18** | Nov 8, 2026 | 🪟 **Windows x86-64 package** with the same fixes as v0.2.17 ([release notes](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/releases/tag/v0.2.18)) |
 | v0.2.17 | Nov 8, 2026 | **The Chase sun flicker fixed** — staging sun-shadow readback sync; 20-frame bursts at the video's framing: 385 → 0 brightness flips |
 | v0.2.16 | Nov 8, 2026 | Sun shadows and wet-surface specular restored (draw-time HTILE expand); brightness flicker measured at 3 → 0 flips |

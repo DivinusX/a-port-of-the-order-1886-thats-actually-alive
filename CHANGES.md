@@ -1,6 +1,13 @@
 # Changes Made - November 14, 2026
 
-## Unreleased
+## v0.2.20 — November 14, 2026 (Linux)
+
+The v0.2.19 package with the two changes below; the engine and its libraries are unchanged.
+The worker carries `launcher-py-overlay/` (applied with `repack_worker.py`). The launcher
+binary was not rebuilt: its embedded copy of `index-NM6hMv8S.css` was edited in place, with
+the same rules as the repository file at the same size. The collapsed rule drops the
+redundant `min-width:34px` to make room. Needs glibc 2.44 or newer, as v0.2.19 does.
+
 
 ### New: choose the game's language (Game & Content → Game language)
 
