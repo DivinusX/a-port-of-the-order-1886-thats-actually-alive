@@ -1,5 +1,27 @@
 # Changes Made - November 14, 2026
 
+## Unreleased
+
+### New: in-game menu on F1 — frame rate, resolution and V-Sync while you play
+
+Press **F1** (or R3+L2 on a controller) in game for a Graphics tab laid out like Longshot's,
+in the game's colours. Game frame rate (30, 60, 90, 120, 144, 165, 240 or Unlocked), window mode, V-Sync, output resolution and
+the FPS counter all apply immediately, without restarting.
+
+- Runtime patch `docs/verification/2026-11-14-in-game-menu.patch`:
+  - the menu itself (`ps4_overlay.cpp`);
+  - `ps4gpu_set_guest_image`, so the menu can switch the engine's frame interval live. It only
+    writes after checking the instruction at `0x4507be`.
+  - The output resolution is now read live by the presenter.
+- `packaging/linux/build-engine.sh` rebuilds the runtime on a current Linux from upstream
+  `3748288` plus every patch in `docs/verification/`, in order. The FSR 4 provider's source
+  was never committed, so its module is carried over from the previous package.
+- Launcher (`launcher-py-overlay`): **In-game menu (F1)** (`game_menu`) is on by default and
+  replaces the old opt-in `in_game_menu` field.
+- Verified live on CUSA00035: 30→60 FPS, V-Sync off (swapchain recreated), output 1600x900 →
+  1280x720 (F12 capture). The rebuilt engine matched v0.2.20's in an A/B on the same save.
+  Details: `docs/verification/2026-11-14-in-game-menu.md`.
+
 ## v0.2.20 — November 14, 2026 (Linux)
 
 The v0.2.19 package with the two changes below; the engine and its libraries are unchanged.
