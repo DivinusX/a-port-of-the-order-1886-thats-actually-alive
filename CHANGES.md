@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Fixed: black stripes on RX 6600-class GPUs (#4)
+
+On AMD's Windows driver, RDNA2 cards (RX 6600 family) showed dark horizontal bands on every
+sunlit surface: 4 rows dark out of every 8 render rows, never in shadow. A pass reads the
+game's multisampled depth buffer from a shader, and that driver returns 0 for the lower half
+of compressed 8x8 tiles. The same fault was found and fixed on this emulation core in
+gow3_pc #65. The fix's plumbing survived the switch to The Order, but it was hard-disabled.
+
+- Runtime patch `docs/verification/2026-11-14-rdna2-ms-depth-lines.patch`: on
+  `VK_DRIVER_ID_AMD_PROPRIETARY` only, guest multisampled images are created and sampled
+  single-sampled (guest sizes and addresses keep the real sample count). Every other driver
+  keeps the native multisampling baseline. `ORDER1886_NO_MSAA=0/1` overrides when running
+  the runtime directly.
+- The session log says `GPU: guest multisampling off (...)` when it applies.
+- Details, measurements and what is still untested: `docs/verification/2026-11-14-rdna2-ms-depth-lines.md`.
+
 ### Fixed: dumps whose eboot.bin already has the 60 FPS or 16:9 patch (#3)
 
 Some dumps ship an `eboot.bin` with illusion's published 60 FPS patch already applied
