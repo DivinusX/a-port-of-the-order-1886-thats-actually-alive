@@ -1,4 +1,84 @@
-# Changes Made - November 14, 2026
+# Changes Made - November 15, 2026
+
+## v0.2.22 — November 15, 2026 (Windows and Linux)
+
+**One source revision, two packages.** Both are built by the source repository's CI from
+`DivinusX/The-Order-1886_pc` branch `windows-port-v0.2.22`, revision `bdd172d` = the v0.2.18
+`windows-port` line + the two November 14 runtime patches + the launcher changes below,
+committed in the source tree instead of applied as a worker overlay, + the Linux packaging
+and worker fixes that building the Linux package in CI for the first time required (below).
+`bin/runtime-build.json` in each package binds its runtime to that revision
+(`source_dirty: false`).
+
+- **Windows x86-64** (`order1886-win-x86_64-v0.2.22.zip`): `order1886-go-package.yml` on
+  `windows-2025` / MSYS2 CLANG64 (run `43678050101`), finalized with
+  `packaging/windows/order1886-win-package.py`. The first Windows download with the
+  November 14 fixes; v0.2.18 was the v0.2.17 engine.
+- **Linux x86-64** (`order1886-linux-x86_64-v0.2.22.tar.gz`): `order1886-go-linux-package.yml`
+  on `ubuntu-24.04` (run `43678115443`), finalized with the new
+  `packaging/linux/order1886-linux-package.py` (FSR 4 bundle, music and release documents
+  merged in; `order1886-bundle.py check` must pass; manifest and tarball rebuilt).
+  Functionally v0.2.21 plus the preparation change under *Game language* below. Because the
+  CI builds on Ubuntu 24.04, this package needs **glibc 2.39+** again, not the 2.44 that
+  v0.2.19–v0.2.21 (built on Arch) required.
+
+### Fixed: black stripes on RX 6600-class GPUs (#4)
+
+The RDNA2 depth-lines patch (`docs/verification/2026-11-14-rdna2-ms-depth-lines.patch`,
+merged in #7) ships in a download for the first time. On `VK_DRIVER_ID_AMD_PROPRIETARY` the
+runtime creates the game's multisampled images with one sample, so the driver never reads
+compressed multisampled depth from a shader; every other driver keeps the native baseline.
+The reporter's log from v0.2.18 said `GPU: guest multisampling on`; this build says
+`GPU: guest multisampling off (single-sampled images for this driver; ...)` on that driver.
+Not yet confirmed on an RX 6600 — #4 stays open until an owner reports back.
+
+### New on Windows (already on Linux since v0.2.19–v0.2.21): in-game menu (F1), game language, pre-patched copies
+
+- **In-game menu on F1** — the v0.2.21 runtime patch; `game_menu` on by default in the
+  launcher (`docs/verification/2026-11-14-in-game-menu.md`).
+- **Game & Content → Game language** — the v0.2.20 feature: 21 languages, the SKU 0
+  language filter removed at preparation. In the source tree this is now an explicit
+  best-effort preparation step (`order1886_patches.apply_language`, recorded as
+  `language_profile` in `prepared.json` and `last-run.json`) instead of a recipe hidden
+  inside the catalogue selection: a build whose bytes differ at the SKU table keeps its own
+  filter and says why, rather than refusing to prepare. The pt-BR → pt-PT substitution is
+  gone, as on Linux.
+- **Pre-patched dumps** (#3) — the v0.2.19 fix for copies whose `eboot.bin` already carries
+  the 60 FPS or 16:9 patch.
+- Launcher window: centred search magnifier (v0.2.20) and the three logo PNGs the vendored
+  frontend referenced but the v0.2.18 package did not carry.
+
+### Fixed on Linux: what the first CI-built Linux package revealed
+
+Booting the CI package on this Arch machine (a different distribution from the Ubuntu 24.04
+builder, the situation of every player) found three things the Arch-built v0.2.19–v0.2.21
+could not show, all fixed in the source tree (`packaging/linux/`, `order1886.py`):
+
+- The CI packager did not ship `bin/order1886_fsr3.so` / `order1886_fsr4.so` (built, never
+  copied): FSR 3.1 and FSR 4 would have been unavailable. It also did not install the
+  pad-check wrapper (`bin/order1886-runtime` + `order1886-runtime.bin`), and once it did, the
+  backend refused the package because the receipt named the ELF's hash while the backend
+  verifies the file it runs; the receipt now carries the wrapper's hash (`runtime_sha256`)
+  and the ELF's (`runtime_elf_sha256`), as the released packages always did.
+- **The worker leaked PyInstaller's `LD_LIBRARY_PATH` to the game.** PyInstaller points it at
+  the worker's `_internal/` folder; every child inherits it, and `LD_LIBRARY_PATH` beats
+  `RUNPATH`. The wrapper's `/bin/sh` then loaded the worker's `libreadline` 8.2 instead of the
+  system's: `symbol lookup error: rl_print_keybinding`, runtime exit 127 before any frame.
+  The runtime itself would likewise have taken the worker's copy of any library both carry.
+  `runtime_process_environment` now restores the player's original `LD_LIBRARY_PATH` (or
+  strips the bundle folder) for the frozen worker. Packages built on the same distribution as
+  the player's never showed this, which is why v0.2.21 worked here.
+- The CI manifest listed `GO-BUILD-INCOMPLETE.txt`, a marker removed after the smoke test.
+
+### Verification
+
+- Python regression suite of the source tree: 607 tests, 0 failures (the Windows CI runs
+  the native C/C++ checks, `build.sh --test`).
+- **Linux package booted the game on this machine** (Arch, NVIDIA RTX 5050, CUSA00035 dump, direct play): fresh preparation with the language edit applied (`language_profile.applied: true`, `87fbffff → 98fbffff`), `ORDER1886_LANGUAGE=20`, `ORDER1886_SETTINGS_MENU=1`, no `LD_LIBRARY_PATH` handed to the runtime, `GPU: guest multisampling on` (NVIDIA keeps the baseline), HTILE expand firing, 0 files not found, clean exit 0 on close. At native render size the CI-built FSR 4 provider loads (`AMD FSR 4 v07 INT8/DOT4 (source) available`) and reconstructs frames; at a lower render size the backend presents 1:1 without an upscaler, by design.
+- wine (not Windows), NVIDIA RTX 5050: `bin/order1886-runtime.exe` from the CI artifact booted the game against the CUSA00035 dump and rendered at 30 FPS (`GPU: guest multisampling on`, the correct policy on NVIDIA; FSR 3.1 provider loaded; `Overlay: menu ready`). With `ORDER1886_NO_MSAA=1` the Windows binary prints `GPU: guest multisampling off (single-sampled images for this driver; ...)`, but every later wine boot — with or without the variable — stopped at the first swapchain acquire (`NotReady`, which the spec does not allow with an infinite timeout), so the single-sample path was not rendered under wine. `docs/verification/2026-11-15-windows-v0.2.22/wine-boot-nvidia-30fps.png`.
+- Hardware: no RX 6600 here; the RTX 5050 (NVIDIA) and RX 9070 XT (RADV) never showed the
+  stripes, so they can only confirm that nothing changes on other drivers.
+- Details: `docs/verification/2026-11-15-windows-v0.2.22.md`.
 
 ## v0.2.21 — November 14, 2026 (Linux)
 

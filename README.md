@@ -74,7 +74,8 @@ Every release has a full write-up in [CHANGES.md](CHANGES.md), with evidence in
 
 | Version | Date | Highlights |
 | --- | --- | --- |
-| **v0.2.21** | Nov 14, 2026 | 🐧 Linux. **In-game menu on F1**: change the frame rate (30/60/90/120/144/165/240/Unlocked), window mode, V-Sync and output resolution **while you play**. First engine built from this repository (`packaging/linux/build-engine.sh`) |
+| **v0.2.22** | Nov 15, 2026 | 🪟 **Windows** + 🐧 **Linux**, one source revision built by CI. Windows gets everything Linux had since v0.2.19: the **black stripes on RX 6600-class GPUs** fixed (#4), **in-game menu on F1**, **game language** selector (21 languages incl. Español (Latinoamérica)), pre-patched copies accepted (#3). Linux: same as v0.2.21, built on Ubuntu 24.04 so it needs **glibc 2.39+** again ([release notes](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/releases/tag/v0.2.22)) |
+| v0.2.21 | Nov 14, 2026 | 🐧 Linux. **In-game menu on F1**: change the frame rate (30/60/90/120/144/165/240/Unlocked), window mode, V-Sync and output resolution **while you play**. First engine built from this repository (`packaging/linux/build-engine.sh`) |
 | v0.2.20 | Nov 14, 2026 | 🐧 Linux. **Choose the game's language**: Game & Content → Game language, 21 languages including **Español (Latinoamérica)** (before, every language came out in English). Search magnifier centred |
 | v0.2.19 | Nov 14, 2026 | 🐧 Linux. **The game starts on Bazzite, Fedora and other distros**: every library now ships inside the package (the `libZydis.so.5` error, #5). Copies with the 60 FPS or 16:9 patch already applied are accepted, and 30 FPS really runs at 30 (#3). Needs glibc 2.44+ |
 | **v0.2.18** | Nov 8, 2026 | 🪟 **Windows x86-64 package** with the same fixes as v0.2.17 ([release notes](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/releases/tag/v0.2.18)) |
