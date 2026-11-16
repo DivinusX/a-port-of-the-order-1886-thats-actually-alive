@@ -1,4 +1,55 @@
-# Changes Made - November 16, 2026
+# Changes Made - November 17, 2026
+
+## v0.2.24 — November 17, 2026 (Windows and Linux)
+
+**Shader cache seeds (#17): the pipeline cache now lives in the package, and a shipped seed
+bundle can fill a fresh install before its very first launch.** Engine built from
+`The-Order-1886_pc` branch `aot-shader-cache` (`bdd172d` + launcher Python only — the C++ is
+byte-for-byte the v0.2.23 engine); new in both packages: `scripts/order1886_cache.py` (and the
+worker's copy), the launcher overlay's `order1886_common.py`, and the seed step baked into the
+worker's `order1886.py`. Evidence and method:
+`docs/verification/2026-11-16-shader-cache-seeds.md`.
+
+### Fixed: the pipeline cache was not in the package (Linux/SteamOS)
+
+The launcher points the runtime at `user/order1886/gpu/native-ps4-v1` but nothing created
+that folder, so the runtime — which treats a missing directory as "not the portable folder" —
+silently fell back to `~/.local/share/shadPS4`. The README's self-contained state promise and
+the launcher's own *Clear shader cache* action were pointing at an empty directory. Every
+launch now creates the cache home first, and a pre-fix cache is copied into the package once
+(never over an existing one; the old folder is left untouched).
+
+### New: seed bundles — boot-time replay for fresh installs
+
+The runtime replays cached pipelines while the game boots (that is the existing warm-up), but
+a fresh install has nothing to replay: the game's shaders are not stored as plain program
+objects in the dump (they stream decompressed, and the engine's permutations depend on
+bindings only draws reveal), so nothing can translate them statically — the same reason native
+PC ports ship a developer-captured cache. The port now has the matching mechanism:
+
+- `<install>/shader-cache/<TITLE_ID>/` (a `bundle.json` + `blobs/` written by
+  `export_shader_cache_seed`) is imported into an empty per-title cache before the first
+  launch: staged, renamed atomically, every blob checked against the bundle's sha256 list,
+  refused wholesale on tamper or a `shader_cache_abi` mismatch, and never touching a cache
+  that has run a real session.
+- The runtime's own `Shader::Profile` check stays the final word: a bundle captured on a
+  matching GPU/driver replays from boot #1; a mismatching machine discards and rebuilds,
+  exactly as today. Measured on this machine: importing the live 20,251-blob capture and
+  booting logs **`Pipeline warm-up: 6992 of 6994 pipelines in 0.72 s`** where the empty cache
+  logs 0 of 0.
+- Capture your own with `python3 scripts/order1886_cache.py --export` (see QUICKSTART).
+- **Official release packages contain no seed bundle:** bundles hold GPU code translated from
+  the game's own shaders, so shipping one is the project owner's rights decision, not an
+  engineering one. The mechanism is active the moment a bundle lands in `shader-cache/`.
+
+### Verified / not verified
+
+- Unit tests on both repos (port 32 OK, engine cache module 20 OK); the four pre-existing
+  engine codegen test failures reproduce identically at `bdd172d` without these changes.
+- Migration, import and replay verified live against the real CUSA00035 capture and a
+  headless boot (gamescope, isolated state, no player state touched).
+- **Not verified:** the Windows package on Windows (same Python, untested on that path);
+  Steam Deck/SteamOS specifics of the fallback-directory adoption.
 
 ## v0.2.23 — November 16, 2026 (Windows and Linux)
 

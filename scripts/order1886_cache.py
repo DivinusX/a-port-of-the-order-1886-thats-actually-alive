@@ -84,12 +84,18 @@ def _clear(state, cache):
     return True
 
 
-def title_cache_dir(state, title_id):
-    """Where the runtime keys this edition's pipeline cache (see order1886.py's
-    ORDER1886_GPU_USER_DIR); the engine adds 'cache/<TITLE_ID>' below it."""
+def _abi(explicit=None):
+    if explicit:
+        return explicit
     import order1886
 
-    return Path(state) / 'gpu' / order1886.SHADER_CACHE_ABI / 'cache' / title_id
+    return order1886.SHADER_CACHE_ABI
+
+
+def title_cache_dir(state, title_id, abi=None):
+    """Where the runtime keys this edition's pipeline cache (see order1886.py's
+    ORDER1886_GPU_USER_DIR); the engine adds 'cache/<TITLE_ID>' below it."""
+    return Path(state) / 'gpu' / _abi(abi) / 'cache' / title_id
 
 
 def ensure_cache_home(state) -> Path:
@@ -161,7 +167,7 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def export_shader_cache_seed(cache: Path, out: Path, title_id: str, log=print) -> Path:
+def export_shader_cache_seed(cache: Path, out: Path, title_id: str, log=print, abi=None) -> Path:
     """Bundle a captured cache directory as <out>/blobs + <out>/bundle.json.
 
     Run against <state>/gpu/<abi>/cache/<TITLE_ID> after playing; the driver's
@@ -169,8 +175,7 @@ def export_shader_cache_seed(cache: Path, out: Path, title_id: str, log=print) -
     other blob is engine-SPIR-V and pipeline keys, which replay on any device
     whose Shader::Profile matches (the runtime enforces that at load).
     """
-    import order1886
-
+    abi = _abi(abi)
     cache, out = Path(cache), Path(out)
     blobs = out / 'blobs'
     if blobs.exists():
@@ -188,7 +193,7 @@ def export_shader_cache_seed(cache: Path, out: Path, title_id: str, log=print) -
         files[entry.name] = _sha256(entry)
     manifest = {
         'title_id': title_id,
-        'shader_cache_abi': order1886.SHADER_CACHE_ABI,
+        'shader_cache_abi': abi,
         'created_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
         'files': files,
     }
@@ -197,7 +202,7 @@ def export_shader_cache_seed(cache: Path, out: Path, title_id: str, log=print) -
     return out
 
 
-def import_shader_cache_seeds(state, install_root=None, log=print) -> list:
+def import_shader_cache_seeds(state, install_root=None, log=print, abi=None) -> list:
     """Place shipped seed bundles into empty per-title caches, before first play.
 
     A bundle is <install>/shader-cache/<TITLE_ID>/{bundle.json,blobs/} written by
@@ -207,8 +212,7 @@ def import_shader_cache_seeds(state, install_root=None, log=print) -> list:
     there). An ABI-tagged bundle that does not match this build is refused.
     Returns one receipt dict per bundle seen.
     """
-    import order1886
-
+    abi = _abi(abi)
     state = Path(state).absolute()
     roots = [Path(install_root)] if install_root else []
     roots += [state.parent.parent, Path.cwd()]
@@ -226,10 +230,10 @@ def import_shader_cache_seeds(state, install_root=None, log=print) -> list:
             receipt['skipped'] = 'no bundle.json'
             continue
         manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-        if manifest.get('shader_cache_abi') != order1886.SHADER_CACHE_ABI:
+        if manifest.get('shader_cache_abi') != abi:
             receipt['skipped'] = f"built for {manifest.get('shader_cache_abi')}"
             continue
-        target = title_cache_dir(state, title_id)
+        target = title_cache_dir(state, title_id, abi)
         _check_ancestors(target)
         if (target / 'profile.bin').exists():
             receipt['skipped'] = 'cache already in use'
@@ -274,3 +278,41 @@ def prepare_cache_for_launch(state, install_root=None, log=print):
     except Exception as error:  # noqa: BLE001 - a broken seed must not stop the game
         log(f'order1886 cache: {error}')
         return []
+
+
+def main(argv=None):
+    """Capture or install a seed bundle without the launcher:
+
+    export:  order1886_cache.py --export <state>/gpu/<abi>/cache/<TITLE_ID> \
+                 --out <install>/shader-cache/<TITLE_ID>
+    import:  order1886_cache.py --import --state <install>/user/order1886
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--export', type=Path, help='cache directory captured by playing')
+    mode.add_argument('--import', dest='do_import', action='store_true',
+                      help='import every bundle under <install>/shader-cache')
+    parser.add_argument('--out', type=Path, help='bundle directory for --export')
+    parser.add_argument('--title', help='TITLE_ID of the --export cache (its folder name)')
+    parser.add_argument('--state', type=Path, help='launcher state dir (user/order1886)')
+    parser.add_argument('--install', type=Path, help='package root holding shader-cache/')
+    parser.add_argument('--abi', default=None, help='shader cache ABI (default: this build)')
+    args = parser.parse_args(argv)
+    if args.export:
+        if not args.out or not args.title:
+            parser.error('--export needs --out and --title')
+        export_shader_cache_seed(args.export, args.out, args.title, abi=args.abi)
+    else:
+        if not args.state:
+            parser.error('--import needs --state')
+        receipts = import_shader_cache_seeds(args.state, args.install, abi=args.abi)
+        for receipt in receipts:
+            print(json.dumps(receipt))
+        if not receipts:
+            print('no bundles under <install>/shader-cache')
+
+
+if __name__ == '__main__':
+    main()
