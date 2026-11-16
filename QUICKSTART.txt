@@ -101,6 +101,33 @@ Xbox pads: wired pads use xpad; Xbox Series/Elite Bluetooth pads use
 hid-microsoft or xpadneo. If the pad sleeps, press the Xbox button to re-open
 it. The runtime cannot use a pad that the kernel has not exposed.
 
+SHADER CACHE AND SEEDS
+
+The game records every pipeline it compiles under
+user/order1886/gpu/native-ps4-v1/cache/<TITLE_ID>/ and replays that record
+while the game boots, so areas you have already visited do not stutter again.
+Since v0.2.24 this folder really is inside the package: earlier Linux copies
+fell back to ~/.local/share/shadPS4, and that cache is now adopted into the
+package automatically on the next launch (once, without deleting anything).
+
+A friend can hand you their recorded cache as a "seed bundle": put the
+folder they gave you at  <package>/shader-cache/CUSAxxxxx/  and launch.
+Every file is checked against the bundle's manifest first; a bundle that
+does not match your GPU/driver is ignored and the cache rebuilds by playing,
+exactly as without it; a cache that already has real sessions is never
+overwritten. To make a bundle of your own:
+
+  python3 scripts/order1886_cache.py --export \
+    user/order1886/gpu/native-ps4-v1/cache/CUSA00035 \
+    --out <someone-elses-package>/shader-cache/CUSA00035 \
+    --title CUSA00035
+
+Play at least once with "Background pipeline warmup" on to fill the cache.
+A seed replays only when the other machine's GPU feature profile matches the
+capture exactly; on any difference (different card, driver or runtime build)
+the runtime discards it and rebuilds by playing, so sharing helps closest
+setups and is harmless elsewhere.
+
 UPDATING
 
 Extract the new archive and copy your "user" folder from the old one into
