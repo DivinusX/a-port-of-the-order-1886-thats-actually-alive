@@ -177,8 +177,11 @@ def _base_is_stale(game, resource):
     """True when the base ps4/ tree holds a different copy of a file the PS4/ update tree also
     has: painting that resource would show base art while the executable checks the update."""
     import order1886_ui_extract as ui
-    base = Path(game) / ui.NAMESPACE / 'ps4' / resource
-    sibling = Path(game) / ui.NAMESPACE / 'PS4' / resource
+    # NAMESPACE already ends in 'ps4' (ui.resolve uses it bare); the update sibling
+    # sits beside it. Appending 'ps4'/'PS4' here looked under .../ps4/ps4 and never fired.
+    namespace = Path(ui.NAMESPACE)
+    base = Path(game) / namespace / resource
+    sibling = Path(game) / namespace.parent / 'PS4' / resource
     return (base.is_file() and sibling.is_file()
             and hashlib.sha256(base.read_bytes()).digest()
             != hashlib.sha256(sibling.read_bytes()).digest())
