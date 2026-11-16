@@ -63,6 +63,7 @@ fixing something you can actually see, and each one documented with how it was t
 | ✨ **AMD FSR 4** | FSR 4 (v07 ML model) replaces the game's own temporal anti-aliasing, with FSR 3.1 as the automatic fallback when a GPU can't run it. |
 | ☀️ **Sun, steady** | Draw-time HTILE expand brings back outdoor sun shadows and wet-stone reflections; staging sun-shadow readback sync (v0.2.17) ends the flicker in The Chase — 385 → 0 measured brightness flips. |
 | 🎬 **No letterbox by default** | Graphics → **Cinematic bars** lets you choose. Bars are **off** by default, so the game renders the full 16:9 picture. Your game files are never touched. |
+| 💬 **Subtitles and prompts that show** | With the bars off, the game's interface keeps its original 2.4:1 layout, centred on the 16:9 picture: subtitles, QTE and interaction prompts appear where they should, and subtitle letters are spelled right (v0.2.23). |
 | 🎮 **Controllers that work** | Hot-plug detection, the original PlayStation button layout, keyboard prompts that follow your key bindings, and a built-in pad check that tells you *why* a pad isn't seen. |
 | 🎵 **A launcher with a soul** | Background music with a volume bar, a clear Home strip showing your display, upscaler, frame rate and bars at a glance. |
 | 📂 **Any dump, any case** | Dumps with mixed-case folder names (CUSA00035 and others) load correctly. |
@@ -74,7 +75,8 @@ Every release has a full write-up in [CHANGES.md](CHANGES.md), with evidence in
 
 | Version | Date | Highlights |
 | --- | --- | --- |
-| **v0.2.22** | Nov 15, 2026 | 🪟 **Windows** + 🐧 **Linux**, one source revision built by CI. Windows gets everything Linux had since v0.2.19: the **black stripes on RX 6600-class GPUs** fixed (#4), **in-game menu on F1**, **game language** selector (21 languages incl. Español (Latinoamérica)), pre-patched copies accepted (#3). Linux: same as v0.2.21, built on Ubuntu 24.04 so it needs **glibc 2.39+** again ([release notes](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/releases/tag/v0.2.22)) |
+| **v0.2.23** | Nov 16, 2026 | 🪟 **Windows** + 🐧 **Linux**. **Subtitles and button prompts now show with the bars off** (the interface is drawn in its original 2.4:1 band, centred on the full 16:9 picture), and **subtitle letters come out right** (no more "Eigan." for "Sigan."). Same binaries as v0.2.22, one preparation script changed ([release notes](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/releases/tag/v0.2.23)) |
+| v0.2.22 | Nov 15, 2026 | 🪟 **Windows** + 🐧 **Linux**, one source revision built by CI. Windows gets everything Linux had since v0.2.19: the **black stripes on RX 6600-class GPUs** fixed (#4), **in-game menu on F1**, **game language** selector (21 languages incl. Español (Latinoamérica)), pre-patched copies accepted (#3). Linux: same as v0.2.21, built on Ubuntu 24.04 so it needs **glibc 2.39+** again ([release notes](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/releases/tag/v0.2.22)) |
 | v0.2.21 | Nov 14, 2026 | 🐧 Linux. **In-game menu on F1**: change the frame rate (30/60/90/120/144/165/240/Unlocked), window mode, V-Sync and output resolution **while you play**. First engine built from this repository (`packaging/linux/build-engine.sh`) |
 | v0.2.20 | Nov 14, 2026 | 🐧 Linux. **Choose the game's language**: Game & Content → Game language, 21 languages including **Español (Latinoamérica)** (before, every language came out in English). Search magnifier centred |
 | v0.2.19 | Nov 14, 2026 | 🐧 Linux. **The game starts on Bazzite, Fedora and other distros**: every library now ships inside the package (the `libZydis.so.5` error, #5). Copies with the 60 FPS or 16:9 patch already applied are accepted, and 30 FPS really runs at 30 (#3). Needs glibc 2.44+ |
@@ -128,6 +130,8 @@ wrong, look for `Order1886: pad check:` warnings in the log. The usual causes ar
 - 60 FPS is still experimental. Chapters 6 and 9 may softlock on QTEs; switch to 30 FPS for those.
 - FSR 4 renders at the game's own size (keep Render resolution on *Original*). Sub-native
   quality modes aren't wired yet.
+- With the bars off, a button prompt for an object at the very top or bottom of the picture stays at
+  the edge of the 2.4:1 interface band.
 - Full campaign progression and very long sessions aren't verified end to end.
 
 Found a bug? [Open an issue](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues)
