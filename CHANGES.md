@@ -1,4 +1,57 @@
-# Changes Made - November 15, 2026
+# Changes Made - November 16, 2026
+
+## v0.2.23 — November 16, 2026 (Windows and Linux)
+
+**Subtitles and button prompts work with the bars off, and subtitle letters come out right.**
+Same engine, worker and launcher binaries as v0.2.22 (`bdd172d`); one file changed in both
+packages: `scripts/order1886_display.py` (and the worker's copy of it under
+`bin/order1886-worker/_internal/scripts/`). The fix is applied when the game is prepared, so the
+first launch after updating prepares it again. Original game files are never modified.
+Evidence and method: `docs/verification/2026-11-16-ui-band-and-glyph-cache.md`.
+
+### Fixed: no subtitles and no button prompts with Cinematic bars disabled
+
+With **Graphics → Cinematic bars → Disabled** (the default since v0.2.14) subtitles never
+appeared even with the game's own Subtitles option on, the Triangle/Cross prompts of world
+interactions and QTEs were missing, and the menus were drawn about 5% too large. With the bars
+enabled all of it worked.
+
+Cause: the game's interface is Flash, authored for the 2.4:1 band (a 1920x800 stage), and the
+game sizes it with the scene size. The 16:9 recipe makes the scene 1920x1080, so the stage was
+laid out against 1080 rows.
+
+- The interface now always gets the 2.4:1 band (`width x width*5/12`) and is drawn centred on
+  the full 16:9 picture: menus, subtitles, objectives and prompts sit where they sit with the
+  bars on, over a picture with no bars.
+- Prompts attached to an object in the world are projected into that band, so the glyph stays
+  on the object.
+- With the bars enabled nothing changes: the band is the scene.
+- It is computed from the render size at run time, not baked for 1920x1080.
+
+### Fixed: wrong or late letters in subtitles ("Eigan." for "Sigan.")
+
+The first time a letter was needed (a capital, an accented vowel) the subtitle could show
+another letter in its place, or the line arrived late. The game copies each new letter into
+its font texture with a compute shader, through a view of that texture with a different
+format; the runtime kept that view as a separate image and the texture that is actually drawn
+received the letter late or not at all. Both views now keep the texture's own format, so the
+copy lands in the texture that is drawn. This one applied with the bars on too.
+
+### Verified / not verified
+
+- CUSA00035 1.02, Linux, RX 9070 XT (RADV), 16:9, 60 FPS, FSR 4, Español (Latinoamérica), on a
+  copy of the state folder with scripted input and frame dumps: main and pause menus at their
+  original scale and centred; every subtitle line of the first minute of the Prologue, with
+  "Sigan." spelled right; the Triangle prompt of a world interaction (a beam in a tunnel), within a pixel of
+  where the bars-on run puts it; the same route with the bars on unchanged; the launcher's own
+  preparation records `display_profile.ui_fix = {applied: true, changed_sites: 9}`.
+- **Not verified:** the Windows package on Windows (it carries the same script and the same
+  game bytes are patched; nobody ran it); render widths other than 1920; long QTE sequences and
+  the Lycan evade prompts; whole chapters.
+- A prompt whose object is in the top or bottom ~13% of the 16:9 picture is outside the
+  interface band: it is clamped to the band's edge.
+- An executable whose bytes differ at any of the nine sites keeps its own interface code and
+  `prepared.json` says why (`ui_fix.reason`); preparation never fails because of this fix.
 
 ## v0.2.22 — November 15, 2026 (Windows and Linux)
 
