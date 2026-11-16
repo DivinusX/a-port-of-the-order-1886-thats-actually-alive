@@ -67,6 +67,7 @@ fixing something you can actually see, and each one documented with how it was t
 | 🎮 **Controllers that work** | Hot-plug detection, the original PlayStation button layout, keyboard prompts that follow your key bindings, and a built-in pad check that tells you *why* a pad isn't seen. |
 | 🎵 **A launcher with a soul** | Background music with a volume bar, a clear Home strip showing your display, upscaler, frame rate and bars at a glance. |
 | 📂 **Any dump, any case** | Dumps with mixed-case folder names (CUSA00035 and others) load correctly. |
+| 🧊 **Warm pipelines on a fresh install** | The pipeline cache really lives in the package (v0.2.24), and a captured **shader cache seed** dropped in `shader-cache/` is hash-verified and replayed during boot instead of compiled mid-game (#17). |
 
 ## Release history
 
@@ -75,7 +76,8 @@ Every release has a full write-up in [CHANGES.md](CHANGES.md), with evidence in
 
 | Version | Date | Highlights |
 | --- | --- | --- |
-| **v0.2.23** | Nov 16, 2026 | 🪟 **Windows** + 🐧 **Linux**. **Subtitles and button prompts now show with the bars off** (the interface is drawn in its original 2.4:1 band, centred on the full 16:9 picture), and **subtitle letters come out right** (no more "Eigan." for "Sigan."). Same binaries as v0.2.22, one preparation script changed ([release notes](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/releases/tag/v0.2.23)) |
+| **v0.2.24** | Nov 17, 2026 | 🪟 **Windows** + 🐧 **Linux**. **Shader cache seeds** (#17): the pipeline cache now really lives in `user/order1886` (on Linux it was quietly falling back to a per-user folder), any pre-fix cache is adopted once, and a captured **seed bundle** dropped in `shader-cache/` is hash-verified and replayed at boot so a fresh install starts with warm pipelines. Same engine as v0.2.23 ([release notes](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/releases/tag/v0.2.24)) |
+| v0.2.23 | Nov 16, 2026 | 🪟 **Windows** + 🐧 **Linux**. **Subtitles and button prompts now show with the bars off** (the interface is drawn in its original 2.4:1 band, centred on the full 16:9 picture), and **subtitle letters come out right** (no more "Eigan." for "Sigan."). Same binaries as v0.2.22, one preparation script changed ([release notes](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/releases/tag/v0.2.23)) |
 | v0.2.22 | Nov 15, 2026 | 🪟 **Windows** + 🐧 **Linux**, one source revision built by CI. Windows gets everything Linux had since v0.2.19: the **black stripes on RX 6600-class GPUs** fixed (#4), **in-game menu on F1**, **game language** selector (21 languages incl. Español (Latinoamérica)), pre-patched copies accepted (#3). Linux: same as v0.2.21, built on Ubuntu 24.04 so it needs **glibc 2.39+** again ([release notes](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/releases/tag/v0.2.22)) |
 | v0.2.21 | Nov 14, 2026 | 🐧 Linux. **In-game menu on F1**: change the frame rate (30/60/90/120/144/165/240/Unlocked), window mode, V-Sync and output resolution **while you play**. First engine built from this repository (`packaging/linux/build-engine.sh`) |
 | v0.2.20 | Nov 14, 2026 | 🐧 Linux. **Choose the game's language**: Game & Content → Game language, 21 languages including **Español (Latinoamérica)** (before, every language came out in English). Search magnifier centred |
@@ -112,6 +114,12 @@ and CUSA00785. CUSA00035 is the one I play on.
 
 Settings, caches, logs and saves live in `user/order1886` next to the launcher. Keep that folder
 when you upgrade.
+
+**Shader cache seeds (#17):** the runtime records the pipelines it compiles and replays them at
+boot. If someone gives you a captured cache, put it at `shader-cache/CUSAxxxxx/` (a
+`bundle.json` + `blobs/` next to the launcher) and the next launch on a fresh install imports and
+replays it; on a GPU/driver the capture wasn't made for, the runtime rebuilds as before.
+`python3 scripts/order1886_cache.py --export …` makes a bundle from your own cache (QUICKSTART).
 
 Full setup, SteamOS notes and troubleshooting are in [QUICKSTART.txt](QUICKSTART.txt).
 
