@@ -28,7 +28,22 @@ def backend_command(values, *args, **kwargs):
     language = game_system_language(values)
     if language is not None and "--system-language" in command:
         command[command.index("--system-language") + 1] = str(language)
+    _prepare_cache(kwargs.get("state") or (args[1] if len(args) > 1 else None))
     return command
+
+
+def _prepare_cache(state):
+    """Keep the shader cache in the package, adopt a pre-fix shared cache and
+    import a shipped seed bundle before the runtime starts (issue #17). A cache
+    problem must never stop the game, so the helper swallows its own failures."""
+    if state is None:
+        return
+    try:
+        from scripts.order1886_cache import prepare_cache_for_launch
+
+        prepare_cache_for_launch(state)
+    except Exception as error:  # noqa: BLE001
+        print(f'launcher: shader cache setup skipped: {error}')
 
 
 _load_launch_settings = _base.load_launch_settings
