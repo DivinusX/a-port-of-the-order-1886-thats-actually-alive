@@ -1,5 +1,29 @@
 # Changes Made - November 17, 2026
 
+## v0.2.27 — November 17, 2026 (Windows and Linux)
+
+**Interaction prompts stop depending on luck.** v0.2.26 made the glyph *pipeline* survive
+cache replay; the symbol could still be missing or show the wrong button — and the same
+save could look perfect in one session and broken in the next. Cause: each draw stages
+its flattened user-data table into the 32 MB constant ring; when the ring tail was still
+in flight on the GPU, the allocation failed and the upload was **silently skipped** — the
+descriptor kept the previous draw's table. The prompt sprite then read another
+interactable's glyph index (triangle where the trigger was meant) or a zeroed entry
+(invisible symbol, crescent only). Whether a widget was poisoned depended on ring
+pressure at packet-build time, so the wrong state persisted for the whole session and
+only a checkpoint reload — packets rebuilt under different pressure — seemed to heal it.
+Engine fix (runtime, both platforms): `ConstantRing::Allocate` resumes at the
+GPU-retired frontier instead of failing, so an upload is only skipped if the GPU is
+stalled across the entire ring (never observed). Launcher fix: `bin/order1886-launcher`
+(the WebKit-free UI entry) now resolves the installation root from its `bin/` location
+via `package-manifest.json` — launching it directly no longer reports "Order worker is
+missing". Evidence: `docs/verification/2026-11-17-constant-ring-stale-uploads.md`.
+
+Verified: instrumented desk visit — skipped uploads 162 → 0 across the same route; the
+owner's own screenshots show newspaper, photo and weapon discs rendering their glyph on
+the first pass after a checkpoint load, with the animation pulsing. **Not verified:**
+physical Windows (same engine code path, CI-built).
+
 ## v0.2.26 — November 17, 2026 (Windows and Linux)
 
 **World interaction prompts keep their button glyph, forever.** The dark disc over the
