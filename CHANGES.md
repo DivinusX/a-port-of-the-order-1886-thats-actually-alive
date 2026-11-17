@@ -1,5 +1,20 @@
 # Changes Made - November 17, 2026
 
+## v0.2.25 — November 17, 2026 (Windows and Linux) — regression hotfix
+
+**Subtitles and button prompts are back with the bars off.** v0.2.24's CI-built packages
+shipped an out-of-date `scripts/order1886_display.py` from the engine repository: the
+v0.2.23 subtitle/UI-band/glyph patches had lived only in the port repository (hot-patched
+into each release), so v0.2.24's re-preparation dropped `ui_fix` and reverted the bars-off
+interface bug — subtitles and world prompts vanished whatever the game's subtitle setting
+said. One file changed (identical in both packages and in the worker's copy):
+`order1886_display.py` restored to the fixed revision (`107a9137…`, byte-identical to
+v0.2.23's). The engine repository now carries it too, and the release check verifies every
+port-owned script inside both packages against the port repository before publishing —
+that drift can no longer pass silently. Everything else (binaries, seeds machinery, #17)
+is unchanged from v0.2.24. Updating re-prepares once; `prepared.json` should record
+`ui_fix: {applied: true, changed_sites: 9}`.
+
 ## v0.2.24 — November 17, 2026 (Windows and Linux)
 
 **Shader cache seeds (#17): the pipeline cache now lives in the package, and a shipped seed
