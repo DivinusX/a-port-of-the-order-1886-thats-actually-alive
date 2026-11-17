@@ -2,22 +2,20 @@
 
 ## v0.2.30 — November 17, 2026 (Windows and Linux)
 
-**Button symbols are back, no GPU hang, and the speed optimization returns.**
+**No GPU hang, faster, and the speed optimization returns.**
 
-- **Fixed: the root cause of both the GPU hang (exit 23) and the empty prompt circle.** The draw
-  pipeline's constant ring lost track of which data the GPU had finished (its bookkeeping queue
-  overflowed and dropped entries), so it looked full when it wasn't. v0.2.26 then skipped uploads
-  (empty prompt circle) and v0.2.27 overwrote data still in use (GPU page fault, hang). The
-  bookkeeping is fixed and the ring is 256 MB (was 32 MB; an interior uses ~25 MB per frame).
+- **Fixed: the GPU hang (exit 23).** The draw pipeline's constant ring lost track of which data the
+  GPU had finished (its bookkeeping queue overflowed and dropped entries), so it looked full when
+  it wasn't, and v0.2.27 then overwrote data still in use (GPU page fault, hang). The bookkeeping is
+  fixed and the ring is 256 MB (was 32 MB; an interior uses ~25 MB per frame).
 - **The two-stage draw pipeline is back on** (v0.2.28 had turned it off as a workaround).
-- **Asynchronous shaders are now off by default**, because with them on the prompt symbol could
-  still render empty. Existing installs are switched off once; you can turn them back on in the
-  launcher (Performance) if you prefer.
 - **Performance:** an interior that dropped to ~63 fps now runs at ~120 fps on the test PC.
+- **Known bug:** the button symbol inside world interaction prompts can render as an empty circle.
+  Still under investigation.
 
 Verified on Linux (RX 9070, Mesa 26.2.6): no hang in 5-minute runs with the draw pipeline on (the
-old ring hung in 37-120 s), ring statistics show 0 waits and 0 skipped uploads in play, the prompt
-symbol renders, no flicker. **Not verified:** a physical Windows PC.
+old ring hung in 37-120 s); ring statistics show 0 waits and 0 skipped uploads in play.
+**Not verified:** a physical Windows PC.
 
 ## v0.2.29 — November 17, 2026 (Windows and Linux)
 
