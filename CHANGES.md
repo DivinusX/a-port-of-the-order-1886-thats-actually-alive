@@ -1,5 +1,22 @@
 # Changes Made - November 17, 2026
 
+## v0.2.31 — November 17, 2026 (Windows and Linux)
+
+- **GTX 10 (Pascal) cards render correctly** (#26). Without fragment-shader barycentrics the scene
+  turned into silhouettes; a generated geometry shader now gives the pixel shaders the triangle
+  corners and barycentrics they need. These GPUs rebuild their shader cache once on the first launch.
+- **The launcher's file check passes** (#14). It reported 10 platform functions as missing (one was
+  implemented but registered under a mistyped ID); all are provided now.
+- **Crash reports show the cause** (#18): when the GPU library stops (exit 23), the launcher prints
+  the reason from the GPU log (`GPU log: ...`) and stores it in `last-run.json`.
+- **Asynchronous shaders are on by default again.** Turning them off did not fix the prompt symbols.
+  If v0.2.30 turned them off on your install, you can switch them back on in the launcher.
+- **Known bug:** world-prompt button symbols can show as an empty circle (still investigated).
+
+Verified on Linux (RX 9070, Mesa 26.2.6): GTX 10 behaviour reproduced by disabling barycentrics,
+scene renders with the fix; normal path unchanged (no cache rebuild); file check 0 missing;
+native tests pass. **Not verified:** a physical GTX 10 card, a physical Windows PC.
+
 ## v0.2.30 — November 17, 2026 (Windows and Linux)
 
 **No GPU hang, faster, and the speed optimization returns.**
