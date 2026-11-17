@@ -101,6 +101,21 @@ Xbox pads: wired pads use xpad; Xbox Series/Elite Bluetooth pads use
 hid-microsoft or xpadneo. If the pad sleeps, press the Xbox button to re-open
 it. The runtime cannot use a pad that the kernel has not exposed.
 
+MOUSE AND KEYBOARD
+
+For the closest thing to a PC shooter with mouse and keyboard, open the game's
+Options > Controls and set LOOK, AIM and SCOPE SENSITIVITY to 8 of 10. The
+mouse drives the PS4 right stick, so the game's own sensitivity sets how fast
+the camera can turn; at the default, medium and fast mouse motion hit that
+limit and need a lot of mousepad.
+
+Esc releases the mouse (to leave the window); press F6 in the game window to
+capture it again. No restart is needed.
+
+Fine-tuning: write user/order1886/mouse-tuning.ini (window_ms, deadzone, curve,
+gain; see docs/order1886-input.md in the engine repository). The running game
+re-reads it about twice a second. Delete it to return to the defaults.
+
 SHADER CACHE AND SEEDS
 
 The game records every pipeline it compiles under

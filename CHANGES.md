@@ -1,5 +1,28 @@
 # Changes Made - November 17, 2026
 
+## v0.2.29 — November 17, 2026 (Windows and Linux)
+
+**Mouse look feels like a PC game, not an emulator.**
+
+- Less input lag: mouse speed is averaged over 6 ms instead of a 25 ms smoothing filter.
+- Small motion turns the camera: any movement jumps past the game's stick dead zone (radially, so
+  diagonal aim keeps its angle), and a response curve lifts small and medium motion.
+- **Set LOOK, AIM and SCOPE SENSITIVITY to 8 of 10** in the game's Options > Controls. The mouse
+  drives the right stick, so the game's sensitivity sets the fastest possible turn.
+- Lost the mouse after Esc? **Press F6** in the game window; no restart needed (#15).
+- Fine-tuning by feel: `user/order1886/mouse-tuning.ini` (`window_ms`, `deadzone`, `curve`, `gain`)
+  is re-read while the game runs.
+
+Verified: tuned by feel in gameplay on Linux (RX 9070, launcher sensitivity 100, in-game 8 of 10);
+unit tests and CI pass. **Not verified:** physical Windows, other mice and DPI settings. The game's
+turn-speed ceiling and turn acceleration remain (a direct camera hook is planned).
+
+**Known issue (since v0.2.28):** the round interaction prompt over things you can examine can show an
+empty dark circle instead of the button symbol. v0.2.27 fixed it inside the two-stage draw pipeline,
+which v0.2.28 turned off to stop the GPU hang (exit 23). The fix for both is the draw-pipeline race,
+being worked on for v0.2.30. Also seen once: a shader-translation stop after 18 minutes
+(`Unsupported FMask payload selectors`, exit 23); it did not reproduce from the same save.
+
 ## v0.2.28 — November 17, 2026 (Windows and Linux) — hotfix
 
 **No more crash on launch from the shader cache (exit 139).** After some play, a launch could
