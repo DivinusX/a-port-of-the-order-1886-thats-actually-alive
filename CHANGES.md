@@ -1,5 +1,28 @@
 # Changes Made - November 17, 2026
 
+## v0.2.26 — November 17, 2026 (Windows and Linux)
+
+**World interaction prompts keep their button glyph, forever.** The dark disc over the
+newspaper, photo or lantern could lose the triangle/circle inside it — subtitles and menus
+unaffected — and the disc stayed empty on every later launch. Cause: shaders whose
+extended-userdata flattening fails (the engine logs `SRT offset failure` and falls back to
+reading the game's canonical tables) were saved to the pipeline cache without recording that
+they are fallback variants. On replay the pipeline binds the flattened layout while the
+saved binary reads canonical tables, so the glyph samples nothing and renders invisible.
+Engine fix (runtime, both platforms): the fallback is now recorded in the serialized shader
+meta, `LoadShaderMeta` refuses to replay flagged variants (they compile fresh — the
+provably correct path, the same one that renders right today), and the meta format bumped
+10 → 11, which invalidates every existing poisoned cache exactly once: the first launch
+after updating recompiles (a few minutes of loading screens), then the cache is healthy
+permanently. Evidence: `docs/verification/2026-11-17-srt-fallback-glyph.md`.
+
+Verified: two-run replay test on the dev machine (run 1: `0 of 7328 replayed, 7328 stale` —
+the bump rejects the old generation wholesale — then live recompile with 3,836 fallback
+variants saved flagged; run 2: `340 replayed in 0.20 s`, flagged variants refused and
+recompiled live, scene rendering pixel-identical). The owner additionally confirmed the
+triangle glyph in person with the pruned cache. **Not verified:** physical Windows (same
+engine code path, CI-built).
+
 ## v0.2.25 — November 17, 2026 (Windows and Linux) — regression hotfix
 
 **Subtitles and button prompts are back with the bars off.** v0.2.24's CI-built packages
