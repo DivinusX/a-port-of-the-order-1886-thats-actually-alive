@@ -46,20 +46,91 @@ class CacheHomeTests(unittest.TestCase):
         self.assertTrue((home / 'cache').is_dir())
         self.assertEqual(home.name, 'native-ps4-v1')
 
-    def test_migrate_adopts_shared_cache_but_never_overwrites(self):
+    def test_shared_cache_is_never_adopted(self):
+        # Foreign pipeline keys crash RADV during WarmUp (v0.2.28 hotfix).
         xdg = self.state.parent / 'xdg'
         shared = xdg / 'shadPS4' / 'cache' / 'CUSA00035'
         shared.mkdir(parents=True)
         (shared / 'profile.bin').write_bytes(b'device')
         (shared / 'g_0x1.key').write_bytes(b'key')
         with _xdg(xdg):
-            self.assertEqual(cache.migrate_shared_caches(self.state, lambda *_: None), 2)
-        moved = cache.title_cache_dir(self.state, 'CUSA00035')
+            self.assertEqual(cache.migrate_shared_caches(self.state, lambda *_: None), 0)
+            cache.prepare_cache_for_launch(self.state, log=lambda *_: None)
+        self.assertFalse((cache.title_cache_dir(self.state, 'CUSA00035') / 'g_0x1.key').exists())
+        self.assertEqual((shared / 'g_0x1.key').read_bytes(), b'key')  # old folder untouched
+
+
+_WARMUP_FAULT = """GPU [Common.Filesystem] <Error> io_file.cpp:202 Open: Failed to open the file
+Host fault (signal 11) in /usr/lib/libvulkan_radeon.so+0x177830 (?), address 0x196
+  #2 /usr/lib/libvulkan_radeon.so+0x177830 (?)
+  #5 bin/gpu/libps4gpu.so+0x1b70ae (_ZN6Vulkan28CreateCachedGraphicsPipelineEN2vk6Device)
+  #8 bin/gpu/libps4gpu.so+0x1bf135 (_ZN6Vulkan13PipelineCache20LoadGraphicsPipelineERN13Serialization7ArchiveE)
+  #11 bin/gpu/libps4gpu.so+0x1c102c (_ZN6Vulkan13PipelineCache6WarmUpERKSt8functionIFvjjEE)
+  #15 bin/order1886-runtime.bin+0x9b96 (main)
+"""
+
+_OTHER_FAULT = """Host fault (signal 11) in bin/gpu/libps4gpu.so+0x1234 (?), address 0x0
+  #2 bin/gpu/libps4gpu.so+0x1234 (_ZN6AmdGpu9Liverpool11ProcessGfxE)
+  #3 bin/order1886-runtime.bin+0x9b96 (main)
+"""
+
+
+class CrashQuarantineTests(unittest.TestCase):
+    def setUp(self):
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        self.state = Path(temp.name) / 'user' / 'order1886'
+        (self.state / 'logs').mkdir(parents=True)
+        self.cache = cache.title_cache_dir(self.state, 'CUSA00035')
+        self.cache.mkdir(parents=True)
+        (self.cache / 'profile.bin').write_bytes(b'device')
+        (self.cache / 'g_0x1.key').write_bytes(b'key')
+
+    def _last_run(self, log_text, status='failed', started='20261117T065753.878866Z'):
+        log = self.state / 'logs' / f'{started}-boot.log'
+        log.write_text(log_text, encoding='utf-8')
+        report = {'status': status, 'exit_code': 139, 'log': str(log), 'title_id': 'CUSA00035',
+                  'shader_cache_abi': 'native-ps4-v1', 'started_utc': started}
+        (self.state / 'logs' / 'last-run.json').write_text(json.dumps(report), encoding='utf-8')
+
+    def test_warmup_crash_moves_the_cache_aside_once(self):
+        self._last_run(_WARMUP_FAULT)
+        moved = cache.quarantine_crashed_cache(self.state, log=lambda *_: None)
+        self.assertEqual(moved.name, 'CUSA00035.crashed-20261117T065753878866Z')
         self.assertEqual((moved / 'g_0x1.key').read_bytes(), b'key')
-        (moved / 'extra.key').write_bytes(b'new')
-        with _xdg(xdg):  # the package cache is in use now: the shared copy stays put
-            cache.migrate_shared_caches(self.state, lambda *_: None)
-        self.assertEqual((moved / 'extra.key').read_bytes(), b'new')
+        self.assertFalse(self.cache.exists())
+        self.cache.mkdir()  # the next boot rebuilds; the same report must not move it again
+        (self.cache / 'fresh.key').write_bytes(b'new')
+        self.assertIsNone(cache.quarantine_crashed_cache(self.state, log=lambda *_: None))
+        self.assertTrue((self.cache / 'fresh.key').exists())
+
+    def test_a_newer_crash_replaces_the_older_quarantine(self):
+        self._last_run(_WARMUP_FAULT, started='20261117T010000Z')
+        first = cache.quarantine_crashed_cache(self.state, log=lambda *_: None)
+        self.cache.mkdir()
+        self._last_run(_WARMUP_FAULT, started='20261117T020000Z')
+        second = cache.quarantine_crashed_cache(self.state, log=lambda *_: None)
+        self.assertFalse(first.exists())
+        self.assertTrue(second.is_dir())
+
+    def test_other_crashes_and_clean_exits_leave_the_cache_alone(self):
+        for text, status in ((_OTHER_FAULT, 'failed'), (_WARMUP_FAULT, 'process_exited'),
+                             ('no fault here', 'failed')):
+            self._last_run(text, status=status)
+            self.assertIsNone(cache.quarantine_crashed_cache(self.state, log=lambda *_: None))
+            self.assertTrue((self.cache / 'g_0x1.key').exists())
+
+    def test_missing_or_broken_report_is_ignored(self):
+        self.assertIsNone(cache.quarantine_crashed_cache(self.state, log=lambda *_: None))
+        (self.state / 'logs' / 'last-run.json').write_text('{not json', encoding='utf-8')
+        self.assertIsNone(cache.quarantine_crashed_cache(self.state, log=lambda *_: None))
+        self.assertTrue(self.cache.is_dir())
+
+    def test_prepare_skips_seeds_after_a_quarantine(self):
+        _seed_bundle(self.state.parent.parent)
+        self._last_run(_WARMUP_FAULT)
+        self.assertEqual(cache.prepare_cache_for_launch(self.state, log=lambda *_: None), [])
+        self.assertFalse(self.cache.exists())
 
 
 class SeedImportTests(unittest.TestCase):

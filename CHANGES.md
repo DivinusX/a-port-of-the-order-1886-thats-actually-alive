@@ -1,5 +1,64 @@
 # Changes Made - November 17, 2026
 
+## v0.2.28 — November 17, 2026 (Windows and Linux) — hotfix
+
+**No more crash on launch from the shader cache (exit 139).** After some play, a launch could
+crash half a second in with `Session failed (exit 139)`, inside the AMD driver
+(`libvulkan_radeon.so`, stack `PipelineCache::WarmUp -> LoadGraphicsPipeline ->
+CreateCachedGraphicsPipeline`), and keep crashing on every launch.
+
+Cause (engine): while replaying the cache at boot, `LoadGraphicsPipeline` fills the shared
+replay selection (`sel.infos`, `sel.modules`, `sel.fetch_shader`) stage by stage and returns early
+when a stage fails (missing meta, refused fallback variant, missing SPIR-V) without clearing it.
+The next pipeline then inherited the failed one's stages and was created with modules it does not
+own, which crashed RADV. Since v0.2.26 refuses to replay fallback variants, failed loads are
+routine, so a cache written by the same build could crash its own next boot (seen: 349 of 803
+pipelines loaded, next boot crashed). Engine fix (both platforms): the replay selection is reset
+before every cached pipeline and after the warm-up loop.
+
+Launcher safety nets (`scripts/order1886_cache.py`, both platforms):
+
+- The old per-user cache (`~/.local/share/shadPS4` / `%APPDATA%\shadPS4`) is **no longer copied**
+  into the package (it only held caches from other builds); it is left untouched on disk.
+- **Crash quarantine:** if the last boot died with a host fault inside the cache replay (read from
+  `logs/last-run.json`), the next launch renames that title's cache to `<TITLE_ID>.crashed-<run>`
+  and rebuilds it. Only the newest quarantine is kept; a shipped seed is skipped on that launch.
+
+**In-app updates on Windows work again.** The v0.2.26 updater archive contained files the updater
+refuses (`path is not package-owned: "CHANGES.md"`), so updating from inside the launcher failed.
+`order1886-go-windows.zip` now holds only package files and passes the updater's `StageArchive`.
+
+Verified (Linux, RX 9070, Mesa 26.2.6): a cache that crashed the v0.2.27 build at boot on every try
+boots with this engine (407 of 1053 pipelines replayed, no crash); quarantine detection tested on
+the real crash log; unit tests and CI pass. **Not verified:** physical Windows (same code,
+CI-built).
+
+**No more GPU hang a minute or two into play (exit 23), by turning an optimization off.** Sessions
+could end with `Session failed (exit 23)`, "Device lost": the GPU read a page of a sparse buffer
+arena before it was bound (every amdgpu dump shows a gfxhub page fault at the same address), the gfx
+ring timed out and the kernel reset it. The trigger is the two-stage draw pipeline (draws recorded
+on a second thread), which was on for every CPU with 8+ threads: with it on the game hung in 5 of 5
+runs (37-120 s), with it off in none of 4 (up to 5 minutes, plus two short play sessions). It is now
+off by default. Its root cause, a race, is still open; `ORDER1886_DRAW_PIPE=1` brings it back for
+that investigation. Cost: the pipeline was measured upstream at +18-19% on 8-16 threads; not
+re-measured here.
+
+Verified (Linux, RX 9070, Mesa 26.2.6): see the run counts above. **Not verified:** physical
+Windows; whether interaction-prompt glyphs (the v0.2.27 fix lives in the draw pipeline's constant
+ring) render correctly on the non-pipelined path.
+
+### In plain words (for players)
+
+The game keeps a file of graphics "shortcuts" so it loads faster. When one shortcut couldn't be
+used, the game accidentally mixed its leftovers into the next one, the graphics driver choked, and
+the game closed half a second after you pressed Play, every time. That mix-up is fixed. As a
+backup, if the game ever crashes while loading those shortcuts, it now throws the file away by
+itself so the next launch works. You don't need to delete anything by hand.
+
+The game could also freeze and close a minute or two into play ("exit 23"). That came from a speed
+trick that does two things at once and sometimes got them out of order. It is switched off now, so
+the game stays up. You may lose a little performance on some PCs; on the test PC it stayed smooth.
+
 ## v0.2.27 — November 17, 2026 (Windows and Linux)
 
 **Interaction prompts stop depending on luck.** v0.2.26 made the glyph *pipeline* survive

@@ -107,8 +107,11 @@ The game records every pipeline it compiles under
 user/order1886/gpu/native-ps4-v1/cache/<TITLE_ID>/ and replays that record
 while the game boots, so areas you have already visited do not stutter again.
 Since v0.2.24 this folder really is inside the package: earlier Linux copies
-fell back to ~/.local/share/shadPS4, and that cache is now adopted into the
-package automatically on the next launch (once, without deleting anything).
+fell back to ~/.local/share/shadPS4. Since v0.2.28 that old folder is no
+longer copied in (it only holds caches from other builds); it is left
+untouched and you may delete it. If a boot ever crashes while
+replaying the cache, the next launch renames the cache to
+<TITLE_ID>.crashed-<run> and rebuilds it, so just launch again.
 
 A friend can hand you their recorded cache as a "seed bundle": put the
 folder they gave you at  <package>/shader-cache/CUSAxxxxx/  and launch.
