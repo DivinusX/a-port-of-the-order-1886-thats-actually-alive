@@ -1,5 +1,20 @@
 # Changes Made - November 17, 2026
 
+## v0.2.32 — November 17, 2026 (Windows and Linux)
+
+- **GTX 10 (Pascal): colour flicker and black patches addressed, needs confirmation** (#26).
+  v0.2.31 rendered the scene on these cards, but characters glowed in rainbow colours, brightness
+  flickered and some surfaces were black. NVIDIA hardware does not interpolate the values the game
+  packs into its shaders exactly (AMD does); GTX 10 cards now interpolate them by hand, as GTX 16 /
+  RTX cards already did, and full-screen passes get the corner data they need for it. These GPUs
+  rebuild their shader cache once more on the first launch.
+- Other GPUs: no change in behaviour and no shader cache rebuild.
+- **Known bug:** world-prompt button symbols can show as an empty circle (still investigated).
+
+Verified on Linux (RX 9070 XT): GTX 10 behaviour reproduced by disabling barycentrics and forcing
+NVIDIA-style interpolation, scenes render correctly with no Vulkan errors; normal path unchanged;
+native tests pass. **Not verified:** a physical GTX 10 card, a physical Windows PC.
+
 ## v0.2.31 — November 17, 2026 (Windows and Linux)
 
 - **GTX 10 (Pascal) cards render correctly** (#26). Without fragment-shader barycentrics the scene
