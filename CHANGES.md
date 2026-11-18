@@ -71,7 +71,7 @@ Three additions, all in the in-game menu (**F1**, or **R3 + L2** on a controller
 
 - **Known bug:** world-prompt button symbols can show as an empty circle (still investigated).
 
-Verified on Linux (RX 9070 XT, Ryzen 9 9900X): the overlay, the presets (Steam Deck preset played
+Verified on Linux (RX 9070 XT, Ryzen 9 9900X) with the **CUSA00785** dump (APP_VER 01.02, VERSION 01.00): the overlay, the presets (Steam Deck preset played
 through a restart at 1280 wide) and the frame-rate choices in play; Shadows Off
 measured at 1280x533; ultrawide on virtual 2560x1080, 3440x1440, 5120x1440 and 2560x1440 screens
 (gamescope); native tests pass. **Not verified:** a physical ultrawide monitor, a physical Windows PC,
