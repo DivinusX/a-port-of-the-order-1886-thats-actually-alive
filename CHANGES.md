@@ -1,4 +1,77 @@
-# Changes Made - November 17, 2026
+# Changes Made - November 18, 2026
+
+## v0.2.33 — November 18, 2026 (Windows and Linux)
+
+Three additions, all in the in-game menu (**F1**, or **R3 + L2** on a controller).
+
+### New performance overlay
+
+![Performance overlay](docs/media/v0.2.33/overlay.png)
+
+- The FPS counter is now a card: the game's frame rate large and coloured against its target
+  (green on target, amber below, red far below), the frame time, and a graph of the last 120 frames
+  where spikes show in red.
+- **GPU and CPU**: model name, load bar, load % and **temperature** (green under 70 °C, amber under
+  85 °C, red above). **VRAM and RAM** with bars.
+- It adapts to the PC: what a system cannot report is left out instead of showing "n/a".
+  - Linux: load and temperature for AMD GPUs (and the right GPU when an iGPU sits next to a discrete
+    card), NVIDIA through the driver's NVML; CPU temperature from the usual sensors (`k10temp`,
+    `coretemp`, `zenpower`). Before, Linux showed only the GPU name.
+  - Windows: GPU/CPU load, RAM and VRAM; GPU temperature on NVIDIA cards. CPU temperature and
+    AMD/Intel GPU temperatures are not available on Windows yet.
+
+### Graphics presets (F1 > Quality)
+
+| | Steam Deck | Low | Medium | High |
+|---|---|---|---|---|
+| Shadows | Off | Off | On | On |
+| Anisotropic filtering | 2x | 2x | 8x | 16x |
+| Frame rate | 30 | 30 | 60 | 60 |
+| Render resolution | 1280 wide | unchanged | unchanged | unchanged |
+
+- Choosing a preset opens a window listing what it changes, with **Apply** and **Cancel**.
+  Shadows, filtering and the frame rate change right away; **restart the game to apply
+  all preset changes** (the render resolution and the launcher's frame-rate profile take effect on
+  the next start, and the preset stores them in the launcher for you).
+- **Shadows On/Off** and **Anisotropic filtering** can also be set one by one (the preset then
+  shows Custom). They are saved in `user/order1886/graphics.ini`.
+  - Shadows Off stops drawing the shadow maps: the scene is lit as if nothing cast a shadow. At
+    1280x533 on the test PC the shadow maps took about 11% of the GPU frame time (0.68 of 6.06 ms),
+    and their draw calls no longer cost the GPU thread anything.
+  - Texture quality is not offered yet: lowering it also blurred the game's button-prompt icons.
+    Textures stay at full quality in every preset.
+
+| High | Steam Deck |
+|---|---|
+| ![High preset](docs/media/v0.2.33/preset-high.png) | ![Steam Deck preset](docs/media/v0.2.33/preset-steam-deck.png) |
+
+- **Frame rate fix:** the menu's **Unlocked** and 90+ FPS choices now really go past 60. A session
+  started at 30 or 60 FPS kept the console's 60 Hz video sync, so the game never ran faster than
+  60; it now switches to the fast sync the launcher's uncapped profiles use. Unlocked is capped at
+  the display's refresh rate, at most 120 (above that the game's movement timing breaks).
+  240 FPS was removed from the menu.
+
+### Ultrawide 21:9 (#30)
+
+- **F1 > Screen > Ultrawide (21:9): Fill screen.** The game's picture is 2.4:1, practically the
+  shape of a 21:9 monitor, but it was drawn inside a 16:9 frame, so a 21:9 screen showed bars on
+  all four sides. Fill screen shows only the picture, scaled to the window width: no bars on 21:9
+  displays. Menus, subtitles and prompts stay inside the picture. Changes right away.
+- Needs **Original** framing in the launcher (with 16:9 framing there are no bars to remove; the
+  option says so). On 16:9 monitors it looks the same as before; on 32:9 the picture fills the
+  height with bars at the sides (it is narrower than the screen).
+
+| Off (21:9 screen) | Fill screen |
+|---|---|
+| ![Ultrawide off](docs/media/v0.2.33/ultrawide-off.png) | ![Ultrawide on](docs/media/v0.2.33/ultrawide-on.png) |
+
+- **Known bug:** world-prompt button symbols can show as an empty circle (still investigated).
+
+Verified on Linux (RX 9070 XT, Ryzen 9 9900X): the overlay, the presets (Steam Deck preset played
+through a restart at 1280 wide) and the frame-rate choices in play; Shadows Off
+measured at 1280x533; ultrawide on virtual 2560x1080, 3440x1440, 5120x1440 and 2560x1440 screens
+(gamescope); native tests pass. **Not verified:** a physical ultrawide monitor, a physical Windows PC,
+NVIDIA and Intel GPUs, a Steam Deck.
 
 ## v0.2.32 — November 17, 2026 (Windows and Linux)
 
