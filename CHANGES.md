@@ -29,6 +29,10 @@ Three additions, all in the in-game menu (**F1**, or **R3 + L2** on a controller
 | Frame rate | 30 | 30 | 60 | 60 |
 | Render resolution | 1280 wide | unchanged | unchanged | unchanged |
 
+| F1 > Quality | Preset confirmation |
+|---|---|
+| ![In-game menu, Quality section](docs/media/v0.2.33/menu-quality.png) | ![Apply / Cancel window](docs/media/v0.2.33/menu-preset-dialog.png) |
+
 - Choosing a preset opens a window listing what it changes, with **Apply** and **Cancel**.
   Shadows, filtering and the frame rate change right away; **restart the game to apply
   all preset changes** (the render resolution and the launcher's frame-rate profile take effect on
