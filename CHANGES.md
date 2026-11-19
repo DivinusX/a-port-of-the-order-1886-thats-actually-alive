@@ -27,8 +27,8 @@ Verified on Linux (RX 9070 XT, Ryzen 9 9900X) with **CUSA00785 – USA, updated 
 plus the 1.02 update; APP_VER 01.02): FSR 3.1 and FSR 4 each replaced the resolve for 3600+ frames
 at 2560x1067 with FSR 1 to a 3840x2160 output and no faults (headless, Mesa 26.2.6); the menu saves
 the render width and sharpening to the launcher's settings and the upscaler to runtime.ini, which
-the launcher imports; the owner ran the new menu in play at 3840x1600 (Mesa 26.2.6, 110 000+ frames,
-no faults); native tests pass with clang. **Not verified:** a render-resolution change carried
+the launcher imports; the owner used the new menu in a play session at 3840x1600 (it saved their FSR 4
+choice; Mesa 26.2.6, 110 000+ frames, no faults); native tests pass with clang. **Not verified:** a render-resolution change carried
 through the launcher by a player, FSR 3.1/FSR 4 at native 4K, DLAA (no RTX GPU here), a physical
 Windows PC, a Steam Deck.
 
