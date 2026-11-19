@@ -1,5 +1,21 @@
 # Changes Made - November 18, 2026
 
+## v0.2.38 — November 19, 2026 (Windows and Linux)
+
+- **Fixed: DLSS disappeared from F1 > Screen > Upscaling** (#33). Once you picked another option,
+  DLSS left the list and could only be chosen again in the launcher. It now stays listed on PCs
+  where it can run, and it is called **DLSS (DLAA) + FSR 1**, as in the launcher.
+- The Upscaling description now says that FSR 1 does not run when the output matches the render
+  size (so DLSS, FSR 3.1 or FSR 4 at a matching output use no FSR 1 at all).
+- **Known issue (Linux, RX 9000 / RDNA 4):** Mesa 26.3.1 crashes this game at 3840 wide on the
+  first frame; use Mesa 26.2.x for native 4K.
+- **Known bug:** world-prompt button symbols can show as an empty circle (still investigated).
+
+Verified on Linux (RX 9070 XT, Ryzen 9 9900X) with **CUSA00785 – USA, updated to 1.02** (base game
+plus the 1.02 update; APP_VER 01.02): FSR 3.1 and FSR 4 still listed in the menu; FSR 4 ran at
+native 3840x1600 for 1800 frames with no faults (Mesa 26.2.6); native tests pass with clang.
+**Not verified:** DLSS itself (it needs Windows with an RTX GPU; none here).
+
 ## v0.2.37 — November 19, 2026 (Windows and Linux)
 
 - **Fixed: the game could crash at startup, while preparing shaders** (#35). Since v0.2.33 the FPS
