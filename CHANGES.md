@@ -1,5 +1,37 @@
 # Changes Made - November 18, 2026
 
+## v0.2.36 — November 19, 2026 (Windows and Linux)
+
+Render resolution, upscaling and sharpening in the in-game menu (**F1 > Graphics > Screen**).
+
+![F1 > Screen: render resolution, upscaling, sharpening](docs/media/v0.2.36/menu-upscaling.png)
+
+| Option | Choices | When it applies |
+|---|---|---|
+| **Render resolution** | 1280, 1600, 1920 (Original), 2560, 3200, 3840 (native 4K), or your custom launcher width | **Next launch.** The size the game itself renders at; the launcher prepares the game again for the new size. A **Restart** chip shows until you restart. |
+| **Upscaling** | Linear, FSR 1, FSR 3.1 AA + FSR 1, FSR 4 + FSR 1, DLAA + FSR 1 | Linear and FSR 1 **right away**; FSR 3.1, FSR 4 and DLAA replace the game's temporal anti-aliasing and start at the **next launch**. Only the ones your GPU supports are listed (DLAA: Windows with an RTX GPU). |
+| **Sharpening** | Off, 25 %, 50 %, 75 %, 100 % (AMD RCAS) | **Right away.** It says when it cannot run (Linear scaling to a larger output). |
+
+- Choices are saved for the launcher too, so the next Play keeps what you picked in the menu.
+- **Upscaling now works at every render resolution.** The launcher used to switch upscaling off
+  (Linear, no FSR 3.1/4/DLAA) whenever the render width was not 1920; FSR 3.1 and FSR 4 now
+  replace the game's resolve at the render size and FSR 1 scales the result to the output.
+
+![Render resolution and sharpening](docs/media/v0.2.36/menu-render-sharpening.png)
+
+- **Known issue (Linux, RX 9000 / RDNA 4):** Mesa 26.3.1 crashes this game at 3840 wide on the
+  first frame; use Mesa 26.2.x for native 4K.
+- **Known bug:** world-prompt button symbols can show as an empty circle (still investigated).
+
+Verified on Linux (RX 9070 XT, Ryzen 9 9900X) with **CUSA00785 – USA, updated to 1.02** (base game
+plus the 1.02 update; APP_VER 01.02): FSR 3.1 and FSR 4 each replaced the resolve for 3600+ frames
+at 2560x1067 with FSR 1 to a 3840x2160 output and no faults (headless, Mesa 26.2.6); the menu saves
+the render width and sharpening to the launcher's settings and the upscaler to runtime.ini, which
+the launcher imports; the owner ran the new menu in play at 3840x1600 (Mesa 26.2.6, 110 000+ frames,
+no faults); native tests pass with clang. **Not verified:** a render-resolution change carried
+through the launcher by a player, FSR 3.1/FSR 4 at native 4K, DLAA (no RTX GPU here), a physical
+Windows PC, a Steam Deck.
+
 ## v0.2.35 — November 19, 2026 (Windows and Linux)
 
 Sharper picture at native resolution (#29) and a 4K-ready HUD.
