@@ -1,5 +1,50 @@
 # Changes Made - November 18, 2026
 
+## v0.2.34 — November 18, 2026 (Windows and Linux)
+
+Mods (#24) and a redesigned in-game menu (**F1**, or **R3 + L2** on a controller).
+
+### Mods: cheats in F1 > Mods (#24)
+
+![F1 > Mods](docs/media/v0.2.34/menu-mods.png)
+
+| Mod | What it does |
+|---|---|
+| **Infinite health** | Damage to you is ignored; enemies take damage as usual. |
+| **Infinite ammunition** | Firing and reloading never use up rounds: magazine and reserve stay put. |
+| **Infinite throwables** | Throwing a grenade (aimed or from the hip) never lowers the count. |
+| **Enemy one-hit kill** | Any real hit on an enemy kills it. You are not affected. |
+
+- **Mods apply automatically.** Switching one changes the game the moment you press it: no
+  restart and no Apply button. Your choice is saved in `user/order1886/graphics.ini` and applied
+  again every time the game starts, until you switch it off.
+- Every mod checks the game's own instructions before it changes them. On a game version they
+  were not verified on, the row shows **Unavailable** and nothing is changed.
+- Infinite health tells you apart from enemies by how the game itself tracks you (enemies carry
+  the AI's health listener, you carry the HUD's), so it works across chapters. Turn it off for
+  scripted sequences that wait for the player to fall.
+
+### Redesigned F1 menu
+
+![F1 > Graphics](docs/media/v0.2.34/menu-graphics.png)
+
+- New look: rounded panel, tab pills (Q / E, or L1 / R1) with a count of active mods, switches
+  for On/Off options, position dots under choices, chips that flag **Experimental** and
+  **Restart** options, and a description card with the current state of the focused option.
+- Same keys, controller buttons and mouse clicks as before; the preset confirmation window got
+  the same style.
+
+- **Known bug:** world-prompt button symbols can show as an empty circle (still investigated).
+
+Verified on Linux (RX 9070 XT, Ryzen 9 9900X) with **CUSA00785 – USA, updated to 1.02** (base game
+plus the 1.02 update; APP_VER 01.02): all four mods accepted by the owner in play (health in two
+different chapters, aimed and hip grenade throws, one-hit kills on 100 and 125-health enemies with
+the player's health untouched); every patch site checked byte for byte against that game image;
+the menu captured at 1920x1080; native tests pass with clang. **The mods are verified on CUSA00785
+1.02 only**: on other editions they show Unavailable unless their instructions are identical.
+**Not verified:** a physical Windows PC, NVIDIA and Intel GPUs, a Steam Deck, the new menu with a
+controller.
+
 ## v0.2.33 — November 18, 2026 (Windows and Linux)
 
 Three additions, all in the in-game menu (**F1**, or **R3 + L2** on a controller).
