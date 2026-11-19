@@ -1,5 +1,22 @@
 # Changes Made - November 18, 2026
 
+## v0.2.37 — November 19, 2026 (Windows and Linux)
+
+- **Fixed: the game could crash at startup, while preparing shaders** (#35). Since v0.2.33 the FPS
+  counter checks the game's frame-rate setting on every frame. It could do that while the game's
+  code was still being loaded and locked, and the read crashed the game
+  (`Fault: read access to 00000008004507be`). The engine now waits until the game is fully loaded
+  before the counter looks at it. It could happen to anyone with the FPS counter on.
+- **Known issue (Linux, RX 9000 / RDNA 4):** Mesa 26.3.1 crashes this game at 3840 wide on the
+  first frame; use Mesa 26.2.x for native 4K.
+- **Known bug:** world-prompt button symbols can show as an empty circle (still investigated).
+
+Verified on Linux (RX 9070 XT, Ryzen 9 9900X) with **CUSA00785 – USA, updated to 1.02** (base game
+plus the 1.02 update; APP_VER 01.02): the crash reproduced by widening the loading window (the old
+order faulted at `0x8004507be` in the overlay, exactly as in the report), and the fixed order loads
+and runs normally with the FPS counter on; native tests pass with clang. **Not verified:** the
+reporter's PC (Windows, RTX 4080 SUPER, CUSA00076).
+
 ## v0.2.36 — November 19, 2026 (Windows and Linux)
 
 Render resolution, upscaling and sharpening in the in-game menu (**F1 > Graphics > Screen**).
