@@ -1,5 +1,49 @@
 # Changes Made - November 18, 2026
 
+## v0.2.35 — November 19, 2026 (Windows and Linux)
+
+Sharper picture at native resolution (#29) and a 4K-ready HUD.
+
+### Temporal AA On/Off (F1 > Quality) (#29)
+
+![Temporal AA On and Off](docs/media/v0.2.35/temporal-aa-compare.png)
+
+*Same spot, both crops brightened the same way so the detail is visible. The character moved a
+little between the two captures.*
+
+- The game's anti-aliasing blends the previous frame into its multisample resolve. At high
+  render resolutions that blend is what makes the picture look soft, even at native 4K with
+  Linear scaling, and it smears rain, hair and moving edges.
+- **F1 > Quality > Temporal AA: Off** resolves the same multisample samples with the game's own
+  weights and no blend: native-resolution rendering is sharp; thin edges shimmer a little when
+  you move. **Changes right away**, saved in `user/order1886/graphics.ini`. On is the default
+  (the game's own look); presets do not change it.
+- With an upscaler selected in the launcher (FSR, DLSS), the upscaler replaces the game's
+  temporal resolve, so this option has no effect there.
+
+### Native 4K HUD and text
+
+- **HUD and menus no longer break above 1920 wide.** The game's UI kept its five render
+  targets in a fixed 32 MB pool sized for 1920x800; at higher render resolutions they did not
+  fit, the HUD degraded and native-4K launches could stop at the first frame. The pool now grows
+  with the render resolution. The game is prepared again once on the first launch.
+- **Missing letters at 4K fixed** (font atlas glyphs disappeared at render widths above 1920).
+- Maximum render width is now 4640 (4000 on 16:9 framing) because the larger UI pool shares the
+  same GPU memory.
+
+- **Known issue (Linux, RX 9000 / RDNA 4):** Mesa **26.3.1** (RADV) crashes this game at 3840 wide
+  on the first frame (`Device lost`); Mesa 26.2.x with the same build is stable. This is a driver
+  regression, not the port: use Mesa 26.2.x for native 4K until it is fixed.
+- **Known bug:** world-prompt button symbols can show as an empty circle (still investigated).
+
+Verified on Linux (RX 9070 XT, Ryzen 9 9900X) with **CUSA00785 – USA, updated to 1.02** (base game
+plus the 1.02 update; APP_VER 01.02): Temporal AA Off confirmed by the owner in play at
+2560x1067 and toggled live; 3600+ consecutive frames resolved without the blend at 3840x1600
+(headless, Mesa 26.2.6) with zero faults; the 4K glyph fix confirmed by the owner in play at
+3840x1600; native tests pass with clang. **The 4K HUD patches are checked against CUSA00785 1.02**;
+other editions keep the old UI pool if their instructions differ. **Not verified:** the larger
+UI pool at native 4K in play, a physical Windows PC, NVIDIA and Intel GPUs, a Steam Deck.
+
 ## v0.2.34 — November 18, 2026 (Windows and Linux)
 
 Mods (#24) and a redesigned in-game menu (**F1**, or **R3 + L2** on a controller).
