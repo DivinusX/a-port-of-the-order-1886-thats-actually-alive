@@ -1,5 +1,35 @@
 # Changes Made - November 18, 2026
 
+## v0.2.39 — November 20, 2026 (Windows and Linux)
+
+### DLC support: The Knight's Arsenal and The Knight's Endurance (#39)
+
+![La Armería with the DLC uniforms](docs/media/v0.2.39/dlc-armory.png)
+
+- **Launcher > Game > DLC folder:** choose the folder that holds your extracted DLC. Any of
+  these works: the folder above the title ID, the title-ID folder (for example `CUSA00035`), or
+  a single DLC folder (for example `TO1886GAMEDLC100`). Each DLC folder contains
+  `sce_sys/param.sfo`. Leave it empty to play without DLC. Applies on the next launch.
+- In game, the DLC appears in **Pause > La Armería / The Armory**:
+  - **The Knight's Arsenal:** Redcoat uniform with the TS-23 revision prototype, and Black Watch
+    uniform with the M86-P Termite Rifle.
+  - **The Knight's Endurance:** Khaki desert uniform with improved Blackwater and Blacksight
+    regeneration.
+- DLC from any edition works with any edition of the game. The DLC files are only read, never
+  changed. `logs/last-run.json` lists the DLC that was found.
+- **Known issue:** an intermittent GPU stop (`Device lost`, exit 23) can happen right after a save
+  finishes loading; it is not caused by the DLC and is being investigated. Relaunch if it happens.
+- **Known issue (Linux, RX 9000 / RDNA 4):** Mesa 26.3.1 crashes this game at 3840 wide on the
+  first frame.
+- **Known bug:** world-prompt button symbols can show as an empty circle (still investigated).
+
+Verified on Linux (RX 9070 XT, Ryzen 9 9900X) with **CUSA00785 – USA, updated to 1.02** (base game
+plus the 1.02 update; APP_VER 01.02) and the CUSA00035 DLC folders: both DLC listed and mounted, the
+game reads their files, and La Armería lists all three DLC uniforms (it does not open without the
+DLC); the launcher passes the folder through to the game; native tests pass with clang, including a
+new add-on content test. **Not verified:** a physical Windows PC, playing a full session in a DLC
+uniform.
+
 ## v0.2.38 — November 19, 2026 (Windows and Linux)
 
 - **Fixed: DLSS disappeared from F1 > Screen > Upscaling** (#33). Once you picked another option,
