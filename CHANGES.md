@@ -1,5 +1,41 @@
 # Changes Made - November 18, 2026
 
+## v0.2.41 — November 20, 2026 (Windows and Linux)
+
+### Changed: a stuck session cannot write a multi-gigabyte log any more (#40, partial)
+
+- Some shader families of the game cannot have their descriptor tables flattened, so they
+  compile with a fallback and are **recompiled fresh every session** (this is deliberate: the
+  fallback layout must not be replayed from the cache). In one reported session the same
+  failure lines were written 33 million times — 1.9 GB of log in under an hour — which buried
+  everything a diagnosis needs.
+- The port now gives each shader a **budget of 64 failure lines per session**. When a shader
+  runs out, one line says so ("detail budget reached; later failures are suppressed while the
+  fallback persists") and it stays quiet after that. The `First instruction is not
+  s_mov_b32...` warning now **names its shader** and repeats at most three times per shader.
+- **This release does not yet fix the chapter-load hang itself.** In that report the endless
+  log came from **the game's own error reporter** looping while it waits for the chapter; the
+  hang is being tracked on #40 with the reporter's logs. Gameplay is otherwise unchanged.
+- **Known issue (the reported hang):** a chapter transition can stop loading forever with the
+  process still alive; relaunch, and if it happens, keep the log. #40 asks affected players for
+  a few greps that tell us which of the two remaining causes it is.
+- **Known issue:** pause menu — *Restart from checkpoint* is shown greyed out and the highlight
+  skips it, but the game still counts it; first press on *Quit to title* restarts from the
+  checkpoint. Being investigated.
+- **Known issue:** an intermittent GPU stop (`Device lost`, exit 23) can happen right after a
+  save finishes loading; relaunch if it happens. Still investigated.
+- **Known issue (Linux, RX 9000 / RDNA 4):** Mesa 26.3.1 crashes this game at 3840 wide on the
+  first frame.
+- **Known bug:** world-prompt button symbols can show as an empty circle (still investigated).
+
+Verified on Linux (RX 9070 XT, Ryzen 9 9900X) with **CUSA00785 – USA, updated to 1.02**
+(APP_VER 01.02): a full boot + menu session on the new build capped each failing shader at its
+single-compile detail count, the new warning format appears, and no behavior changed; native
+tests pass on Windows and Linux CI, including a new test of the log budget (its state machine,
+per-shader independence, and 8-thread shared accounting). **Not verified:** the reporter's
+machine (Windows, RTX 5070 Ti — the hang itself is not fixed by this release), a physical
+Windows PC.
+
 ## v0.2.40 — November 20, 2026 (Windows and Linux)
 
 ### Fixed: the prologue's lift cutscene above 30 FPS (#38, #33)
