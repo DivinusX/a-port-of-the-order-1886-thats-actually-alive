@@ -1,5 +1,42 @@
 # Changes Made - November 18, 2026
 
+## v0.2.42 — November 20, 2026 (Windows and Linux)
+
+### Fixed: screenshots now land in the game's own folder (#42)
+
+- F12 captures used to save deep inside the user tree (`user/order1886/gpu/.../screenshots`)
+  while the notice made you look in `user/screenshots` — players found an "empty" folder and
+  reported lost screenshots.
+- Captures now save to a **`Screenshots` folder in the game's own folder**, next to the
+  launcher, with the file name in the notice. Diagnostic and test layouts keep the old path.
+
+### Changed: the cinematic band fills ANY window shape, not just 21:9 (#45)
+
+- F1 > Screen: the toggle is now **"Cinematic picture fills the window"**. The mechanism
+  always adapted to any window shape; only the label claimed 21:9. It crops the game's
+  2.4:1 picture to fit: no leftover bars at 21:9 or 2.4:1, thin bars at 20:9 (Sunshine and
+  Moonlight stream resolutions), side bars at wider shapes. Changes right away, remembered.
+- Verified on virtual displays: at 20:9 (2560x1152) the game renders full-bleed natively —
+  title, lift cutscene and the drowning struggle all fill the frame with UI anchored.
+- **Known limit (issue #32):** very wide shapes like 32:9 go black — the game engine itself
+  stops rendering past about 2.4:1. That needs a different fix and is tracked separately.
+- **Known issue:** the chapter-load hang (#40) is still open; v0.2.41's log cap ships here
+  too, so a stuck session stays readable.
+- **Known issue:** button-mash QTEs above 30 FPS are still too fast (#43): we tested the
+  community patch and it made presses worse; 30 FPS remains the reliable rate there.
+- **Known issue:** pause menu — *Restart from checkpoint* is shown greyed out and the
+  highlight skips it, but the game still counts it. Being investigated.
+- **Known issue:** an intermittent GPU stop (`Device lost`, exit 23) can happen right after a
+  save finishes loading; relaunch if it happens.
+- **Known issue (Linux, RX 9000 / RDNA 4):** Mesa 26.3.1 crashes this game at 3840 wide; use
+  26.2.x for native 4K.
+- **Known bug:** world-prompt button symbols can show as an empty circle (still investigated).
+
+Verified on Linux (RX 9070 XT, Ryzen 9 9900X) with **CUSA00785 – USA, updated to 1.02**
+(APP_VER 01.02): F12 on a standard-layout install wrote the PNG to `<game>/Screenshots`
+(headless proof); the F1 row renders and persists at 20:9; native tests pass on Windows and
+Linux CI. **Not verified:** a physical Windows PC; 32:9 (see the known limit above).
+
 ## v0.2.41 — November 20, 2026 (Windows and Linux)
 
 ### Changed: a stuck session cannot write a multi-gigabyte log any more (#40, partial)
