@@ -1,5 +1,34 @@
 # Changes Made - November 18, 2026
 
+## v0.2.40 — November 20, 2026 (Windows and Linux)
+
+### Fixed: the prologue's lift cutscene above 30 FPS (#38, #33)
+
+![Before and after: the lift cutscene at 120 FPS](docs/media/v0.2.40/lift-before-after.png)
+
+- Above the native 30 FPS, the lift in the prologue carried the camera away from the characters:
+  shots of the empty cage, the camera inside Galahad's head, models and the revolver missing, and
+  voices that faded out. Only this scene did it.
+- The port now holds **30 FPS during that cutscene only**, from its first shot to the checkpoint
+  the game saves when the next scene starts, then goes back to your frame rate by itself. Your
+  setting is not changed; **F1 > Frame rate** says when the scene is holding it.
+- **Known bug: pause menu.** *Restart from checkpoint* is shown greyed out and the highlight skips
+  it, but the game still counts it: the first time the highlight is on *Quit to title*, choosing it
+  restarts from the checkpoint. Press down once more for the real *Quit to title*. It also happens
+  at 30 FPS and without DLC; being investigated.
+- **Known issue:** an intermittent GPU stop (`Device lost`, exit 23) can happen right after a save
+  finishes loading; relaunch if it happens. Still investigated.
+- **Known issue (Linux, RX 9000 / RDNA 4):** Mesa 26.3.1 crashes this game at 3840 wide on the
+  first frame.
+- **Known bug:** world-prompt button symbols can show as an empty circle (still investigated).
+
+Verified on Linux (RX 9070 XT, Ryzen 9 9900X) with **CUSA00785 – USA, updated to 1.02** (base game
+plus the 1.02 update; APP_VER 01.02): the bug reproduced at 60 and 120 FPS and not at 30; with the
+fix, the owner played the lift at 60 and at 120 FPS (16:9, render 3840): correct shots, 30 FPS
+during the scene, the chosen rate back after it. Native tests pass, including a new cutscene test.
+**Not verified:** 90 FPS, a physical Windows PC, the missing-revolver shot from #38 (it never
+reproduced here).
+
 ## v0.2.39 — November 20, 2026 (Windows and Linux)
 
 ### DLC support: The Knight's Arsenal and The Knight's Endurance (#39)
