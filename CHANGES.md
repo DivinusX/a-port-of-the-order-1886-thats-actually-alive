@@ -1,5 +1,34 @@
 # Changes Made - November 18, 2026
 
+## v0.2.43 — November 20, 2026 (Windows and Linux)
+
+### Fixed: DLSS was selectable but could never work — the files were never shipped (#46)
+
+- The port's DLSS path is real: it replaces the game's temporal resolve with DLSS Super
+  Resolution using the game's own motion vectors and depth, through NVIDIA's official SDK
+  runtime. But the Windows package never contained the DLSS bridge or `nvngx_dlss.dll`, so
+  every DLSS choice logged `order1886_dlss.dll is not next to the runtime` and silently
+  presented FSR 1 instead. Nobody could make it work; the files simply were not there.
+- Windows packages now ship both DLLs plus NVIDIA's license notice, and the build pipeline
+  **refuses to produce a package that is missing either one**. RTX users who pick
+  **DLSS (DLAA) + FSR 1** (launcher) or **DLSS** in F1 > Screen > Upscaling now get the
+  boot log line `Upscaler provider dlss: ... available` and DLSS in the frame.
+- The bridge is built against the hash-pinned official NVIDIA DLSS SDK 310.9.16; its CPU
+  contract tests run in CI. **Not verified by us:** the NGX path on RTX hardware — we
+  develop on AMD. The first real check is #46's reporter; the provider reports failures
+  loudly by design, never silently.
+- Linux: DLSS stays unavailable (NVIDIA-only path); nothing changes there.
+- **Known issues** carried from v0.2.42: the chapter-load hang (#40) is still open with the
+  log cap shipped; button-mash QTEs above 30 FPS remain too fast (#43, community patch
+  regressed in play); 32:9 and wider goes black (#32, engine limit ~2.4:1); pause-menu
+  *Restart from checkpoint* mis-highlight; intermittent `Device lost` (exit 23) after save
+  loads; Mesa 26.3.1 crashes at 3840 wide on RX 9000; world-prompt symbols can show an
+  empty circle.
+
+Verified on Windows CI (build + package content assertions + bridge CPU contracts at
+44845378164); native tests pass on Windows and Linux. **Not verified:** DLSS on a physical
+RTX machine (awaiting #46 confirmation), a physical Windows PC in general.
+
 ## v0.2.42 — November 20, 2026 (Windows and Linux)
 
 ### Fixed: screenshots now land in the game's own folder (#42)
