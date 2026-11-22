@@ -1,5 +1,16 @@
 # Changes Made - November 18, 2026
 
+## v0.2.45 — November 22, 2026 (Windows and Linux)
+
+- **Fixed button-mash QTEs losing progress above 30 FPS** ([#43](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/43)).
+  On matching game builds, each tap is worth at least as much as it is at 30 FPS.
+  No frame-rate cap, turbo, or cheat is needed. The fix does not change hold or stick prompts.
+- Maintainer playtest: the prologue guard QTE passed at 60 FPS on Linux (CUSA00785 01.02).
+  Windows gameplay was not separately tested.
+- Thanks to Wontell for reporting it and linking the [upstream investigation](https://github.com/saxons-kicks/theorder1886-port/issues/101).
+
+Both packages use [build source `eb047a6`](https://github.com/DivinusX/The-Order-1886_pc/commit/eb047a64bbda135b7d246fa57fdb4636f40653b5).
+
 ## v0.2.44-go-preview.1 — Windows and Linux preview
 
 - Fixed a shader constant read that could use the wrong slot when its address could not
