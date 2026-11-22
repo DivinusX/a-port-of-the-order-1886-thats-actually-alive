@@ -76,6 +76,7 @@ Every release has a full write-up in [CHANGES.md](CHANGES.md), with evidence in
 
 | Version | Date | Highlights |
 | --- | --- | --- |
+| **v0.2.45** | Nov 22, 2026 | 🪟 **Windows** + 🐧 **Linux**. **Button-mash QTE presses no longer count for less above 30 FPS** (#43). The prologue guard sequence passed at 60 FPS on Linux ([release notes](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/releases/tag/v0.2.45)). |
 | v0.2.44-go-preview.1 | Preview | Windows + Linux. Corrected an unflattened shader constant read. [Issue #27](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/27) remains open for Windows/NVIDIA retesting. |
 | **v0.2.43** | Nov 20, 2026 | 🪟 **Windows** + 🐧 **Linux**. **DLSS fixed: the bridge and NVIDIA's runtime were never shipped, so DLSS could never start** (#46) — Windows packages now include both with a pipeline that refuses to ship without them ([release notes](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/releases/tag/v0.2.43)) |
 | v0.2.42 | Nov 20, 2026 | 🪟 **Windows** + 🐧 **Linux**. **Screenshots now save to a `Screenshots` folder in the game's own folder** (#42), and the F1 menu's band fill adapts to **any** window shape — 20:9, 21:9, streaming resolutions (#45) ([release notes](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/releases/tag/v0.2.42)) |
