@@ -1,5 +1,21 @@
 # Changes Made - November 18, 2026
 
+## v0.2.44-go-preview.1 — Windows and Linux preview
+
+- Fixed a shader constant read that could use the wrong slot when its address could not
+  be resolved ahead of time. The runtime rebuilds affected shader caches as needed.
+- No face dots were observed in local play on CUSA00785 (Linux, Radeon RX 9070 XT).
+  The unpatched comparison did not reproduce the reported small dots either.
+  [Issue #27](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/27)
+  stays open for Windows/NVIDIA retesting. The separate `ReadLane` diagnostic is unchanged.
+- Based on v0.2.43, with DLSS still bundled on Windows and FSR 4 assets included on both platforms.
+
+Both packages were built from [runtime source `f5a4c54`](https://github.com/DivinusX/The-Order-1886_pc/commit/f5a4c54e32f2b4e764eb925ac680b5dd51e81fd6).
+The [Windows build](https://github.com/DivinusX/The-Order-1886_pc/actions/runs/44990872298),
+[Linux build](https://github.com/DivinusX/The-Order-1886_pc/actions/runs/44990872197) and
+[preview checks](https://github.com/DivinusX/The-Order-1886_pc/actions/runs/44990858581)
+passed. The finalized Linux archive also passed its portable smoke test.
+
 ## v0.2.43 — November 20, 2026 (Windows and Linux)
 
 ### Fixed: DLSS was selectable but could never work — the files were never shipped (#46)
