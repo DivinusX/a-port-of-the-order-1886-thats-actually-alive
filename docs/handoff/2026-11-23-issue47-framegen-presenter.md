@@ -1,7 +1,7 @@
 # Issue #47 - frame generation presented live (2026-11-23, session 2)
 
-Engine repo: `The-Order-1886_pc`, branch `feature/issue-47-framegen`, 11 commits
-(`e484868..83c4879`), **not pushed** - this environment has no GitHub
+Engine repo: `The-Order-1886_pc`, branch `feature/issue-47-framegen`, 17 commits
+(`e484868..ccf0acc`), **not pushed** - this environment has no GitHub
 credentials (`gh` logged out). Push from an authenticated shell:
 
 ```
@@ -48,6 +48,22 @@ cd ~/work-engine/The-Order-1886_pc && git push -u origin feature/issue-47-frameg
 
 ## Verified after the first report (same rig)
 
+- **Performance envelope (owner: "performance is horrendous")**: 60 FPS + FG
+  on the RTX 5050 laptop measured real 57.7 -> 41.4/s in gameplay - the
+  interpolator's cost sinks the frames it doubles. 30 FPS + FG holds
+  29.6 real/s + ~26 generated/s and is the smooth configuration on this GPU.
+  90 FPS mode OOMs by itself (vblank 480 Hz model, no pacing) - pre-existing,
+  unrelated to FG; the 1.9-slot gate refuses FG there.
+  Response: **headroom governor** (EMA of the game's frame interval vs
+  fps_limit): generation pauses above 1.10x target, resumes under 0.95x,
+  logs both transitions. Overloaded modes degrade to plain gameplay.
+- **F1 menu default**: flipped to ON (owner gameplay validation was the
+  qualification the gate waited for); ORDER1886_SETTINGS_MENU=0 opts out.
+- **60 FPS unlock path** (used here, replicates the launcher worker):
+  `order1886_frame_rate.validate_source(eboot, 60, sfo_meta)` ->
+  `apply_prepared(prepared/boot.bin)` (PS4BOOT2 only - not boot-linked.bin)
+  -> `link_modules.link(game, prepared)` regenerates boot-linked.bin.
+  Owner install left at native 30 + fps_limit=60 (no 60 recipe applied).
 - **Input injection**: `wtype` (virtual keyboard) does NOT reach the game;
   **python `evdev.UInput`** (kernel uinput) does - F1, arrows and Enter all
   landed. Use it for any menu-driven test.
