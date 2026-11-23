@@ -24,11 +24,16 @@ def prepared(path, table_bytes):
 
 
 class GameLanguageTests(unittest.TestCase):
-    def test_recipe_is_always_selected_and_never_listed(self):
+    def test_recipe_is_applied_by_its_own_profile_and_never_listed(self):
+        # Since the preparation-profile refactor (shipped in v0.2.22+ packages), the language
+        # recipe is applied through language_profile()/apply_language(), never through the
+        # player-visible catalogue select()/validate_selection() paths.
         for title in editions.TITLE_IDS:
-            chosen = patches.select([], {'TITLE_ID': title})
-            self.assertEqual([r['id'] for r in chosen], ['system-language-unfiltered'])
-        self.assertEqual(patches.select([], {'TITLE_ID': 'CUSA99999'}), ())
+            self.assertEqual(patches.select([], {'TITLE_ID': title}), ())
+            profile = patches.language_profile({'TITLE_ID': title})
+            self.assertTrue(profile['eligible'])
+            self.assertEqual(profile['id'], 'system-language-unfiltered')
+        self.assertFalse(patches.language_profile({'TITLE_ID': 'CUSA99999'})['eligible'])
         self.assertNotIn(patches.LANGUAGE, patches.RECIPES)
         with self.assertRaises(ValueError):
             patches.validate_selection(['system-language-unfiltered'])
