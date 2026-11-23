@@ -1,7 +1,7 @@
 # Issue #47 - frame generation presented live (2026-11-23, session 2)
 
-Engine repo: `The-Order-1886_pc`, branch `feature/issue-47-framegen`, 10 commits
-(`e484868..bf59fe5`), **not pushed** - this environment has no GitHub
+Engine repo: `The-Order-1886_pc`, branch `feature/issue-47-framegen`, 11 commits
+(`e484868..83c4879`), **not pushed** - this environment has no GitHub
 credentials (`gh` logged out). Push from an authenticated shell:
 
 ```
