@@ -120,6 +120,14 @@ try {
         throw 'order1886_fsr4.dll is missing next to the runtime; build it with build.sh first.'
     }
     Copy-Item -LiteralPath $provider4 -Destination (Join-Path $runtimeBin 'order1886_fsr4.dll')
+    # The frame generation provider (#47): FSR 3.1.6 interpolation, loaded by the
+    # presenter from the runtime's own folder like the upscaler providers. Required -
+    # a package without it ships no frame generation.
+    $providerfg = Join-Path (Split-Path -Parent $runtimePath) 'order1886_fg.dll'
+    if (-not (Test-Path -LiteralPath $providerfg)) {
+        throw 'order1886_fg.dll is missing next to the runtime; build it with build.sh first.'
+    }
+    Copy-Item -LiteralPath $providerfg -Destination (Join-Path $runtimeBin 'order1886_fg.dll')
     if ($fsr4AssetsPath) {
         $bundleSrc = $fsr4AssetsPath
         foreach ($required in @('LICENSE-FSR4-v07.txt', 'rcas.spv', 'spd_auto_exposure.spv')) {
