@@ -1,7 +1,7 @@
 # Issue #47 - frame generation presented live (2026-11-23, session 2)
 
-Engine repo: `The-Order-1886_pc`, branch `feature/issue-47-framegen`, 8 commits
-(`e484868..d769dc9`), **not pushed** - this environment has no GitHub
+Engine repo: `The-Order-1886_pc`, branch `feature/issue-47-framegen`, 10 commits
+(`e484868..bf59fe5`), **not pushed** - this environment has no GitHub
 credentials (`gh` logged out). Push from an authenticated shell:
 
 ```
@@ -46,22 +46,39 @@ cd ~/work-engine/The-Order-1886_pc && git push -u origin feature/issue-47-frameg
    per-frame stage dumps (4 blocking readbacks/frame) crawled the session to
    40 records and lost the device during a submit.
 
-## Owner-attended checklist (what this rig cannot do)
+## Verified after the first report (same rig)
 
-- [ ] **Gamepad gameplay**: wtype keyboard never reaches the game (it takes
-      pad only; `--user` dir has no saves). Needs a real CONTINUE run to see
-      motion-interpolated gameplay (30->60), QTEs, and the watermark.
-- [ ] **F1 menu row**: compiles and is in the menu build; window focus under
-      wtype prevented the screenshot. Open F1, confirm the Frame generation
-      row (Off/On + Restart badge) and that toggling persists to
-      runtime.ini `frame_generation=`.
-- [ ] **Latency/feel**: generated presents add one interpolated frame per
-      game frame; check input feel in QTE windows (issue #43 territory).
-- [ ] **exit-23 regression**: paced exit path with FG on (two-present loop
-      interacts with the flip pacing).
-- [ ] **60->120**: 60 fps mode + 120 Hz display; the pacing gate requires
-      gap > 1.4x vblank, so a 60 fps game on 120 Hz qualifies; verify present
-      counters double.
+- **Input injection**: `wtype` (virtual keyboard) does NOT reach the game;
+  **python `evdev.UInput`** (kernel uinput) does - F1, arrows and Enter all
+  landed. Use it for any menu-driven test.
+- **F1 menu row**: screenshot-verified in the Graphics tab ("Frame generation:
+  On", between Upscaling and Sharpening). Round trip: menu Off->On writes
+  `frame_generation=1` into runtime.ini (line 19) and the next launch reads
+  it. Note: `StoreLauncherNumber` only rewrites EXISTING keys in
+  settings.json - a fresh launcher settings.json has no `frame_generation`
+  key, so settings.json persistence silently no-ops until the launcher ships
+  the key in its schema. runtime.ini (Save() on menu close) is the working
+  channel.
+- **30->60 measured** (periodic telemetry, every 600 generated presents):
+  `real 29.6/s + generated 26.0/s = 55.6/s` on 143.88 Hz, 30 fps native -
+  93% of the doubled target; the pacing gate drops generated frames when no
+  vblank slot is free.
+- **exit-23 / STOP audit**: zero `STOP`/`Assertion Failed` lines across all
+  15+ current-build FG sessions (older ones failed with
+  ErrorOutOfDeviceMemory from the since-removed per-frame stage dumps).
+
+## Owner-attended checklist (remaining)
+
+- [ ] **Gamepad gameplay motion quality**: the interpolator pass-throughs
+      when motion data is absent (title/cinematic - SDK output byte-identical
+      to feed). Real 3D gameplay (CONTINUE save or NEW GAME) must confirm
+      motion-interpolated frames, QTE behavior (#43 territory), and input
+      feel/latency.
+- [ ] **60->120**: needs the launcher's 60 fps patch (not applied by the
+      runtime alone) + a 120 Hz mode; telemetry will show real ~60/s +
+      generated ~52/s.
+- [ ] **settings.json schema**: launcher should own a `frame_generation`
+      key so the in-game row's StoreLauncherNumber path works too.
 
 ## Diagnostics left in the tree
 
