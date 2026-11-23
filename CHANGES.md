@@ -1,5 +1,20 @@
 # Changes Made - November 18, 2026
 
+## v0.2.49 — November 23, 2026 (Windows and Linux)
+
+- **The launcher's in-app updater is now Windows-only, honestly** ([follow-up to #60](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/60)).
+  The auto-update payload the launcher downloads (`order1886-go-windows.zip`) is the Windows file
+  layout. On Linux the panel still offered Check → Download → Install, and *Install would have
+  written Windows files over a Linux installation* — stale Linux binaries, stray `.exe` files and
+  a package manifest the launcher's own file check then flags as corrupt. On Linux the updater
+  panel is now hidden and every updater call refuses with a clear message; Linux updates stay what
+  they always were: extract the versioned `tar.gz` over the installation, keeping `user/`.
+- Windows behaviour is unchanged: the in-app updater works exactly as fixed in v0.2.48.
+
+Verified: guard tests pass on the Linux build (`go test ./...`, plus a node check of the shipped
+bundle: the panel disappears only on an explicit unsupported flag); the wails binary embeds the
+patched bundle. No game-side change since v0.2.48.
+
 ## v0.2.48 — November 23, 2026 (Windows and Linux)
 
 - **The launcher's updater panel works again** ([#60](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/60)).
