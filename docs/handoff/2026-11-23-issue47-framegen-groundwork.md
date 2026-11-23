@@ -183,3 +183,29 @@ design until an owner-attended session validates it).
   (reticle); 0.0-1.0 x 0.70-0.86 (subtitle/QTE band bottom of the 2.4 interface band);
   0.62-1.0 x 0.78-1.0 (weapon HUD); 0.0-0.30 x 0.10-0.26 (objective); 0.36-0.64 x
   0.06-0.20 (top prompts). All five + crosshair confirmed against issue screenshots later.
+
+
+## Session 3b — resolution-model finding (raised the presenter risk)
+
+Working the staging through vk_presenter/vk_order_resolve surfaced a non-obvious constraint
+that changes the presenter plan's size. Note 2 above (record FG in PrepareFrame, blit to a
+second swap image) is WRONG as written:
+
+- FG's SDK `valid_image` requires the COLOR input to be >= display dims, so FG can only run
+  at the scene's native (render) resolution where colour/motion/depth actually live
+  (targets[0..2], e.g. 1920x1080). Its output is therefore a **render-resolution
+  interpolated HDR scene**, not a display-res composited frame.
+- The real frame->image is display-res AND has the HUD baked in (game composites HUD into
+  the flip image). The generated scene has no HUD and is pre-upscale, pre-post-process.
+- So a generated frame must be re-driven through the SAME fsr1 (render->display upscale) +
+  pp (post) + HUD-region re-blit pipeline the real frame went through, THEN presented. That
+  means duplicating the PrepareFrame composite sequence for a second image — not a single
+  extra swapchain blit. More state, more layout-transition risk, more present-thread work
+  per flip.
+
+Revised presenter plan: allocate a second full composite chain (fg_hdr render-res HDR -> fg_
+upscaled display-res -> fg_display post+HUD) and factor the existing PrepareFrame fsr1/pp
+body into a helper callable for both the real and generated scenes. Watermark stays one
+signal per Present (the real frame->present_done fence); the generated present must NOT add
+to completed_presentations. This is a real, multi-file, live-validation change — hence not
+blind-pushed. Provider + host + resolve gate are committed and are the testable subset.
