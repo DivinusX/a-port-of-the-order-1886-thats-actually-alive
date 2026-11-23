@@ -84,18 +84,43 @@ generation locally — reconcile branch/API naming with that WIP before pushing 
    go-build.ps1 ship `order1886_fg.so/.dll`; CHANGES/README; release as experimental
    preview behind the F1 row (default Off — artifact/latency risk, especially menus).
 
-## Open decisions (owner)
+## Open decisions (owner) — RESOLVED this session
 
-- HUD: (a) accept AFMF-style smearing by FG-ing the composited display image, or
-  (b) FG the scene (targets[0]) and re-blit the guest HUD's bounding rows from the real
-  frame over the generated one (cheap, imperfect), or (c) full HUD-mask work (needs the
-  guest's HUD draw pass recognised — biggest win, most RE).
-- 30→60 with vsync 60 Hz means one present per vblank slot; at 60→120 the guest queue
-  and ORDER1886_FRAMES_AHEAD budget need re-tuning.
-- Latency stance: FG adds ~1 frame; the game is twitch-light (QTEs are timing-window,
-  not aim) but state it in release notes.
+- HUD strategy: **chosen (b)** — FG the scene, re-blit guest HUD bounding rows from the
+  real frame over the generated one (cheap; imperfect only where UI moves within a rect).
+- Gating: **env + runtime.ini now; the F1 menu row lands WITH the presenter wiring**
+  (no dead toggles shipped).
+- Camera: **ship the 0.1/1000/0.7 sentinels first** (production DLSS already runs with
+  them; they shape disocclusion fill, not correctness); targeted capture-probe follow-up
+  for real near/far/FOV later.
+- 30→60 needs vsync+FIFO; 60→120 re-tunes ORDER1886_FRAMES_AHEAD — measure live.
+
+## FINAL GROUNDBRANCH STATE (18:41Z, CI-verified)
+
+`feature/issue-47-framegen` @ `40f2933` on **The-Order-1886_pc (PUSHED — 6 commits:
+provider scaffold `44fd60f`, CB capture `4990adb`, sanitizer allowlist `532b7fa`,
+frame_generation setting `9d5918f`, FrameGeneration host module `168d47e`, packaging
+`40f2933`)**. CI run **45237797732 SUCCESS** (real toolchain): runtime + fsr3/fsr4/fg
+providers built, portable smoke green, package ships `bin/order1886_fg.so` hash-listed
+in package-manifest.json. FG SDK hardware proof: 4/4 vendored framegen GPU smokes pass
+on this RTX 5050 with the validation layer, 0 warnings, incl. the engine's exact
+RGBA16F/RG16F/R32F format combo. Live-game proof of the capture path: 240 s clean
+session, 32 759 CB records, 0 faults. No release branch was touched.
+
+Remaining integration (do paired with the owner driving the game as the visual validator,
+NOT blind): (1) `ReplaceTemporalResolve` records FG via the host module into a
+display-size `fg_frame`, reusing `frame->ready_semaphore` for cross-scheduler ordering;
+(2) `Presenter::Present` does the generated→real two-present pair via
+ffx-vulkan::framegeneration-presenter-policy — NOTE the `completed_presentations`
+watermark is `present_done`-fence-driven (one signal per `Present()` call), so a second
+`swapchain.Present()` inside the same call does not double-count it (verified by reading
+PrepareLastFrame/GetRenderFrame); (3) `Wanted()` includes frame_generation so the prep
+pass decodes motion with no upscaler selected; (4) HUD-region copy rects; (5) F1 row +
+order1886_options/common/runtime.ini + settings.json; (6) live measure 30→60 and 60→120,
+watch exit-23/pacing.
 
 ## Deliberately NOT done
 
-No push of anything #47-related; no release-branch touches; no fake "verified in game"
-claims (this box cannot even build the runtime: no cmake/boost/robin-map/zydis/sudo).
+No presenter hot-path surgery pushed unvalidated; no release-branch touches; no
+"verified in game" claims for FG output quality (the presenter loop is unwired by
+design until an owner-attended session validates it).
