@@ -1,5 +1,31 @@
 # Changes Made - November 18, 2026
 
+## v0.2.50 — November 23, 2026 (Windows and Linux)
+
+- **Frame generation is live** ([#47](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/47)).
+  The game's 30 FPS presentation is now doubled with **AMD FSR 3.1.6 frame generation**
+  (FidelityFX SDK, Vulkan compute - vendor-neutral: it runs on AMD, NVIDIA and Intel GPUs
+  alike, unlike DLSS frame generation which needs RTX hardware). The interpolated frame is
+  built from the game's own scene colour, depth and motion vectors and presented in the vblank
+  slot after each real frame: **smooth ~60 on a 60 Hz display, at half the GPU cost of a 60 FPS
+  mode**. Motionless regions (UI text, prompts) fall back to the real frame pixel-exactly, so
+  overlays never ghost.
+- **Turn it on in the F1 menu** - the *Frame generation* row (Off/On) is in the Graphics tab,
+  applied at the next launch; the choice persists to `runtime.ini`. The F1 menu itself is now
+  **on by default** (gameplay-qualified); `ORDER1886_SETTINGS_MENU=0` keeps it closed.
+- **Headroom governor**: generation pauses automatically when the game cannot hold its own
+  target frame rate (measured: 60 FPS + frame generation drops a laptop RTX 5050 to ~41 real/s,
+  so on that hardware 30 FPS + generation is the smooth choice - the governor degrades such
+  sessions to plain gameplay instead of a stuttering half-rate) and resumes when the game
+  recovers. Both transitions log one line.
+- Generated frames are only issued when the doubled rate fits the physical panel (30->60 on
+  60 Hz yes, 90->180 on 144 Hz no), the feature is fully inert when Off (verified: 150 s
+  baseline sessions with the code compiled in show zero framegen activity), and it does not
+  touch the watermark, save data or QTE timing.
+- Verified on an RTX 5050 laptop (143.88 Hz): 29.6 real/s + ~26 generated/s in live sessions,
+  zero faults across 15+ sessions, clean exits; the F1 row round trip (toggle -> restart ->
+  `frame_generation=1` in runtime.ini) is screenshot-verified.
+
 ## v0.2.49 — November 23, 2026 (Windows and Linux)
 
 - **The launcher's in-app updater is now Windows-only, honestly** ([follow-up to #60](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/60)).
