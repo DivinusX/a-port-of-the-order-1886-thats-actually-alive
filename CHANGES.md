@@ -1,5 +1,20 @@
 # Changes Made - November 18, 2026
 
+## v0.2.48 — November 23, 2026 (Windows and Linux)
+
+- **The launcher's updater panel works again** ([#60](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/60)).
+  Pressing **Download update** made the button vanish, greyed out **Check for updates** and left
+  "Update state unavailable" on screen: the window read the update status through a binding that
+  delivers a structured object, while the panel parsed it as JSON text — every progress poll threw
+  and the panel fell back to "no state". The reader now accepts both shapes, and a failed poll
+  keeps the last known state instead of collapsing the panel mid-download.
+- Downloads report live progress again (the poller is the only progress channel), and Check →
+  Download → Install is exercisable from the window on Windows and Linux.
+
+Verified: launcher-go Go tests pass with the staged frontend; the frontend unit tests gained four
+cases (object shape, absent response, corrupt text keeps state, downloading keeps its cancel
+action); the rebuilt Linux window binary embeds the patched bundle.
+
 ## v0.2.47 — November 23, 2026 (Windows and Linux)
 
 - **Xbox button prompts work again** ([#59](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/59)).
