@@ -29,7 +29,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import order1886_ui_extract as ui  # noqa: E402
 
-SETS = {'keyboard': 'Glyphs - Keyboard and mouse'}
+SETS = {'xbox': 'Glyphs - Xbox', 'keyboard': 'Glyphs - Keyboard and mouse'}
 # Resources with glyph bitmaps (1.02): standalone menu, shared UI package, two Lycan levels.
 RESOURCES = ['primary/c2d79afbc68fc86c/v1/e32dc7d7dc8151e2'] + [
     'primary/3861c21fc34b7612/v11345526222/' + name

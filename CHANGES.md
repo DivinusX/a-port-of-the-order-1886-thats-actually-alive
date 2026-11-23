@@ -1,5 +1,27 @@
 # Changes Made - November 18, 2026
 
+## v0.2.47 — November 23, 2026 (Windows and Linux)
+
+- **Xbox button prompts work again** ([#59](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/59)).
+  Players on an Xbox controller were shown PlayStation buttons: a preparation-script revision had
+  retired the Xbox prompt set (falling back to the game's own art with only a log line) while the
+  launcher still offered Xbox as a choice. The set is restored: the game's own bitmaps are kept and
+  only the PlayStation marking inside each prompt is replaced by the matching Xbox letter, in the
+  source's own ink, softness and alpha. The D-pad is identical on both pads, so its art stays.
+- Prompt builds now work on dumps whose 1.02 update was extracted beside the base game or whose
+  folders use different letter case: resources are found through the case-tolerant resolver, and an
+  unmerged dump gets a clear message pointing at `scripts/order1886_merge_update.py` instead of a
+  misleading "this game has no …" error that pushed players to PlayStation prompts.
+- Keyboard and mouse prompts keep following your current key bindings.
+- New check (`tests/test_order1886_button_prompts.py`): the offered sets, the plan's Xbox roles and
+  the shipped mark art must stay consistent — a silently retired set now fails the tests.
+
+Verified on Linux (RX 9070 XT) with **CUSA00785 – USA, updated to 1.02**: the dump merged with
+`order1886_merge_update.py` (93 files), the Xbox set rebuilt 131 bitmaps from the player's own
+art (the new `A` sits in the game's own ring; outside pixels unchanged); the full test suite
+passes. In-game rendering is confirmed by playtest on the shipped launcher.
+Same engine binaries as v0.2.46; the fix lives in the preparation scripts.
+
 ## v0.2.45 — November 22, 2026 (Windows and Linux)
 
 - **Fixed button-mash QTEs losing progress above 30 FPS** ([#43](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/43)).

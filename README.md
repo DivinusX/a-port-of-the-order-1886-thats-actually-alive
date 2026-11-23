@@ -64,7 +64,7 @@ fixing something you can actually see, and each one documented with how it was t
 | ☀️ **Sun, steady** | Draw-time HTILE expand brings back outdoor sun shadows and wet-stone reflections; staging sun-shadow readback sync (v0.2.17) ends the flicker in The Chase — 385 → 0 measured brightness flips. |
 | 🎬 **No letterbox by default** | Graphics → **Cinematic bars** lets you choose. Bars are **off** by default, so the game renders the full 16:9 picture. Your game files are never touched. |
 | 💬 **Subtitles and prompts that show** | With the bars off, the game's interface keeps its original 2.4:1 layout, centred on the 16:9 picture: subtitles, QTE and interaction prompts appear where they should, and subtitle letters are spelled right (v0.2.23). |
-| 🎮 **Controllers that work** | Hot-plug detection, the original PlayStation button layout, keyboard prompts that follow your key bindings, and a built-in pad check that tells you *why* a pad isn't seen. |
+| 🎮 **Controllers that work** | Hot-plug detection, Xbox or PlayStation button prompts (both built from your own game files), keyboard prompts that follow your key bindings, and a built-in pad check that tells you *why* a pad isn't seen. |
 | 🎵 **A launcher with a soul** | Background music with a volume bar, a clear Home strip showing your display, upscaler, frame rate and bars at a glance. |
 | 📂 **Any dump, any case** | Dumps with mixed-case folder names (CUSA00035 and others) load correctly. |
 | 🧊 **Warm pipelines on a fresh install** | The pipeline cache really lives in the package (v0.2.24), and a captured **shader cache seed** dropped in `shader-cache/` is hash-verified and replayed during boot instead of compiled mid-game (#17). |

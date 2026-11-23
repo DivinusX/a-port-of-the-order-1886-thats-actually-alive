@@ -12,7 +12,9 @@ composed from the player's own bitmaps:
   shows on the next launch; the prompts never overwrite the bindings themselves (the rule
   upstream commit e25254e introduced: icons follow the map, not the other way round).
 
-The Xbox prompt set was retired: the layout is the game's own or the keys you play with.
+- Xbox: the original texture is kept; only the PlayStation marking inside an explicit edit
+  region is replaced by the matching letter mark, in the source's own ink, softness and alpha.
+  Every pixel outside that region is the source pixel.
 
 The result is cached under the state folder per executable, set, mapping and art version, and
 mounted through the managed overlay after any enabled mods, so the selected prompts win.
@@ -25,9 +27,12 @@ from pathlib import Path
 import shutil
 
 ASSETS = Path(__file__).resolve().parent / 'button_prompts'
-SETS = ('playstation', 'keyboard')
-RETIRED = ('xbox',)
-VERSION = 4  # bump when the composition below changes (4: keyboard follows the live map; no Xbox)
+SETS = ('playstation', 'xbox', 'keyboard')
+VERSION = 5  # bump when the composition below changes (5: Xbox set restored on the live map; no art beyond marks/)
+# The plan glyph token -> the Xbox marking that button carries. The D-pad is the same on both
+# pads, so it has no entry: the game's own art stays.
+XBOX = dict(cross='A', circle='B', square='X', triangle='Y', l1='LB', r1='RB', l2='LT',
+            r2='RT', l3='LS', r3='RS', options='MENU', touchpad='VIEW')
 
 # Menu discs drawn behind the controller icons: a keycap needs no disc behind it.
 MENU_BACKINGS = {114, 276, 277, 285, 288}
@@ -83,6 +88,225 @@ def plan(prompt_set):
     return {e['key']: dict(e, role=e[prompt_set], glyph=e.get(prompt_set + '_glyph', e['glyph']))
             for e in entries}
 
+
+# --- shared --------------------------------------------------------------------------------
+
+def _np():
+    import numpy
+    return numpy
+
+
+def luminance(rgb):
+    """ITU-R 601 luma, as Pillow's L mode."""
+    return rgb[..., 0] * .299 + rgb[..., 1] * .587 + rgb[..., 2] * .114
+
+
+def dilate(mask):
+    """3x3 binary dilation of a uint8 mask."""
+    from PIL import Image, ImageFilter
+    return _np().asarray(Image.fromarray(mask, 'L').filter(ImageFilter.MaxFilter(3)))
+
+
+def blur(values, sigma):
+    from PIL import Image, ImageFilter
+    np = _np()
+    image = Image.fromarray(np.uint8(np.clip(values * 255, 0, 255)), 'L')
+    return np.asarray(image.filter(ImageFilter.GaussianBlur(sigma))).astype(np.float32) / 255
+
+
+def inpaint(channels, mask):
+    """Fill masked pixels from their surroundings, ring by ring, then smooth the fill.
+
+    A small diffusion fill stands in for OpenCV's inpainting: edit regions are a few dozen
+    pixels across and the new marking covers most of them."""
+    np = _np()
+    values = channels.astype(np.float32).copy()
+    todo = mask > 0
+    if not todo.any():
+        return channels.copy()
+    known = ~todo
+    offsets = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
+
+    def neighbours(array):
+        padded = np.pad(array, [(1, 1), (1, 1)] + [(0, 0)] * (array.ndim - 2), mode='edge')
+        h, w = array.shape[:2]
+        return [padded[1 + dy:1 + dy + h, 1 + dx:1 + dx + w] for dy, dx in offsets]
+
+    while todo.any():
+        weight = sum(neighbours(known.astype(np.float32)))
+        frontier = todo & (weight > 0)
+        if not frontier.any():
+            break
+        total = sum(n * k[..., None] if values.ndim == 3 else n * k
+                    for n, k in zip(neighbours(values), neighbours(known.astype(np.float32))))
+        divisor = weight[..., None] if values.ndim == 3 else weight
+        values[frontier] = (total / np.maximum(divisor, 1e-6))[frontier]
+        known |= frontier
+        todo &= ~frontier
+    for _ in range(4):
+        average = sum(neighbours(values)) / len(offsets)
+        values[mask > 0] = average[mask > 0]
+    return np.uint8(np.clip(values + .5, 0, 255))
+
+
+@lru_cache(maxsize=None)
+def _mark_image(token):
+    from PIL import Image
+    path = ASSETS / 'marks' / (token + '.png')
+    if not path.is_file():
+        raise FileNotFoundError(f'Button prompt art is missing: {path}')
+    return Image.open(path).convert('RGBA')
+
+
+def marking(token, size):
+    """The letter silhouette of a mark scaled into size, 0..1. The source decides colour,
+    softness and shadow, so the mark's own shading is discarded."""
+    from PIL import Image
+    np = _np()
+    raw = np.asarray(_mark_image(token)).astype(np.float32)
+    alpha = raw[..., 3] / 255
+    mask = np.clip((luminance(raw[..., :3]) / 255 - .22) / .58, 0, 1) * alpha
+    glyph = Image.fromarray(np.uint8(mask * 255), 'L')
+    bounds = glyph.point(lambda p: 255 if p > 20 else 0).getbbox()
+    if not bounds:
+        raise ValueError('Button prompt mark has no visible letter: ' + token)
+    glyph = glyph.crop(bounds)
+    scale = min(size[0] / glyph.width, size[1] / glyph.height)
+    glyph = glyph.resize((max(1, round(glyph.width * scale)), max(1, round(glyph.height * scale))),
+                         Image.Resampling.LANCZOS)
+    canvas = Image.new('L', size)
+    canvas.paste(glyph, ((size[0] - glyph.width) // 2, (size[1] - glyph.height) // 2))
+    return np.asarray(canvas).astype(np.float32) / 255
+
+
+# --- Xbox: replace only the marking ----------------------------------------------------------
+
+def edit_rectangle(e):
+    x0, y0, x1, y1 = e['box']
+    w, h = x1 - x0, y1 - y0
+    if e['glyph'] == 'options':
+        return (x0, 7, x1, 22)  # the OPTIONS word; the icon behind it stays
+    if e['glyph'] in ('left_stick', 'right_stick') and e['role'] == 'face':
+        cy = y0 + h * .32
+        return (int(x0 + w * .20), int(cy - h * .19), int(x1 - w * .20), int(cy + h * .19))
+    if e['role'] == 'label':
+        return (x0, y0, x1, y1)
+    if e['static'] and e['glyph'] in ('cross', 'circle', 'square', 'triangle'):
+        mx = my = .10
+    elif e['glyph'] in ('l1', 'r1', 'l2', 'r2', 'options', 'touchpad'):
+        mx, my = .18, .16
+    else:
+        mx = my = .18
+    return (int(x0 + w * mx), int(y0 + h * my), int(x1 - w * mx), int(y1 - h * my))
+
+
+def composite(e, source, token):
+    """The source with its marking replaced by token inside the edit region only."""
+    from PIL import Image
+    np = _np()
+    original = np.asarray(source.convert('RGBA')).copy()
+    out = original.copy()
+    x0, y0, x1, y1 = edit_rectangle(e)
+    native = original[y0:y1, x0:x1]
+    allowed = np.zeros(original.shape[:2], np.uint8)
+    allowed[y0:y1, x0:x1] = 255
+    gx0, gy0, gx1, gy1 = x0, y0, x1, y1
+    round_face = e['role'] == 'face' and e['glyph'] not in (
+        'l1', 'r1', 'l2', 'r2', 'options', 'touchpad', 'left_stick', 'right_stick')
+    if round_face:
+        # A rectangle would cut into the ring: edit a concentric disc instead.
+        bx0, by0, bx1, by1 = e['box']
+        cx, cy = (bx0 + bx1 - 1) / 2, (by0 + by1 - 1) / 2
+        r = min(bx1 - bx0, by1 - by0) * .41
+        yy, xx = np.indices(allowed.shape)
+        allowed = np.uint8(((xx - cx) ** 2 + (yy - cy) ** 2) <= r * r) * 255
+        side = int(r * 1.48)
+        gx0, gy0 = int(round(cx - side / 2)), int(round(cy - side / 2))
+        gx1, gy1 = gx0 + side, gy0 + side
+    lum = luminance(native[..., :3].astype(np.float32))
+    visible = native[..., 3] > 96
+    bright = float(np.mean(lum[visible] > 150)) if visible.any() else 0
+    if e['role'] == 'face' and e['glyph'] in ('l1', 'r1', 'l2', 'r2', 'l3', 'r3'):
+        bx0, by0, bx1, by1 = e['box']
+        bw, bh = bx1 - bx0, by1 - by0
+        stick = e['glyph'] in ('l3', 'r3')
+        tw, th = int(bw * (.42 if stick else .50)), max(3, int(bh * (.24 if stick else .42)))
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        gx0, gy0 = int(round(cx - tw / 2)), int(round(cy - th / 2))
+        gx1, gy1 = gx0 + tw, gy0 + th
+    full = np.zeros(original.shape[:2], np.float32)
+    gx0, gy0 = max(gx0, 0), max(gy0, 0)
+    gx1, gy1 = min(gx1, original.shape[1]), min(gy1, original.shape[0])
+    full[gy0:gy1, gx0:gx1] = marking(token, (gx1 - gx0, gy1 - gy0))
+    glyph = full[y0:y1, x0:x1]
+    if e['soft']:
+        glyph = blur(glyph, max(.35, source.width / 128))
+    opaque_fraction = float(np.mean(native[..., 3] > 160))
+    ink = 'dark' if opaque_fraction > .72 and bright > .58 else 'light'
+    white_body = e['role'] == 'face' and e['fill'] > .55 and bright > .67
+    if white_body:
+        ink = 'dark'
+    if e['role'] == 'label':
+        ink = 'dark' if visible.any() and float(np.median(lum[visible])) < 80 else 'light'
+        out[y0:y1, x0:x1] = 0
+        color = 10 if ink == 'dark' else 245
+        peak = max(1, int(native[..., 3].max()))
+        if ink == 'dark' and bright > .08:
+            edge = dilate(np.uint8(glyph * 255)).astype(np.float32) / 255
+            rgb = 245 * (1 - glyph[..., None]) + color * glyph[..., None]
+            out[y0:y1, x0:x1, :3] = np.uint8(np.clip(rgb, 0, 255))
+            out[y0:y1, x0:x1, 3] = np.uint8(np.clip(edge * peak, 0, 255))
+        else:
+            shifted = np.zeros_like(glyph)
+            shifted[1:, 1:] = glyph[:-1, :-1]
+            shadow = glyph * .3 + shifted * .7
+            alpha = glyph + shadow * (1 - glyph)
+            rgb = (color * glyph) / np.maximum(alpha, 1e-6)
+            out[y0:y1, x0:x1, :3] = np.uint8(np.clip(rgb[..., None], 0, 255))
+            out[y0:y1, x0:x1, 3] = np.uint8(np.clip(alpha * peak, 0, 255))
+    else:
+        # On a light body the old symbol's grey anti-aliased edges count as ink too, or a
+        # ghost triangle or square corners stay around the new letter.
+        old_ink = (lum < (200 if white_body else 120)) if ink == 'dark' else (lum > 145)
+        if e['glyph'] == 'options':
+            old_ink = np.ones(lum.shape, bool)
+        old = old_ink & (native[..., 3] > 25)
+        if white_body:
+            old |= native[..., 3] < 120
+        mask = np.zeros(original.shape[:2], np.uint8)
+        mask[y0:y1, x0:x1] = np.uint8(old) * 255
+        mask = dilate(mask) & allowed
+        clean = inpaint(original[..., :3], mask)
+        out[mask > 0, :3] = clean[mask > 0]
+        opaque = float(np.mean(native[..., 3] > 240)) > .985
+        color = 12 if ink == 'dark' else 244
+        if opaque or white_body:
+            part = out[y0:y1, x0:x1, :3].astype(np.float32)
+            out[y0:y1, x0:x1, :3] = np.uint8(part * (1 - glyph[..., None]) + color * glyph[..., None])
+            if white_body and not opaque:
+                # A light button that cuts its letter out of the alpha: repair the old cut-out,
+                # then cut the new letter.
+                clean_alpha = inpaint(original[..., 3], mask)
+                area = clean_alpha[y0:y1, x0:x1].astype(np.float32)
+                out[y0:y1, x0:x1, 3] = np.uint8(area * (1 - glyph))
+        else:
+            # A mark on a transparent interior: clear the old symbol's opacity in the region.
+            alpha = out[y0:y1, x0:x1, 3].astype(np.float32) / 255
+            alpha[allowed[y0:y1, x0:x1] > 0] = 0
+            rgb = out[y0:y1, x0:x1, :3].astype(np.float32)
+            new_a = glyph + alpha * (1 - glyph)
+            rgb = (color * glyph[..., None] + rgb * alpha[..., None] * (1 - glyph[..., None])) / \
+                np.maximum(new_a[..., None], 1e-6)
+            out[y0:y1, x0:x1, :3] = np.uint8(np.clip(rgb, 0, 255))
+            out[y0:y1, x0:x1, 3] = np.uint8(np.clip(new_a * 255, 0, 255))
+    keep = allowed == 0
+    out[keep] = original[keep]  # nothing outside the edit region changes
+    return Image.fromarray(out, 'RGBA')
+
+
+def xbox(entry, image):
+    token = XBOX.get(entry['glyph'])
+    return composite(entry, image, token) if token else None
 
 # --- keyboard and mouse: drawn keycaps --------------------------------------------------------
 
@@ -189,12 +413,7 @@ def _base_is_stale(game, resource):
 
 def prepare(game, state, prompt_set, log=print, bindings=None):
     """[(path relative to the game folder, generated file)] for the selected set; empty for the
-    game's own PlayStation prompts. Built once per executable, set, key mapping and art version.
-    A retired set ('xbox') launches with the original layout and a note instead of failing."""
-    if prompt_set in RETIRED:
-        log(f'{prompt_set.capitalize()} button prompts were retired; using the '
-            "game's own PlayStation prompts.")
-        return []
+    game's own PlayStation prompts. Built once per executable, set, key mapping and art version."""
     if prompt_set not in SETS:
         raise ValueError(f'Button prompts must be one of {", ".join(SETS)}')
     root = Path(state) / 'button-prompts'
@@ -237,7 +456,8 @@ def prepare(game, state, prompt_set, log=print, bindings=None):
         try:
             _, total = glyphs.build(str(game), prompt_set, str(folder), plan=reviewed,
                                     log=lambda line: None,
-                                    painter=lambda entry, image: keyboard(entry, image, labels))
+                                    painter=(xbox if prompt_set == 'xbox' else
+                                             lambda entry, image: keyboard(entry, image, labels)))
         except SystemExit as error:  # the decoder refuses an unverified executable
             raise ValueError(f'{error} Choose PlayStation prompts.') from None
         files = sorted(str((p.relative_to(built))) for p in built.rglob('*') if p.is_file())
