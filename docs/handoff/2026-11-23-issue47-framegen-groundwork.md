@@ -124,3 +124,62 @@ watch exit-23/pacing.
 No presenter hot-path surgery pushed unvalidated; no release-branch touches; no
 "verified in game" claims for FG output quality (the presenter loop is unwired by
 design until an owner-attended session validates it).
+
+
+## Session 3 (evening) — provider hardware-validated; presenter implementation notes
+
+- **Provider live pipeline OK on the RTX 5050**: `order1886_fg.so` create + 3 frames of
+  prepare/dispatch/submit/wait/retire all return 0 (test kept at /tmp/fgprov.cpp).
+  Harness lessons that ARE SDK contract: dispatch **output** image must carry
+  `SAMPLED|STORAGE` usage; a FAILED dispatch leaves `prepared=true` so the next prepare
+  rejects — on any dispatch failure, stop feeding until a `reset_history=1` frame
+  (presenter must implement this containment); zero camera basis vectors are accepted
+  but set a real basis anyway (up/right/forward) for fill quality.
+- Resolve groundwork landed (`Wanted()` gate + prep-only mode + SceneFrame snapshot +
+  ConsumeSceneFrame, compiles+pushed).
+- **Presenter plan (validated against the code, pending live iteration)**:
+  1. Frame struct additions (vk_presenter.h:29): `fg_hdr` (RGBA16F, `STORAGE|SAMPLED|
+     TRANSFER_SRC`, display size) + `fg_display` (swap format, `COLOR_ATTACHMENT|
+     TRANSFER_{SRC,DST}|SAMPLED`) + views + `bool fg_valid`; allocate/free in
+     RecreateFrame alongside frame->image.
+  2. Record FG at the END of PrepareFrame (draw scheduler, BEFORE `ready_semaphore`
+     capture ~line 750): ConsumeSceneFrame -> framegen.PresentFrame(cmdbuf, scene,
+     fg_hdr, W,H, ++fg_seq, reset, CompletedPresentations()); then `Frame shadow = *frame`
+     with image/image_view swapped to fg_display and `pp_pass.Render(cmdbuf, fg_hdr_view,
+     {W,H}, shadow, pp_settings)` — pp leaves output GENERAL, same as frame->image
+     (verified in pp_pass.cpp); set fg_valid=true. All draw-queue -> covered by the
+     existing ready_semaphore signal.
+  3. Second present AFTER the real one in Presenter::Present, BEFORE free_frame():
+     gate = fg_valid && vsync(eFifo) && !is_hdr && pacing gap: steady-clock delta
+     between Presents > 1.4 x (1e6/EmulatorSettings.GetVblankFrequency()) us — GetVblankFrequency
+     is a cached static (60 default, 480 when ORDER1886_VBLANK_HZ=0). Then:
+     swapchain.AcquireNextImage() (sequential double-cycle needs NO swapchain change —
+     image_acquired/present_ready are per-slot, frame_index cycles); record on
+     present_scheduler: barriers (fg_display GENERAL->TSO, swapB UNDEFINED->TDST,
+     frame->image GENERAL->TSO), band blit fg_display->swapB using the SAME
+     MakeImageBlitBand rect, then per-HUD-rect copy frame->image->swapB at
+     band-mapped dst coords (compute scale/offset from the band VkImageBlit
+     src/dstOffsets), transition swapB->PRESENT_SRC (+overlay render if visible, else
+     UI flickers 30Hz), flush with AddWait(image_acquired)+AddSignal(present_ready[B])
+     and NO present_done signal (keep fence semantics = one watermark per flip),
+     swapchain.Present().
+  4. Ordering proof: cycle B's read of fg_hdr/fg_display (draw-queue writes) is transitively
+     ordered: cycle B submitted after cycle A on the SAME present queue; cycle A waited
+     frame->ready_semaphore (draw). No new semaphore needed; fg_valid per-Frame reset.
+  5. framegen lifecycle: Load() in ctor when setting on; Create lazily first use
+     (max_render = scene size, display = extent); recreate + reset on extent change;
+     Retire(CompletedPresentations()) each flip; on ANY provider status != OK after
+     frame 2: fg_disabled=true until restart + one printf (containment).
+  6. Verify without eyes-first: ORDER1886 env of the existing frame-dump trigger
+     (ORDER1886_FRAME_DUMP_TRIGGER + DumpRaw, presenter.cpp ~586) — add an `fg` dump of
+     fg_display; assert generated != neighbours != black, then owner judges.
+  7. F1 row (do LAST): ps4_overlay.cpp rows — model on Upscaling (~1157): Choice
+     {"Off","On"}, value from s.frame_generation, Apply writes
+     Ps4Settings::frame_generation + StoreForNextLaunch-style persist, badge "Restart"
+     (swapchain image count + context fixed at creation); launcher field in
+     order1886_options.py (graphics page) + common.py values + settings.json key
+     frame_generation -> env ORDER1886_FRAMEGEN=1 already plumbed via runtime.ini.
+- HUD rect v0 (normalized [x0,y0,x1,y1], display space): center 0.46-0.54 x 0.46-0.54
+  (reticle); 0.0-1.0 x 0.70-0.86 (subtitle/QTE band bottom of the 2.4 interface band);
+  0.62-1.0 x 0.78-1.0 (weapon HUD); 0.0-0.30 x 0.10-0.26 (objective); 0.36-0.64 x
+  0.06-0.20 (top prompts). All five + crosshair confirmed against issue screenshots later.
