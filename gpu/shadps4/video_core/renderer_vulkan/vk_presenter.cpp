@@ -17,6 +17,7 @@
 #include "ps4_graphics.h"
 #include "video_core/renderer_vulkan/vk_temporal_upscaler.h"
 #include "video_core/renderer_vulkan/vk_presenter.h"
+#include "video_core/renderer_vulkan/vk_order_resolve.h"
 #include "video_core/renderer_vulkan/vk_upscale_providers.h"
 #include "video_core/renderer_vulkan/vk_warmup_inbox.h"
 #include "video_core/renderer_vulkan/vk_rasterizer.h"
@@ -350,6 +351,21 @@ Presenter::Presenter(Frontend::WindowSDL& window_, AmdGpu::Liverpool* liverpool_
     const u32 num_images = swapchain.GetImageCount();
     const vk::Device device = instance.GetDevice();
 
+    // #47: frame generation decided at startup (the pool and context size around it).
+    framegen_wanted = Ps4Settings::Get().frame_generation.load();
+    if (framegen_wanted) {
+        framegen.Load();
+        framegen_ready = framegen.available();
+        if (!framegen_ready) {
+            std::printf("FrameGen: %s; presenting game frames only\n", framegen.reason().c_str());
+            std::fflush(stdout);
+        } else {
+            std::printf("FrameGen: provider %s %s armed\n", framegen.name().c_str(),
+                        framegen.version().c_str());
+            std::fflush(stdout);
+        }
+    }
+
     // Create presentation frames.
     present_frames.resize(num_images);
     for (u32 i = 0; i < num_images; i++) {
@@ -436,8 +452,444 @@ Presenter::~Presenter() {
     for (auto& frame : present_frames) {
         vmaDestroyImage(instance.GetAllocator(), frame.image, frame.allocation);
         device.destroyImageView(frame.image_view);
+        if (frame.fg_hdr) {
+            device.destroyImageView(frame.fg_hdr_view);
+            vmaDestroyImage(instance.GetAllocator(), frame.fg_hdr, frame.fg_hdr_alloc);
+            device.destroyImageView(frame.fg_ldr_view);
+            vmaDestroyImage(instance.GetAllocator(), frame.fg_ldr, frame.fg_ldr_alloc);
+            device.destroyImageView(frame.fg_pre_view);
+            vmaDestroyImage(instance.GetAllocator(), frame.fg_pre, frame.fg_pre_alloc);
+            device.destroyImageView(frame.fg_display_view);
+            vmaDestroyImage(instance.GetAllocator(), frame.fg_display, frame.fg_display_alloc);
+        }
         device.destroyFence(frame.present_done);
     }
+    framegen.Destroy();
+}
+
+static void DumpRaw(const Instance& instance, Scheduler& scheduler, vk::CommandBuffer cmdbuf,
+                    vk::Image image, vk::ImageLayout layout, u32 w, u32 h, const char* name,
+                    int index);
+
+// #47: HUD regions re-blitted from the real frame onto the generated one (normalized
+// display coords; reticle, subtitle/QTE band, weapon HUD, objective, top prompts).
+
+void Presenter::FramegenRecord(Frame* frame, vk::CommandBuffer cmdbuf, const SceneFrame& scene) {
+    static const bool step_trace = std::getenv("ORDER1886_FG_DUMP") != nullptr;
+    (void)step_trace;
+#define FGSTEP(fmt, ...) if (step_trace) std::fprintf(stderr, "FGstep " fmt "\n", ##__VA_ARGS__)
+    const vk::Device device = instance.GetDevice();
+    const u32 w = scene.width, h = scene.height;
+    if ((fg_hdr_w != w || fg_hdr_h != h) && frame->fg_hdr) {
+        device.destroyImageView(frame->fg_hdr_view);
+        vmaDestroyImage(instance.GetAllocator(), frame->fg_hdr, frame->fg_hdr_alloc);
+        device.destroyImageView(frame->fg_ldr_view);
+        vmaDestroyImage(instance.GetAllocator(), frame->fg_ldr, frame->fg_ldr_alloc);
+        device.destroyImageView(frame->fg_pre_view);
+        vmaDestroyImage(instance.GetAllocator(), frame->fg_pre, frame->fg_pre_alloc);
+        device.destroyImageView(frame->fg_display_view);
+        vmaDestroyImage(instance.GetAllocator(), frame->fg_display, frame->fg_display_alloc);
+        frame->fg_hdr = VK_NULL_HANDLE;
+        frame->fg_display = VK_NULL_HANDLE;
+        framegen_ctx_ready = false;
+    }
+    FGSTEP("staging");
+    if (!frame->fg_hdr || fg_hdr_w != w || fg_hdr_h != h) {
+        const auto make = [&](vk::Format format, vk::ImageUsageFlags usage, vk::Image& image,
+                              VmaAllocation& alloc, vk::ImageView& view, u32 iw, u32 ih) {
+            const VkImageCreateInfo ci{.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+                                       .imageType = VK_IMAGE_TYPE_2D,
+                                       .format = static_cast<VkFormat>(format),
+                                       .extent = {iw, ih, 1},
+                                       .mipLevels = 1,
+                                       .arrayLayers = 1,
+                                       .samples = VK_SAMPLE_COUNT_1_BIT,
+                                       .tiling = VK_IMAGE_TILING_OPTIMAL,
+                                       .usage = static_cast<VkImageUsageFlags>(usage),
+                                       .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED};
+            const VmaAllocationCreateInfo ai{.flags = VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT,
+                                             .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE};
+            VkImage raw{};
+            VmaAllocation raw_mem{};
+            if (vmaCreateImage(instance.GetAllocator(), &ci, &ai, &raw, &raw_mem, nullptr) !=
+                VK_SUCCESS) {
+                return false;
+            }
+            image = vk::Image{raw};
+            alloc = raw_mem;
+            view = Check<"framegen view">(device.createImageView(
+                {.image = image,
+                 .viewType = vk::ImageViewType::e2D,
+                 .format = format,
+                 .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}}));
+            return true;
+        };
+        // FSR 3 frame generation insists on float scene colour, so the LDR band travels in
+        // an RGBA16F container (the crop blit converts; values stay in 0..1).
+        const auto hdr_f = vk::Format::eR16G16B16A16Sfloat;
+        if (!make(hdr_f,
+                  vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled |
+                      vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eTransferSrc,
+                  frame->fg_ldr, frame->fg_ldr_alloc, frame->fg_ldr_view, w, h) ||
+            !make(hdr_f,
+                  vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled |
+                      vk::ImageUsageFlagBits::eTransferSrc,
+                  frame->fg_hdr, frame->fg_hdr_alloc, frame->fg_hdr_view, w, h) ||
+            !make(hdr_f,
+                  vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+                  frame->fg_pre, frame->fg_pre_alloc, frame->fg_pre_view, frame->width,
+                  frame->height) ||
+            !make(frame->format,
+                  vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc |
+                      vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+                  frame->fg_display, frame->fg_display_alloc, frame->fg_display_view,
+                  frame->width, frame->height)) {
+            framegen_ready = false;
+            std::printf("FrameGen: staging allocation failed; feature off\n");
+            std::fflush(stdout);
+            return;
+        }
+        fg_hdr_w = w;
+        fg_hdr_h = h;
+    }
+    if (!framegen_ctx_ready) {
+        FGSTEP("ctxcreate");
+        // Recreate, not Create: after a cinematic->gameplay size change an old context
+        // still exists at the previous resolution, and Create would happily return it -
+        // feeding 1080p scenes into an 800-line context exhausted device memory (#47).
+        framegen.Recreate(instance, w, h, w, h, false);
+        if (!framegen.available() || !framegen.has_context()) {
+            if (++framegen_fail_streak > 8) {
+                framegen_ready = false;
+                std::printf("FrameGen: provider create failed; feature off\n");
+                std::fflush(stdout);
+            }
+            return;
+        }
+        framegen_ctx_ready = true;
+        fg_seq = 0;
+        std::printf("FrameGen: generating from %ux%u feed into %ux%u output\n", w, h,
+                    frame->width, frame->height);
+        std::fflush(stdout);
+    }
+
+    // Feed the SDK the game's own composited LDR band (post tonemap, post letterbox):
+    // generated frames then match the real ones exactly except where motion was
+    // interpolated - no tonemap mismatch flicker. Depth/motion stay in scene space.
+    {
+        const auto fit = FitImage(static_cast<s32>(w), static_cast<s32>(h),
+                                  static_cast<s32>(frame->width),
+                                  static_cast<s32>(frame->height));
+        const vk::ImageMemoryBarrier2 to_src{
+            .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+            .srcAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
+            .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+            .dstAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eTransferRead},
+            .oldLayout = vk::ImageLayout::eGeneral,
+            .newLayout = vk::ImageLayout::eTransferSrcOptimal,
+            .image = frame->image,
+            .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1},
+        };
+        const vk::ImageMemoryBarrier2 ldr_fresh{
+            .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+            .dstAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eTransferWrite},
+            .oldLayout = vk::ImageLayout::eUndefined,
+            .newLayout = vk::ImageLayout::eTransferDstOptimal,
+            .image = frame->fg_ldr,
+            .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1},
+        };
+        const std::array in{to_src, ldr_fresh};
+        cmdbuf.pipelineBarrier2(vk::DependencyInfo{.imageMemoryBarrierCount = 2,
+                                                   .pImageMemoryBarriers = in.data()});
+        const vk::ImageBlit crop{
+            .srcSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+            .srcOffsets = {{vk::Offset3D{fit.offset.x, fit.offset.y, 0},
+                            vk::Offset3D{fit.offset.x + static_cast<s32>(fit.extent.width),
+                                         fit.offset.y + static_cast<s32>(fit.extent.height), 1}}},
+            .dstSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+            .dstOffsets = {{vk::Offset3D{0, 0, 0}, vk::Offset3D{static_cast<s32>(w), static_cast<s32>(h), 1}}},
+        };
+        cmdbuf.blitImage(frame->image, vk::ImageLayout::eTransferSrcOptimal, frame->fg_ldr,
+                         vk::ImageLayout::eTransferDstOptimal, crop, vk::Filter::eNearest);
+        const vk::ImageMemoryBarrier2 ldr_read{
+            .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
+            .srcAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eTransferWrite},
+            .dstStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+            .dstAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eShaderRead},
+            .oldLayout = vk::ImageLayout::eTransferDstOptimal,
+            .newLayout = vk::ImageLayout::eGeneral,
+            .image = frame->fg_ldr,
+            .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1},
+        };
+        const vk::ImageMemoryBarrier2 back{
+            .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
+            .srcAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eTransferRead},
+            .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+            .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
+            .newLayout = vk::ImageLayout::eGeneral,
+            .image = frame->image,
+            .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1},
+        };
+        const std::array out{ldr_read, back};
+        cmdbuf.pipelineBarrier2(vk::DependencyInfo{.imageMemoryBarrierCount = 2,
+                                                   .pImageMemoryBarriers = out.data()});
+    }
+    FramegenScene fscene{
+        .color = frame->fg_ldr,
+        .depth = scene.depth,
+        .motion = scene.motion,
+        .color_format = VK_FORMAT_R16G16B16A16_SFLOAT,
+        .width = scene.width,
+        .height = scene.height,
+        .frame_ms = scene.frame_ms,
+        .depth_reversed = scene.depth_reversed,
+    };
+    const bool first = fg_seq == 0;
+    ++fg_seq;
+    FGSTEP("feed seq=%llu", (unsigned long long)fg_seq);
+    FGSTEP("predispatch");
+    if (!framegen.PresentFrame(cmdbuf, fscene, frame->fg_hdr, w, h, fg_seq, first,
+                               Presenter::CompletedPresentations())) {
+        if (++framegen_fail_streak > 8) {
+            framegen_ready = false;
+            std::printf("FrameGen: provider failures; feature off\n");
+            std::fflush(stdout);
+        } else {
+            fg_seq = 0; // force a history reset on the next attempt
+        }
+        return;
+    }
+    framegen_fail_streak = 0;
+
+    // Band the scene (e.g. the 2.4:1 cinematic window) into frame space with black bars,
+    // exactly like the game composes its own letterbox, then post-process the frame-sized HDR.
+    const auto fit = FitImage(static_cast<s32>(w), static_cast<s32>(h),
+                              static_cast<s32>(frame->width), static_cast<s32>(frame->height));
+    {
+        const vk::ImageMemoryBarrier2 pre{
+            .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+            .dstAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eTransferWrite},
+            .oldLayout = vk::ImageLayout::eUndefined,
+            .newLayout = vk::ImageLayout::eTransferDstOptimal,
+            .image = frame->fg_pre,
+            .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1},
+        };
+        cmdbuf.pipelineBarrier2(vk::DependencyInfo{.imageMemoryBarrierCount = 1, .pImageMemoryBarriers = &pre});
+        const vk::ClearColorValue black{std::array<float, 4>{0.0f, 0.0f, 0.0f, 1.0f}};
+        cmdbuf.clearColorImage(frame->fg_pre, vk::ImageLayout::eTransferDstOptimal, black,
+                               vk::ImageSubresourceRange{.aspectMask = vk::ImageAspectFlagBits::eColor,
+                                                          .levelCount = 1,
+                                                          .layerCount = 1});
+        const vk::ImageMemoryBarrier2 hdr_to_src{
+            .srcStageMask = vk::PipelineStageFlagBits2::eComputeShader,
+            .srcAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eShaderWrite},
+            .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+            .dstAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eTransferRead},
+            .oldLayout = vk::ImageLayout::eGeneral,
+            .newLayout = vk::ImageLayout::eTransferSrcOptimal,
+            .image = frame->fg_hdr,
+            .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1},
+        };
+        cmdbuf.pipelineBarrier2(vk::DependencyInfo{.imageMemoryBarrierCount = 1, .pImageMemoryBarriers = &hdr_to_src});
+        const vk::ImageBlit band{
+            .srcSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+            .srcOffsets = {{vk::Offset3D{0, 0, 0}, vk::Offset3D{static_cast<s32>(w), static_cast<s32>(h), 1}}},
+            .dstSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
+            .dstOffsets = {{vk::Offset3D{fit.offset.x, fit.offset.y, 0},
+                           vk::Offset3D{fit.offset.x + static_cast<s32>(fit.extent.width),
+                                        fit.offset.y + static_cast<s32>(fit.extent.height), 1}}},
+        };
+        cmdbuf.blitImage(frame->fg_hdr, vk::ImageLayout::eTransferSrcOptimal, frame->fg_pre,
+                         vk::ImageLayout::eTransferDstOptimal, band, vk::Filter::eLinear);
+        const vk::ImageMemoryBarrier2 pre_to_read{
+            .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
+            .srcAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eTransferWrite},
+            .dstStageMask = vk::PipelineStageFlagBits2::eFragmentShader,
+            .dstAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eShaderRead},
+            .oldLayout = vk::ImageLayout::eTransferDstOptimal,
+            .newLayout = vk::ImageLayout::eShaderReadOnlyOptimal,
+            .image = frame->fg_pre,
+            .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1},
+        };
+        cmdbuf.pipelineBarrier2(vk::DependencyInfo{.imageMemoryBarrierCount = 1, .pImageMemoryBarriers = &pre_to_read});
+    }
+
+    const vk::ImageSubresourceRange range{.aspectMask = vk::ImageAspectFlagBits::eColor,
+                                          .levelCount = 1,
+                                          .layerCount = 1};
+    const auto bar = [](vk::Image image, vk::ImageLayout from, vk::ImageLayout to,
+                        vk::AccessFlags2 src, vk::PipelineStageFlags2 src_stage,
+                        vk::AccessFlags2 dst, vk::PipelineStageFlags2 dst_stage) {
+        return vk::ImageMemoryBarrier2{.srcStageMask = src_stage,
+                                       .srcAccessMask = src,
+                                       .dstStageMask = dst_stage,
+                                       .dstAccessMask = dst,
+                                       .oldLayout = from,
+                                       .newLayout = to,
+                                       .image = image,
+                                       .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}};
+    };
+    const auto all = vk::PipelineStageFlagBits2::eAllCommands;
+    const auto rw = vk::AccessFlags2{vk::AccessFlagBits2::eShaderRead |
+                                     vk::AccessFlagBits2::eShaderWrite};
+    {
+        const std::array barriers{
+            bar(frame->fg_hdr, vk::ImageLayout::eTransferSrcOptimal, vk::ImageLayout::eGeneral,
+                vk::AccessFlags2{vk::AccessFlagBits2::eTransferRead},
+                vk::PipelineStageFlagBits2::eTransfer, {}, all),
+            bar(frame->fg_display, vk::ImageLayout::eUndefined,
+                vk::ImageLayout::eColorAttachmentOptimal, {}, {}, rw,
+                vk::PipelineStageFlagBits2::eColorAttachmentOutput),
+        };
+        cmdbuf.pipelineBarrier2(vk::DependencyInfo{.imageMemoryBarrierCount = 2,
+                                                   .pImageMemoryBarriers = barriers.data()});
+    }
+    FGSTEP("banddone");
+    Frame shadow = *frame;
+    shadow.image = frame->fg_display;
+    shadow.image_view = frame->fg_display_view;
+    // One composite: generated content where the SDK produced it, the game's own frame
+    // wherever the interpolator left nothing (UI overlays, prompt hotspots) - no region
+    // guessing, no separate re-blit; the shader decodes and re-encodes, so whatever
+    // transfer curve the inputs sit on, the output matches the real presents.
+    pp_pass.RenderGenerated(cmdbuf, frame->fg_pre_view, frame->image_view, shadow, pp_settings);
+    if (const char* fg_dump = std::getenv("ORDER1886_FG_DUMP"); fg_dump && *fg_dump) {
+        static int fg_dump_index = 0;
+        // Burst window: dumps stall the queue, so sample a short slice - by default late
+        // enough to land in real gameplay once the title/cinematic part has passed.
+        static const int dump_from = [] {
+            const char* v = std::getenv("ORDER1886_FG_DUMP_FROM");
+            return v && *v ? std::atoi(v) : 120;
+        }();
+        if (fg_dump_index >= dump_from && fg_dump_index < dump_from + 24) {
+            DumpRaw(instance, draw_scheduler, cmdbuf, frame->fg_display,
+                    vk::ImageLayout::eGeneral, frame->width, frame->height, "fgframe",
+                    fg_dump_index);
+            DumpRaw(instance, draw_scheduler, cmdbuf, frame->image, vk::ImageLayout::eGeneral,
+                    frame->width, frame->height, "realframe", fg_dump_index);
+        }
+        ++fg_dump_index;
+    }
+    FGSTEP("hudcopied");
+    frame->fg_valid = true;
+}
+
+void Presenter::PresentGenerated(Frame& frame, const vk::Extent2D& extent) {
+    if (extent.width == 0 || extent.height == 0) {
+        return;
+    }
+    if (!swapchain.AcquireNextImage()) {
+        swapchain.Recreate(window.GetWidth(), window.GetHeight());
+        if (!swapchain.AcquireNextImage()) {
+            return; // the real frame showed; skipping the generated one is safe
+        }
+    }
+    const vk::Image swapchain_image = swapchain.Image();
+    auto& scheduler = present_scheduler;
+    const auto cmdbuf = scheduler.CommandBuffer();
+    const vk::ImageSubresourceRange range{.aspectMask = vk::ImageAspectFlagBits::eColor,
+                                          .levelCount = 1,
+                                          .layerCount = 1};
+    // fg_display is already the fully composited frame (the band and its letterbox were
+    // applied during recording), so this present is a plain frame-to-surface fit - unlike
+    // the real present, which bands the raw render frame itself.
+    const auto blit = MakeImageBlit(frame.width, frame.height, extent.width, extent.height, 0, 0);
+    {
+        const std::array barriers{
+            vk::ImageMemoryBarrier2{.dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+                                    .dstAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eTransferWrite},
+                                    .oldLayout = vk::ImageLayout::eUndefined,
+                                    .newLayout = vk::ImageLayout::eTransferDstOptimal,
+                                    .image = swapchain_image,
+                                    .subresourceRange = range},
+            vk::ImageMemoryBarrier2{.srcStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+                                    .srcAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eMemoryWrite},
+                                    .dstStageMask = vk::PipelineStageFlagBits2::eTransfer,
+                                    .dstAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eTransferRead},
+                                    .oldLayout = vk::ImageLayout::eGeneral,
+                                    .newLayout = vk::ImageLayout::eTransferSrcOptimal,
+                                    .image = frame.fg_display,
+                                    .subresourceRange = range},
+        };
+        cmdbuf.pipelineBarrier2(vk::DependencyInfo{.imageMemoryBarrierCount = 2,
+                                                   .pImageMemoryBarriers = barriers.data()});
+        cmdbuf.blitImage(frame.fg_display, vk::ImageLayout::eTransferSrcOptimal, swapchain_image,
+                         vk::ImageLayout::eTransferDstOptimal, blit, vk::Filter::eLinear);
+        if (std::getenv("ORDER1886_FG_DUMP")) { // swapgen: what the surface actually receives
+            static int swapgen_index = 0;
+            if (swapgen_index % 400 < 12) {
+                DumpRaw(instance, present_scheduler, cmdbuf, swapchain_image,
+                        vk::ImageLayout::eTransferDstOptimal, extent.width, extent.height,
+                        "swapgen", swapgen_index % 400);
+            }
+            ++swapgen_index;
+        }
+        const vk::ImageMemoryBarrier2 done{
+            .srcStageMask = vk::PipelineStageFlagBits2::eTransfer,
+            .srcAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eTransferRead},
+            .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+            .oldLayout = vk::ImageLayout::eTransferSrcOptimal,
+            .newLayout = vk::ImageLayout::eGeneral,
+            .image = frame.fg_display,
+            .subresourceRange = range,
+        };
+        cmdbuf.pipelineBarrier2(vk::DependencyInfo{.imageMemoryBarrierCount = 1,
+                                                   .pImageMemoryBarriers = &done});
+    }
+    const bool overlay = Ps4Overlay::Visible();
+    {
+        const vk::ImageMemoryBarrier2 to_next{
+            .srcAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eTransferWrite},
+            .dstStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+            .dstAccessMask = overlay
+                                ? vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentRead |
+                                                  vk::AccessFlagBits2::eColorAttachmentWrite}
+                                : vk::AccessFlags2{},
+            .oldLayout = vk::ImageLayout::eTransferDstOptimal,
+            .newLayout = overlay ? vk::ImageLayout::eColorAttachmentOptimal
+                                 : vk::ImageLayout::ePresentSrcKHR,
+            .image = swapchain_image,
+            .subresourceRange = range,
+        };
+        cmdbuf.pipelineBarrier2(vk::DependencyInfo{.imageMemoryBarrierCount = 1,
+                                                   .pImageMemoryBarriers = &to_next});
+        if (overlay) {
+            Ps4Overlay::Render(cmdbuf, swapchain.ImageView(), extent);
+            const vk::ImageMemoryBarrier2 to_present{
+                .srcStageMask = vk::PipelineStageFlagBits2::eColorAttachmentOutput,
+                .srcAccessMask = vk::AccessFlags2{vk::AccessFlagBits2::eColorAttachmentWrite},
+                .dstStageMask = vk::PipelineStageFlagBits2::eBottomOfPipe,
+                .oldLayout = vk::ImageLayout::eColorAttachmentOptimal,
+                .newLayout = vk::ImageLayout::ePresentSrcKHR,
+                .image = swapchain_image,
+                .subresourceRange = range,
+            };
+            cmdbuf.pipelineBarrier2(vk::DependencyInfo{.imageMemoryBarrierCount = 1,
+                                                       .pImageMemoryBarriers = &to_present});
+        }
+    }
+    SubmitInfo info{};
+    // The binary acquired semaphore was consumed by the real present this cycle; the
+    // generated frame must instead wait on the draw timeline - fg_display's HUD regions are
+    // written there, and without this wait the present queue raced it (black rectangles).
+    info.AddWait(frame.ready_semaphore, frame.ready_tick);
+    info.AddSignal(swapchain.GetPresentReadySemaphore());
+    scheduler.Flush(info);
+    {
+        std::scoped_lock submit_lock{Scheduler::submit_mutex};
+        swapchain.Present();
+    }
+    if (++fg_presented % 600 == 0) {
+        const double secs = std::max(
+            0.001, std::chrono::duration<double>(std::chrono::steady_clock::now() - fg_started)
+                            .count());
+        std::printf("FrameGen: %llu generated presents issued - real %.1f/s + generated %.1f/s "
+                    "over %.0fs\n",
+                    static_cast<unsigned long long>(fg_presented), double(real_presented) / secs,
+                    double(fg_presented) / secs, secs);
+        std::fflush(stdout);
+    }
+    framegen.Retire(fg_seq);
 }
 
 bool Presenter::IsVideoOutSurface(const AmdGpu::ColorBuffer& color_buffer) const {
@@ -749,6 +1201,59 @@ Frame* Presenter::PrepareFrame(const Libraries::VideoOut::BufferAttributeGroup& 
                 frame->width, frame->height, "output", frame_dump_index);
         ++frame_dump_index;
     }
+
+    // #47: record the generated frame (if any) BEFORE the ready signal, so the present
+    // queue's second cycle sees it through the ordering that already covers frame->image.
+    frame->fg_valid = false;
+    const auto fg_now = std::chrono::steady_clock::now();
+    if (framegen_ready && !frame->is_hdr && Ps4Settings::Get().vsync.load()) {
+        // The panel's real refresh, not the guest's emulated vblank: the 60 FPS recipe
+        // tells the guest vblank=60 Hz, which would make this gate refuse every
+        // generated frame even on a 144 Hz panel that has room for 120 presents.
+        const u32 vblank_hz = std::max<u32>(60, Ps4DisplayRefreshHz());
+        const auto slot = std::chrono::microseconds(1000000 / vblank_hz);
+        // Generate only when the DOUBLED rate still fits the panel: two presents need two
+        // vblank slots inside one game frame (30->60 on 60 Hz: 33.3 ms >= 31.7 ms fits;
+        // 90->180 on 144 Hz: 11.1 ms < 13.2 ms does not - the old 1.4x floor let a 90 FPS
+        // session present-storm until the device ran out of memory).
+        const bool paced = fg_last_flip.time_since_epoch().count() == 0 ||
+                           (fg_now - fg_last_flip) * 10 > slot * 19;
+        // Headroom governor: frame generation is only worth having while the game still
+        // holds its own target. Measured here: 60 FPS + FG on an RTX 5050 laptop slid the
+        // real rate to 41/s - the interpolator's cost sank the very frames it doubled.
+        // The EMA of the game's frame interval must stay under 1.10x target to generate,
+        // and only recovers to generating below 0.95x (hysteresis, ~2 s to settle).
+        static double fg_interval_ema = 0.0;
+        static bool fg_throttled = false;
+        if (fg_last_flip.time_since_epoch().count() != 0) {
+            const double dt = std::chrono::duration<double>(fg_now - fg_last_flip).count();
+            if (dt < 0.5) {
+                fg_interval_ema = fg_interval_ema > 0 ? fg_interval_ema * 0.97 + dt * 0.03 : dt;
+            }
+        }
+        const u32 target_fps = Ps4Settings::Get().fps_limit.load();
+        const double target_interval = 1.0 / (target_fps > 0 ? target_fps : 30);
+        if (fg_interval_ema > 0) {
+            if (!fg_throttled && fg_interval_ema > target_interval * 1.10) {
+                fg_throttled = true;
+                std::printf("FrameGen: game below target FPS (%.0f/s) - generation paused "
+                            "until it recovers\n",
+                            1.0 / std::max(0.001, fg_interval_ema));
+                std::fflush(stdout);
+            } else if (fg_throttled && fg_interval_ema < target_interval * 0.95) {
+                fg_throttled = false;
+                std::printf("FrameGen: game holds target again - generation resumed\n");
+                std::fflush(stdout);
+            }
+        }
+        if (paced && !fg_throttled) {
+            SceneFrame scene{};
+            if (ConsumeSceneFrame(fg_scene_revision, scene)) {
+                FramegenRecord(frame, cmdbuf, scene);
+            }
+        }
+    }
+    fg_last_flip = fg_now;
 
     // Flush frame creation commands.
     frame->ready_semaphore = draw_scheduler.GetWorkSemaphore()->Handle();
@@ -1082,7 +1587,18 @@ void Presenter::Present(Frame* frame, bool is_reusing_frame, bool is_game_frame)
             swapchain.Recreate(window.GetWidth(), window.GetHeight());
         }
     }
-    if (presented) Ps4Overlay::OnPresented(false);
+    if (presented) {
+        ++real_presented;
+        Ps4Overlay::OnPresented(false);
+    }
+
+    // #47: the generated frame displays in the vblank slot after the real one (FIFO paces
+    // it); cycle B is submitted on the same queue after cycle A, which already waited the
+    // draw timeline, so no extra wait is needed here.
+    if (presented && frame->fg_valid) {
+        frame->fg_valid = false;
+        PresentGenerated(*frame, swapchain.GetExtent());
+    }
 
     free_frame();
     if (!is_reusing_frame && is_game_frame) {
