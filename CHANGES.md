@@ -1,5 +1,36 @@
 # Changes Made - November 18, 2026
 
+## v0.2.55 — November 24, 2026 (Windows and Linux)
+
+- **Long frame-generation sessions no longer crash** ([#63](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/63)).
+  The wait that fixed the HUD black-boxes had dropped the swapchain's per-acquire semaphore
+  wait from the generated present - unpaired signals accumulated until a later submit
+  dereferenced stale driver state (SIGSEGV in libnvidia-glcore after minutes of play, seen
+  live in an owner session). The generated present now waits on both the acquired semaphore
+  and the draw timeline: pairing balanced, black-box fix kept.
+- **Governor flapping tamed**: a machine sitting exactly on the pause threshold
+  (78 frames/s against a 90 FPS target) flipped pause/resume every ~1.5 s. Flips now need
+  45 s of dwell, and the third pause latches generation off for the session with one clear
+  log line; the F1 menu's 'On (force)' overrides both. Verified live: one flip in 85 s,
+  zero faults, generated presents flowing.
+
+## v0.2.54 — November 24, 2026 (Windows and Linux)
+
+- **Sun and shadow flicker fixed** ([#64](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/64)).
+  Sunlit walls, cobbles, faces and props lost their light and shadows on three frames of every
+  four, which looks like a constant shimmer; slower GPUs (the reporter's Radeon 890M handheld)
+  showed it everywhere. The runtime copied the sun's depth-range data before the GPU shader
+  that fills it had run, so the game fitted its shadow cascades to a reset slot. The copy now
+  follows that shader. Measured on 40 consecutive frames at a Whitechapel checkpoint: before,
+  the sun was on 1 frame in 4; after, every frame, also with the integrated-GPU memory rule
+  forced on. Write-up: `docs/verification/2026-11-24-issue64-sun-snapshot.md`.
+- **F1 menu settings stick across launches.** The launcher rewrites the game's settings at
+  every start, so most in-game changes reverted (display mode, vsync, FPS counter, mouse,
+  frames queued, sun sync, upscaler) and vibration and overlay placement were lost entirely.
+  Frame generation's in-game choice never saved either. The menu now writes the launcher's
+  settings back to `settings.json` and keeps its own choices in `runtime-menu.ini`.
+- The overlay's start-up line now names F1 among the menu keys (F1, Insert or R3+L2).
+
 ## v0.2.53 — November 24, 2026 (Windows and Linux)
 
 - **Frame generation for low-end devices** ([#63](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/63) review).
