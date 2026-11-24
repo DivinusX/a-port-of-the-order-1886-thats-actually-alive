@@ -1,5 +1,21 @@
 # Changes Made - November 18, 2026
 
+## v0.2.53 — November 24, 2026 (Windows and Linux)
+
+- **Frame generation for low-end devices** ([#63](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/63) review).
+  Players on weaker GPUs reported the row staying On with nothing happening: their game runs
+  27-29 frames/s, and the headroom governor's resume bound (28.6/s) was unreachable, so a
+  pause at any dip was permanent. Three changes:
+  - The F1 row gains **On (force)**: generation continues even below target - the doubled
+    presentation is exactly what these machines want. `runtime.ini frame_generation=2` or
+    `ORDER1886_FRAMEGEN=2`.
+  - The governed mode's resume band widened to 27+ frames/s (pause stays at 1.15x target),
+    so a steady low-end machine now resumes on its own.
+  - Two silent states made loud: the resolve logs its scene feed like the upscaler already
+    logs frames, and after 900 frames with no feed the game says so once ("upscaler
+    fallback?") - previously a missing FSR 4 asset bundle could kill the frame-generation
+    feed with zero trace, which is what made this issue look unfixable from outside.
+
 ## v0.2.52 — November 24, 2026 (Windows and Linux)
 
 - **Frame generation no longer switches off at the title screen and stays off**
