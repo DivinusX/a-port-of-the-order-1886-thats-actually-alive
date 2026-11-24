@@ -566,6 +566,10 @@ MENU_SETTING_MAP = {
     'mouse_look': ('mouse_look', None),
     'mouse_invert_y': ('mouse_invert_y', None),
     'mouse_sensitivity': ('mouse_sensitivity', None),
+    # #63: the in-game Frame generation row writes runtime.ini; without adopting it, the
+    # next Play regenerates that file from launcher settings and silently discards the
+    # player's choice - the row came back Off after every restart.
+    'frame_generation': ('frame_generation', None),
 }
 
 
@@ -702,7 +706,10 @@ def write_runtime_config(user, settings):
               'overlay_cpu': int(graphics['overlay_cpu']), 'overlay_ram': memory, 'overlay_vram': memory,
               'mouse_look': int(bool(settings.get('mouse_look', True))),
               'mouse_sensitivity': sensitivity,
-              'mouse_invert_y': int(bool(settings.get('mouse_invert_y', False)))}
+              'mouse_invert_y': int(bool(settings.get('mouse_invert_y', False))),
+              # #63: without this line the launcher's regenerated runtime.ini drops the key
+              # every Play, so the in-game Frame generation row could never survive a restart.
+              'frame_generation': int(bool(settings.get('frame_generation', False)))}
     Path(user).mkdir(parents=True, exist_ok=True)
     (Path(user) / 'runtime.ini').write_text(
         '# The Order: 1886 requested settings; applied timing recipe is recorded in prepared.json.\n'
