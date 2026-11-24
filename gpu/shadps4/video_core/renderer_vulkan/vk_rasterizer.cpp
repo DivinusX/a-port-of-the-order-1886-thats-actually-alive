@@ -3907,6 +3907,17 @@ void Rasterizer::UpdateDepthStencilState() const {
         const char* env = std::getenv("ORDER1886_REDRAW_DEPTH_BIAS");
         return env ? float(std::atof(env)) : 16.f;
     }();
+    // Issue #27: a constant bias is not enough everywhere. One of the two face shaders reads
+    // half-float data, so the depth disagreement grows with the depth slope: outdoors and on
+    // surfaces seen edge-on (a cheek in a profile close-up) it exceeds 16 units and the dots
+    // return; 512 units hid them on an RTX 5050 but would also let surfaces just behind the
+    // face through. A slope-scaled part (ORDER1886_REDRAW_SLOPE_BIAS, factor of the
+    // triangle's own depth slope, 0 = off) covers the steep triangles where the error is large
+    // and adds nothing to triangles facing the camera.
+    static const float redraw_slope = [] {
+        const char* env = std::getenv("ORDER1886_REDRAW_SLOPE_BIAS");
+        return env ? float(std::atof(env)) : 1.f;
+    }();
     const auto func = regs.depth_control.depth_func;
     const bool redraw = depth_test_enabled && !depth_stencil.depth_write_enable &&
                         !depth_bias_enabled && redraw_bias != 0.f &&
@@ -3920,9 +3931,9 @@ void Rasterizer::UpdateDepthStencilState() const {
             front ? regs.poly_offset.front_offset : regs.poly_offset.back_offset,
             regs.poly_offset.depth_bias, slope / 16.f);
     } else if (redraw) {
-        dynamic_state.SetDepthBias(func == AmdGpu::CompareFunc::LessEqual ? -redraw_bias
-                                                                           : redraw_bias,
-                                   0.f, 0.f);
+        const float toward_camera = func == AmdGpu::CompareFunc::LessEqual ? -1.f : 1.f;
+        dynamic_state.SetDepthBias(toward_camera * redraw_bias, 0.f,
+                                   toward_camera * redraw_slope);
     }
 
     const bool stencil_test_enabled = depth_stencil.stencil_test_enable;
