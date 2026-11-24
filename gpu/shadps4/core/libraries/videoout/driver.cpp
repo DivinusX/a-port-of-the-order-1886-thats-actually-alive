@@ -43,6 +43,7 @@ extern std::atomic<u32> g_ps4_compiles;
 extern std::atomic<u64> g_ps4_capture_ns, g_ps4_async_ns, g_ps4_compile_wait_ns;
 extern std::atomic<u64> g_ps4_snapshot_ns, g_ps4_guest_wait_ns;
 extern std::atomic<u32> g_ps4_pending_draws;
+extern std::atomic<u32> g_ps4_waited_draws;
 } // namespace Vulkan
 
 namespace Libraries::VideoOut {
@@ -505,6 +506,7 @@ void VideoOutDriver::Flip(const Request& req) {
             const double snapshot_ms = Vulkan::g_ps4_snapshot_ns.exchange(0) / 1e6;
             const double guest_wait_ms = Vulkan::g_ps4_guest_wait_ns.exchange(0) / 1e6;
             const u32 pending_draws = Vulkan::g_ps4_pending_draws.exchange(0);
+            const u32 waited_draws = Vulkan::g_ps4_waited_draws.exchange(0);
             const u64 direct = Vulkan::Scheduler::direct_recordings.exchange(0);
             const u64 faults = Ps4Stats::tracker_faults.exchange(0);
             // GPU command thread CPU time per draw: comparable between builds even when the scene
@@ -521,14 +523,14 @@ void VideoOutDriver::Flip(const Request& req) {
             std::printf("Frame stats: %.1f FPS, worst frame %.1f ms (vblank %u Hz); "
                         "%u shader/pipeline compiles, %.1f ms; async: capture %.1f ms, workers "
                         "%.1f ms, sync wait %.1f ms, snapshots %.1f ms, GPU capture wait %.1f ms, "
-                        "%u pending draws; %llu recorder syncs; "
+                        "%u pending draws (%u drawn after a compile wait); %llu recorder syncs; "
                         "%.0f write faults/s, %lld hot pages; GPU thread %.2f us/draw, "
                         "%.0f draws/frame, idle %.1f%%; blocked: recorder %.1f%%, host copies "
                         "%.1f%% (%.0f/frame), copy threads %.1f%%, GPU ticks %.1f%%; "
                         "reduced-size draws %.0f/frame of %.0f in the scene\n",
                         frames / window, worst_ms, EmulatorSettings.GetVblankFrequency(), compiles,
                         compile_ns / 1e6, capture_ms, async_ms, wait_ms, snapshot_ms, guest_wait_ms,
-                        pending_draws,
+                        pending_draws, waited_draws,
                         static_cast<unsigned long long>(direct),
                         faults / window, static_cast<long long>(Ps4Stats::hot_pages.load()),
                         us_per_draw, draws_per_frame,

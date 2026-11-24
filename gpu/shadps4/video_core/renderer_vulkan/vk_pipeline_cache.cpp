@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: Copyright 2024-2026 shadPS4 Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdlib>
@@ -441,7 +442,60 @@ std::atomic<u64> g_ps4_capture_ns, g_ps4_async_ns, g_ps4_compile_wait_ns;
 std::atomic<u64> g_ps4_snapshot_ns, g_ps4_guest_wait_ns;
 std::atomic<u32> g_ps4_pool_reuses;
 std::atomic<u32> g_ps4_pending_draws;
+std::atomic<u32> g_ps4_waited_draws;
 namespace {
+// Bounded wait for a draw whose shader or pipeline is still compiling (#61). Skipping such a
+// draw is what keeps new effects from freezing the game, but in a cutscene cut it drops whole
+// materials for as long as their compile takes: faces drawn without their skin lighting come
+// out black, characters and shadows appear late. A handheld APU (ROG Ally Z1 Extreme) compiles
+// slowly enough that this lasts long enough to see. The GPU thread now waits for the compile,
+// paid from a bucket that holds `capacity` ms and refills at a quarter of real time: a cut can
+// spend the whole bucket at once, while waiting can never take more than a quarter of the time
+// over a longer stretch. What does not finish within the bucket is skipped as before.
+// ORDER1886_COMPILE_WAIT_MS sets the bucket (default 100; 0 restores plain skipping).
+class CompileWaitBudget {
+public:
+    using Clock = std::chrono::steady_clock;
+    std::chrono::nanoseconds Available() {
+        const auto now = Clock::now();
+        if (capacity.count() == 0) {
+            return {};
+        }
+        tokens = std::min(capacity, tokens + (now - last) / 4);
+        last = now;
+        return tokens;
+    }
+    void Spend(std::chrono::nanoseconds spent) {
+        tokens = std::max(std::chrono::nanoseconds{0}, tokens - spent);
+    }
+
+private:
+    static std::chrono::nanoseconds Capacity() {
+        const char* env = std::getenv("ORDER1886_COMPILE_WAIT_MS");
+        const long ms = env ? std::strtol(env, nullptr, 10) : 100;
+        return std::chrono::milliseconds{std::clamp(ms, 0L, 1000L)};
+    }
+    std::chrono::nanoseconds capacity = Capacity();
+    std::chrono::nanoseconds tokens = capacity;
+    Clock::time_point last = Clock::now();
+};
+CompileWaitBudget compile_wait_budget;
+
+/// Waits for `job` from the budget; true when it finished in time.
+template <typename Job>
+bool WaitWithinBudget(const Job& job) {
+    const auto available = compile_wait_budget.Available();
+    if (available.count() <= 0) {
+        return false;
+    }
+    const auto start = CompileWaitBudget::Clock::now();
+    const bool done = job.WaitFor(available);
+    const auto spent = CompileWaitBudget::Clock::now() - start;
+    compile_wait_budget.Spend(spent);
+    g_ps4_compile_wait_ns += u64(std::chrono::duration_cast<std::chrono::nanoseconds>(spent).count());
+    return done;
+}
+
 struct PhaseTimer {
     std::atomic<u64>& counter;
     std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
@@ -738,7 +792,26 @@ const GraphicsPipeline* PipelineCache::GetGraphicsPipeline(const DrawIndirectPar
         }
     }
     sel.draw_indirect_params = params;
-    if (!RefreshGraphicsKey(sel)) {
+    sel.waiting_shaders.clear();
+    bool key_ready = RefreshGraphicsKey(sel);
+    bool waited = false;
+    // Wait for the draw's shader translations from the budget (#61). Stages are looked up one
+    // after the other and a new one is queued only on lookup, so a draw with several new
+    // shaders takes a few rounds.
+    for (int round = 0; !key_ready && sel.compilation_pending && !sel.waiting_shaders.empty() &&
+                        round < 4;
+         ++round) {
+        const auto waiting = std::move(sel.waiting_shaders);
+        const bool finished = std::ranges::all_of(
+            waiting, [](const auto& build) { return WaitWithinBudget(build->job); });
+        if (!finished) {
+            break;
+        }
+        waited = true;
+        PublishShaders();
+        key_ready = RefreshGraphicsKey(sel);
+    }
+    if (!key_ready) {
         if (sel.compilation_pending) {
             ++g_ps4_pending_draws;
         }
@@ -747,6 +820,7 @@ const GraphicsPipeline* PipelineCache::GetGraphicsPipeline(const DrawIndirectPar
     if (AsyncCompilation() && !sel.regs->stage_enable.hs_en && !EmulatorSettings.IsShaderCollect()) {
         const auto found = graphics_pipelines.find(sel.graphics_key);
         if (found != graphics_pipelines.end()) {
+            g_ps4_waited_draws += waited ? 1 : 0;
             return found->second.get();
         }
         if (!pending_graphics.contains(sel.graphics_key) && compiler->HasCapacity()) {
@@ -754,6 +828,7 @@ const GraphicsPipeline* PipelineCache::GetGraphicsPipeline(const DrawIndirectPar
             auto build = std::make_shared<AsyncGraphicsCompilation>();
             build->selection = sel;
             build->selection.regs = nullptr;
+            build->selection.waiting_shaders.clear();
             build->live_infos = sel.infos;
             for (u32 i = 0; i < MaxShaderStages; ++i) {
                 if (sel.infos[i]) {
@@ -777,6 +852,19 @@ const GraphicsPipeline* PipelineCache::GetGraphicsPipeline(const DrawIndirectPar
             });
             if (queued) {
                 pending_graphics.emplace(sel.graphics_key, std::move(build));
+            }
+        }
+        // the pipeline compiles on a worker; wait for it from the same budget (#61).
+        if (const auto pending = pending_graphics.find(sel.graphics_key);
+            pending != pending_graphics.end()) {
+            const auto build = pending->second; // PublishGraphics erases the entry
+            if (WaitWithinBudget(build->job)) {
+                PublishGraphics();
+                const auto ready = graphics_pipelines.find(sel.graphics_key);
+                if (ready != graphics_pipelines.end()) {
+                    ++g_ps4_waited_draws;
+                    return ready->second.get();
+                }
             }
         }
         ++g_ps4_pending_draws;
@@ -962,6 +1050,7 @@ bool PipelineCache::RefreshGraphicsStages(PipelineSelection& sel) {
     auto& key = sel.graphics_key;
     sel.fetch_shader = std::nullopt;
     sel.compilation_pending = false;
+    sel.waiting_shaders.clear();
 
     Shader::Backend::Bindings binding{};
     const auto bind_stage = [&](HwStage stage_in, SwStage stage_out) -> bool {
@@ -987,6 +1076,13 @@ bool PipelineCache::RefreshGraphicsStages(PipelineSelection& sel) {
             GetProgram(sel, stage_in, stage_out, params, binding);
         if (!sel.infos[stage_out_idx]) {
             sel.compilation_pending = true;
+            if (!sel.worker) {
+                // remember the translation in flight so the draw can wait for it (#61).
+                const auto found = program_cache.find(params.hash);
+                if (found != program_cache.end() && found->second->pending) {
+                    sel.waiting_shaders.push_back(found->second->pending);
+                }
+            }
             return false;
         }
         if (fetch_shader_) {

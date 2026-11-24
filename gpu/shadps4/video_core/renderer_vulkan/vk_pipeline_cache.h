@@ -109,6 +109,8 @@ struct PipelineSelection {
     GraphicsPipelineKey graphics_key{};
     bool motion = false;
     bool compilation_pending = false;
+    /// GPU thread only: shader translations this draw is waiting for (bounded wait, #61).
+    std::vector<std::shared_ptr<AsyncShaderCompilation>> waiting_shaders{};
     DrawIndirectParams draw_indirect_params{};
     struct PrepWorker* worker{}; ///< set: read-only selection for a draw-preparation worker
 };
