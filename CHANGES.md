@@ -1,5 +1,17 @@
 # Changes Made - November 18, 2026
 
+## v0.2.52 — November 24, 2026 (Windows and Linux)
+
+- **Frame generation no longer switches off at the title screen and stays off**
+  ([#63 follow-up](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/63)).
+  The v0.2.51 headroom governor paused generation when the game fell below its target - correct -
+  but its resume bound (95% of target) was unreachable for a healthy 30 FPS game, which tops out
+  at 29.6 frames/s. A dip on the title screen (23-27/s while shaders compile) therefore paused
+  generation forever. The band is now pause above 1.15x the target interval and resume below
+  1.05x: normal play sits inside the resume band, genuine overloads (60 FPS + generation on a
+  laptop GPU) stay paused. Verified on the owner install: generation resumes and holds at the
+  menu, telemetry shows ~29.6 real/s + ~26 generated/s in steady scenes.
+
 ## v0.2.51 — November 23, 2026 (Windows and Linux)
 
 - **Frame generation now survives a restart** ([#63](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/63)).
