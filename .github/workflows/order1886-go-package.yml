@@ -119,6 +119,11 @@ jobs:
           Copy-Item out/dlss-bridge/NVIDIA-DLSS-LICENSE.txt out/ -ErrorAction SilentlyContinue
           Copy-Item out/dlss-bridge/Release/NVIDIA-DLSS-LICENSE.txt out/ -ErrorAction SilentlyContinue
           "DLSS staged: $((Get-Item out/order1886_dlss.dll).Length) + $((Get-Item out/nvngx_dlss.dll).Length) bytes"
+      - name: Show tree status before packaging
+        run: |
+          git status --porcelain
+          echo '--- tracked modifications:'
+          git diff --stat
       - name: Build the Go portable package and smoke-test it
         shell: pwsh
         run: |
