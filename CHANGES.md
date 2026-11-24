@@ -1,5 +1,16 @@
 # Changes Made - November 18, 2026
 
+## v0.2.51 — November 23, 2026 (Windows and Linux)
+
+- **Frame generation now survives a restart** ([#63](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/63)).
+  Turning the F1 menu's *Frame generation* row on wrote `frame_generation=1` into the
+  session's `runtime.ini`, but the launcher regenerates that file from its own settings on
+  every Play and adopted only its known menu keys - neither knew `frame_generation`, so the
+  choice was silently erased before the next launch: the row came back Off, and players who
+  had frame generation working could never keep it. The launcher now adopts the key from the
+  menu's write and emits it in the regenerated file (Off by default). Round trip verified:
+  enable in-game -> restart through the launcher -> row On, generated frames presenting.
+
 ## v0.2.50 — November 23, 2026 (Windows and Linux)
 
 - **Frame generation is live** ([#47](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/47)).
