@@ -3903,6 +3903,65 @@ std::vector<u64> ParseHashList(const char* name) {
     }
     return out;
 }
+bool IsHalfFloatFormat(vk::Format f) {
+    switch (f) {
+    case vk::Format::eR16Sfloat:
+    case vk::Format::eR16G16Sfloat:
+    case vk::Format::eR16G16B16Sfloat:
+    case vk::Format::eR16G16B16A16Sfloat:
+        return true;
+    default:
+        return false;
+    }
+}
+// ORDER1886_REDRAW_SLOPE_RULE=half: slope only on redraws that fetch a 16-bit float vertex
+// attribute (the #27 face mismatch comes from half-float vertex data).
+bool ReadsHalfFloat(const GraphicsPipeline* pipeline) {
+    if (!pipeline) {
+        return false;
+    }
+    for (const vk::Format f : pipeline->GetGraphicsKey().vertex_buffer_formats) {
+        if (IsHalfFloatFormat(f)) {
+            return true;
+        }
+    }
+    // With dynamic vertex input (NVIDIA, most desktop drivers) the key holds no formats; read
+    // them from the fetch shader's buffers the way BindVertexBuffers does.
+    const auto& fetch = pipeline->GetFetchShader();
+    if (!fetch) {
+        return false;
+    }
+    const auto& vs_info = pipeline->GetStage(Shader::SwStage::Vertex);
+    for (const auto& attrib : fetch->attributes) {
+        const auto buffer = attrib.GetSharp(vs_info);
+        if (IsHalfFloatFormat(
+                LiverpoolToVK::SurfaceFormat(buffer.GetDataFmt(), buffer.GetNumberFmt()))) {
+            return true;
+        }
+    }
+    return false;
+}
+void AppendVertexFormats(const GraphicsPipeline* pipeline, std::string& text) {
+    bool any = false;
+    const auto add = [&](vk::Format f) {
+        char buf[16];
+        std::snprintf(buf, sizeof(buf), "%s%d", any ? "," : "", static_cast<int>(f));
+        text += buf;
+        any = true;
+    };
+    for (const vk::Format f : pipeline->GetGraphicsKey().vertex_buffer_formats) {
+        if (f != vk::Format::eUndefined) {
+            add(f);
+        }
+    }
+    if (!any && pipeline->GetFetchShader()) {
+        const auto& vs_info = pipeline->GetStage(Shader::SwStage::Vertex);
+        for (const auto& attrib : pipeline->GetFetchShader()->attributes) {
+            const auto buffer = attrib.GetSharp(vs_info);
+            add(LiverpoolToVK::SurfaceFormat(buffer.GetDataFmt(), buffer.GetNumberFmt()));
+        }
+    }
+}
 bool HashListed(const std::vector<u64>& list, const GraphicsPipeline* pipeline) {
     if (!pipeline) {
         return false;
@@ -3941,8 +4000,10 @@ void LogRedraw(const GraphicsPipeline* pipeline, bool less_equal, float slope) {
             text += buf;
         }
     }
-    std::fprintf(stderr, "order1886-redraw t=%.1f func=%s slope=%g%s\n", t,
-                 less_equal ? "LE" : "GE", slope, text.c_str());
+    text += " vf=";
+    AppendVertexFormats(pipeline, text);
+    std::fprintf(stderr, "order1886-redraw t=%.1f func=%s slope=%g half=%d%s\n", t,
+                 less_equal ? "LE" : "GE", slope, ReadsHalfFloat(pipeline) ? 1 : 0, text.c_str());
     std::fflush(stderr);
 }
 } // namespace
@@ -4014,8 +4075,14 @@ void Rasterizer::UpdateDepthStencilState(const GraphicsPipeline* pipeline) const
             const char* env = std::getenv("ORDER1886_REDRAW_LOG");
             return env && std::atoi(env) != 0;
         }();
+        static const bool slope_half_rule = [] {
+            const char* env = std::getenv("ORDER1886_REDRAW_SLOPE_RULE");
+            return env && std::string{env} == "half";
+        }();
         bool slope_here = true;
-        if (!slope_only.empty()) {
+        if (slope_half_rule) {
+            slope_here = ReadsHalfFloat(pipeline);
+        } else if (!slope_only.empty()) {
             slope_here = HashListed(slope_only, pipeline);
         } else if (!slope_except.empty()) {
             slope_here = !HashListed(slope_except, pipeline);
