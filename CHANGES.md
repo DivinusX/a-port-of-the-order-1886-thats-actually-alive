@@ -1,5 +1,20 @@
 # Changes Made - November 18, 2026
 
+## v0.2.58 — November 25, 2026 (Windows and Linux)
+
+- **Rugs and carpets no longer flicker or pop out at low angles** ([#67](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/67)).
+  v0.2.57 still gave the slope part of the redraw bias (`ORDER1886_REDRAW_SLOPE_BIAS`, 0.25)
+  to every redraw, and rugs elsewhere in Chapter I kept flickering. The slope part now goes
+  only to the player character's four face lighting redraws, selected by the game's vertex
+  and fragment program hashes (`Shader::Info::pgm_hash`, the same in every session); every
+  other redraw keeps the constant 16-unit part alone, as before v0.2.56. Played on an RTX 5050:
+  the redraw log showed the slope on exactly those four draws, the face had no #27 spots, and
+  rugs no longer flickered. `ORDER1886_REDRAW_SLOPE_PAIRS` overrides the list (`vs:fs` pairs,
+  `all` for the v0.2.57 behaviour, `none`); `ORDER1886_REDRAW_LOG=1` prints each redraw pair once.
+- **Known issue:** a rug can briefly turn black at the edge of the view. It also happens with all
+  redraw bias off (`ORDER1886_REDRAW_DEPTH_BIAS=0`), so it is a separate defect.
+  Write-up: `docs/verification/2026-11-25-v0.2.58-face-only-slope-bias.md`.
+
 ## v0.2.57 — November 25, 2026 (Windows and Linux)
 
 - **Carpets, windows and frames no longer flicker indoors** ([#67](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/67)).
