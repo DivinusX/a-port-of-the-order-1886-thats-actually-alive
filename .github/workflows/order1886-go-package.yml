@@ -22,12 +22,25 @@ on:
         required: false
         default: https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/releases/download/v0.2.17/order1886-linux-x86_64-v0.2.17.tar.gz
         type: string
+  # order1886-release.yml builds both packages and publishes them from one tag push.
+  workflow_call:
+    inputs:
+      package_version:
+        required: false
+        default: ''
+        type: string
+      fsr4_bundle_url:
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: order1886-go-package-${{ github.ref }}
+  # github.workflow is the caller's name when called, so a release run never cancels (or is
+  # cancelled by) a manual run on the same ref.
+  group: order1886-go-package-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

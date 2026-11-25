@@ -21,12 +21,16 @@ on:
       - 'src/**'
       - 'gpu/**'
       - '.github/workflows/order1886-go-linux-package.yml'
+  # order1886-release.yml builds both packages and publishes them from one tag push.
+  workflow_call:
 
 permissions:
   contents: read
 
 concurrency:
-  group: order1886-go-linux-package-${{ github.ref }}
+  # github.workflow is the caller's name when called: the tag push also starts this workflow on
+  # its own, and the two runs must not cancel each other.
+  group: order1886-go-linux-package-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

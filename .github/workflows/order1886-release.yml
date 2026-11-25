@@ -1,0 +1,150 @@
+# Release from one tag push: both packages from the same commit, then the GitHub release.
+#
+# Push a tag vX.Y.Z (or vX.Y.Z-go-preview.N, published as a pre-release) on the release commit,
+# with the notes in docs/releases/<tag>.md. This runs the Windows and Linux package workflows on
+# that commit and then finishes the release the way the manual ones were finished
+# (docs/agents/release.md, v0.2.46/v0.2.56 receipts):
+#  - the Linux tarball gets the platform-neutral FSR 4 v07 bundle (the Linux workflow has no
+#    bundle input), its manifest is regenerated and the portable smoke re-runs on the result;
+#  - release-verification.json comes from packaging/order1886_release_receipt.py, which refuses a
+#    dirty build and mismatched revisions;
+#  - assets as in v0.2.56: order1886-go-windows.zip (the updater's archive), the versioned
+#    Windows zip (same bytes), the versioned Linux tarball, a .sha256 for each, the receipt.
+name: The Order 1886 release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-go-preview.[0-9]+'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: order1886-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # Published package carrying bin/fsr4 (285 files, platform-neutral).
+  FSR4_SOURCE: https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/releases/download/v0.2.56/order1886-linux-x86_64-v0.2.56.tar.gz
+
+jobs:
+  windows:
+    uses: ./.github/workflows/order1886-go-package.yml
+    with:
+      package_version: ${{ github.ref_name }}
+      fsr4_bundle_url: https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/releases/download/v0.2.56/order1886-linux-x86_64-v0.2.56.tar.gz
+
+  linux:
+    uses: ./.github/workflows/order1886-go-linux-package.yml
+
+  publish:
+    needs: [windows, linux]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - name: Release notes must exist
+        run: test -s "docs/releases/$TAG.md" || { echo "docs/releases/$TAG.md is missing"; exit 1; }
+      - uses: actions/download-artifact@v4
+        with:
+          name: order1886-win-zip
+          path: dl/windows
+      - uses: actions/download-artifact@v4
+        with:
+          name: order1886-go-linux-package
+          path: dl/linux
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Runtime libraries for the Linux smoke (ldd must resolve what the package does not bundle)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libvulkan1 libavcodec-dev libavutil-dev libswscale-dev libavformat-dev libswresample-dev \
+            libgtk-3-0t64 libwebkit2gtk-4.1-0 \
+            libx11-6 libxrandr2 libxcursor1 libxi6 libwayland-client0 libxkbcommon0 \
+            libfmt-dev libxxhash-dev libzydis-dev \
+            libasound2t64 libpulse0 libudev1 zlib1g libssl3t64 binutils
+      - name: Finalize the Linux package with the FSR 4 bundle and re-run its smoke
+        run: |
+          set -euo pipefail
+          mkdir -p work/fsr4 work/linux assets
+          curl -L --fail -sS -o work/fsr4.tar.gz "$FSR4_SOURCE"
+          tar -xzf work/fsr4.tar.gz -C work/fsr4 --wildcards '*/bin/fsr4/*'
+          tar -xzf dl/linux/order1886-linux-x86_64.tar.gz -C work/linux
+          pkg="work/linux/The Order 1886"
+          test -f "$pkg/package-manifest.json"
+          rm -rf "$pkg/bin/fsr4"
+          cp -r work/fsr4/*/bin/fsr4 "$pkg/bin/fsr4"
+          count=$(find "$pkg/bin/fsr4" -type f | wc -l)
+          echo "FSR 4 bundle: $count files"
+          test "$count" -ge 200
+          python - "$pkg" <<'PY'
+          import hashlib, json, sys
+          from pathlib import Path
+          pkg = Path(sys.argv[1])
+          path = pkg / 'package-manifest.json'
+          manifest = json.loads(path.read_text(encoding='utf-8'))
+          def digest(p):
+              h = hashlib.sha256()
+              with p.open('rb') as f:
+                  for block in iter(lambda: f.read(1 << 20), b''):
+                      h.update(block)
+              return h.hexdigest()
+          manifest['files'] = [{'path': str(p.relative_to(pkg)), 'sha256': digest(p)}
+                               for p in sorted(pkg.rglob('*'))
+                               if p.is_file() and p.name != 'package-manifest.json']
+          path.write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
+          print(f"manifest: {len(manifest['files'])} files, source {manifest.get('source_revision')}, dirty {manifest.get('source_dirty')}")
+          PY
+          python packaging/linux/order1886-go-smoke.py "$pkg"
+          tar -C work/linux -czf "assets/order1886-linux-x86_64-$TAG.tar.gz" "The Order 1886"
+          mkdir -p work/recheck
+          tar -xzf "assets/order1886-linux-x86_64-$TAG.tar.gz" -C work/recheck
+          python packaging/linux/order1886-go-smoke.py "work/recheck/The Order 1886"
+      - name: Windows assets
+        run: |
+          set -euo pipefail
+          zip=$(ls dl/windows/order1886-win-x86_64*.zip | head -1)
+          test -n "$zip"
+          cp "$zip" "assets/order1886-win-x86_64-$TAG.zip"
+          cp "$zip" assets/order1886-go-windows.zip
+      - name: Receipt and checksums
+        run: |
+          set -euo pipefail
+          python packaging/order1886_release_receipt.py --tag "$TAG" \
+            --windows assets/order1886-go-windows.zip \
+            --linux "assets/order1886-linux-x86_64-$TAG.tar.gz" \
+            --workflow-run "${{ github.run_id }}" \
+            --check windows_package_run="${{ github.run_id }}" \
+            --check native_tests="Windows and Linux native checks and portable smoke passed (CI, release run); Linux smoke re-run on the finalized folder and archive" \
+            --check linux_bundle="FSR 4 v07 bundle from the v0.2.56 release package" \
+            --out assets/release-verification.json
+          cd assets
+          for f in order1886-go-windows.zip "order1886-win-x86_64-$TAG.zip" "order1886-linux-x86_64-$TAG.tar.gz"; do
+            sha256sum "$f" | sed 's/ \*/  /' > "$f.sha256"
+          done
+          ls -l
+          cat release-verification.json
+      - name: Publish the release
+        run: |
+          set -euo pipefail
+          title=$(head -n 1 "docs/releases/$TAG.md" | sed 's/^# *//')
+          flags=()
+          case "$TAG" in *-go-preview.*) flags+=(--prerelease) ;; esac
+          tail -n +2 "docs/releases/$TAG.md" > work/notes.md
+          gh release create "$TAG" --verify-tag --title "$title" --notes-file work/notes.md "${flags[@]}" \
+            assets/order1886-go-windows.zip assets/order1886-go-windows.zip.sha256 \
+            "assets/order1886-win-x86_64-$TAG.zip" "assets/order1886-win-x86_64-$TAG.zip.sha256" \
+            "assets/order1886-linux-x86_64-$TAG.tar.gz" "assets/order1886-linux-x86_64-$TAG.tar.gz.sha256" \
+            assets/release-verification.json
+          echo "Published $TAG" >> "$GITHUB_STEP_SUMMARY"
