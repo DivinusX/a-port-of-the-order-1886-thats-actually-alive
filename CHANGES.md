@@ -1,6 +1,40 @@
 # Changes Made - November 18, 2026
 
-## v0.2.55 — November 24, 2026 (Windows and Linux)
+## v0.2.57 — November 25, 2026 (Windows and Linux)
+
+- **Carpets, windows and frames no longer flicker indoors** ([#67](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/67)).
+  The v0.2.56 face-spot fix gives the lighting pass extra depth room that grows with how
+  steeply a surface is seen (`ORDER1886_REDRAW_SLOPE_BIAS`). At 1.0 a floor seen at a shallow
+  angle got enough room to be drawn over the carpet lying on it, so the whole carpet popped in
+  and out as the camera moved; windows and frames on walls did the same. The default is now
+  0.25. Measured on an RTX 5050 with the v0.2.56 runtime in the Chapter I carpet room and on a
+  face close-up: 1.0 makes the carpet pop, 0 brings the #27 face spots back, 0.25 keeps both
+  right.
+- **Less stutter at cutscene camera cuts** ([#67](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/67), [#61](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/61)).
+  v0.2.56 waited up to 100 ms at once for shaders still compiling at a cut, a visible hitch on
+  every fresh shader cache. The bucket (`ORDER1886_COMPILE_WAIT_MS`) is now 33 ms, one frame at
+  30 FPS; slower shaders are skipped for a frame or two as before v0.2.56. Not measured in game.
+- Releases are now built and published from one tag push (`.github/workflows/order1886-release.yml`):
+  both packages from the same commit, FSR 4 bundle added to the Linux tarball, smoke re-run,
+  receipt from `packaging/order1886_release_receipt.py`.
+  Write-up: `docs/verification/2026-11-25-v0.2.57-carpet-flicker-and-cutscene-wait.md`.
+
+## v0.2.56 — November 24, 2026 (Windows and Linux)
+
+Built on v0.2.49; frame generation (v0.2.50 to v0.2.55, below) was withdrawn on November 24 and
+v0.2.49 re-published as the current release.
+
+- **Black spots on faces outdoors fixed** ([#27](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/27)).
+  Faces are drawn twice, a depth pass and a lighting pass that only lights pixels whose depth
+  matches; one pass works from half-precision data, and outdoors or on surfaces seen edge-on
+  the disagreement grew past the fixed tolerance. The tolerance now also scales with the
+  triangle's depth slope.
+- **Black faces and late objects after cutscene camera cuts** ([#61](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/61)).
+  Draws whose shader was still compiling were skipped; the game now waits briefly for them
+  from a time budget. Write-up: `docs/verification/2026-11-24-v0.2.56-face-spots-and-cutscene-popin.md`
+  (on `release/v0.2.56`).
+
+## v0.2.55 — November 24, 2026 (Windows and Linux) — withdrawn
 
 - **Long frame-generation sessions no longer crash** ([#63](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/63)).
   The wait that fixed the HUD black-boxes had dropped the swapchain's per-acquire semaphore
@@ -14,7 +48,7 @@
   log line; the F1 menu's 'On (force)' overrides both. Verified live: one flip in 85 s,
   zero faults, generated presents flowing.
 
-## v0.2.54 — November 24, 2026 (Windows and Linux)
+## v0.2.54 — November 24, 2026 (Windows and Linux) — withdrawn
 
 - **Sun and shadow flicker fixed** ([#64](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/64)).
   Sunlit walls, cobbles, faces and props lost their light and shadows on three frames of every
@@ -31,7 +65,7 @@
   settings back to `settings.json` and keeps its own choices in `runtime-menu.ini`.
 - The overlay's start-up line now names F1 among the menu keys (F1, Insert or R3+L2).
 
-## v0.2.53 — November 24, 2026 (Windows and Linux)
+## v0.2.53 — November 24, 2026 (Windows and Linux) — withdrawn
 
 - **Frame generation for low-end devices** ([#63](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/63) review).
   Players on weaker GPUs reported the row staying On with nothing happening: their game runs
@@ -47,7 +81,7 @@
     fallback?") - previously a missing FSR 4 asset bundle could kill the frame-generation
     feed with zero trace, which is what made this issue look unfixable from outside.
 
-## v0.2.52 — November 24, 2026 (Windows and Linux)
+## v0.2.52 — November 24, 2026 (Windows and Linux) — withdrawn
 
 - **Frame generation no longer switches off at the title screen and stays off**
   ([#63 follow-up](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/63)).
@@ -59,7 +93,7 @@
   laptop GPU) stay paused. Verified on the owner install: generation resumes and holds at the
   menu, telemetry shows ~29.6 real/s + ~26 generated/s in steady scenes.
 
-## v0.2.51 — November 23, 2026 (Windows and Linux)
+## v0.2.51 — November 23, 2026 (Windows and Linux) — withdrawn
 
 - **Frame generation now survives a restart** ([#63](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/63)).
   Turning the F1 menu's *Frame generation* row on wrote `frame_generation=1` into the
@@ -70,7 +104,7 @@
   menu's write and emits it in the regenerated file (Off by default). Round trip verified:
   enable in-game -> restart through the launcher -> row On, generated frames presenting.
 
-## v0.2.50 — November 23, 2026 (Windows and Linux)
+## v0.2.50 — November 23, 2026 (Windows and Linux) — withdrawn
 
 - **Frame generation is live** ([#47](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/47)).
   The game's 30 FPS presentation is now doubled with **AMD FSR 3.1.6 frame generation**
