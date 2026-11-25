@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <algorithm>
+#include <bit>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <mutex>
@@ -3714,7 +3716,7 @@ void Rasterizer::UnmapMemory(VAddr addr, u64 size) {
 
 void Rasterizer::UpdateDynamicState(const GraphicsPipeline* pipeline, const bool is_indexed) const {
     UpdateViewportScissorState();
-    UpdateDepthStencilState();
+    UpdateDepthStencilState(pipeline);
     UpdatePrimitiveState(is_indexed);
     UpdateRasterizationState();
     UpdateColorBlendingState(pipeline);
@@ -3876,7 +3878,104 @@ vk::Pipeline Rasterizer::SquarePass(const GraphicsPipeline& pipeline) const {
     return {};
 }
 
-void Rasterizer::UpdateDepthStencilState() const {
+namespace {
+// Issue #67 follow-up: the slope part of the redraw bias goes only to the redraws that need it.
+// They are named by the game's program hashes (Shader::Info::pgm_hash) of the vertex and
+// fragment stage. The stage hashes in the pipeline key are not usable for this: they carry a
+// permutation index handed out in compile order, so the same draw gets a different hash in
+// another session.
+struct ProgramPair {
+    u64 vs;
+    u64 fs;
+};
+// The player character's face lighting redraws (Chapter I, RTX 5050, ORDER1886_REDRAW_LOG):
+// with the slope bias on exactly these four the face dots of #27 stay away, and the floors,
+// carpets and rugs of #67 no longer get it. The vertex program 527b7ca4 alone is not enough
+// to pick them: well over a hundred other redraws (floors, rugs) share it, and fragment program
+// a54a188 also runs with vertex program 193274a4 on a surface that then flickers.
+constexpr ProgramPair kFaceRedraws[] = {
+    {0x527b7ca4, 0x7f6a2e59},
+    {0x527b7ca4, 0x3fec8179},
+    {0xe0ec7fe0, 0x244bbb5e},
+    {0x0e4fee1c, 0x0a54a188},
+};
+
+struct SlopeSelection {
+    bool all = false;
+    std::vector<ProgramPair> pairs;
+};
+// ORDER1886_REDRAW_SLOPE_PAIRS overrides the list: "vs:fs,vs:fs" (hex), "all" for every
+// redraw (v0.2.56/v0.2.57 behaviour), "none" for no slope bias at all.
+SlopeSelection ReadSlopeSelection() {
+    SlopeSelection sel;
+    const char* env = std::getenv("ORDER1886_REDRAW_SLOPE_PAIRS");
+    if (!env) {
+        sel.pairs.assign(std::begin(kFaceRedraws), std::end(kFaceRedraws));
+        return sel;
+    }
+    const std::string s{env};
+    if (s == "all") {
+        sel.all = true;
+        return sel;
+    }
+    size_t pos = 0;
+    while (pos < s.size()) {
+        size_t end = s.find_first_of(",; ", pos);
+        if (end == std::string::npos) {
+            end = s.size();
+        }
+        const std::string item = s.substr(pos, end - pos);
+        if (const size_t colon = item.find(':'); colon != std::string::npos) {
+            sel.pairs.push_back({std::strtoull(item.substr(0, colon).c_str(), nullptr, 16),
+                                 std::strtoull(item.substr(colon + 1).c_str(), nullptr, 16)});
+        }
+        pos = end + 1;
+    }
+    return sel;
+}
+u64 ProgramHash(const GraphicsPipeline* pipeline, Shader::SwStage stage) {
+    const auto stages = pipeline->GetStages();
+    const u32 index = static_cast<u32>(stage);
+    return index < stages.size() && stages[index] ? stages[index]->pgm_hash : 0;
+}
+bool WantsSlopeBias(const GraphicsPipeline* pipeline) {
+    static const SlopeSelection sel = ReadSlopeSelection();
+    if (sel.all) {
+        return true;
+    }
+    if (!pipeline) {
+        return false;
+    }
+    const u64 vs = ProgramHash(pipeline, Shader::SwStage::Vertex);
+    const u64 fs = ProgramHash(pipeline, Shader::SwStage::Fragment);
+    return std::ranges::any_of(sel.pairs,
+                               [&](const ProgramPair& p) { return p.vs == vs && p.fs == fs; });
+}
+// ORDER1886_REDRAW_LOG=1 prints each redraw program pair once (stderr), with whether it got
+// the slope bias; this is how the list above was found.
+void LogRedraw(const GraphicsPipeline* pipeline, bool less_equal, float slope) {
+    static std::mutex mutex;
+    static std::set<std::pair<u64, u64>> seen;
+    static const auto start = std::chrono::steady_clock::now();
+    if (!pipeline) {
+        return;
+    }
+    const u64 vs = ProgramHash(pipeline, Shader::SwStage::Vertex);
+    const u64 fs = ProgramHash(pipeline, Shader::SwStage::Fragment);
+    std::scoped_lock lock{mutex};
+    if (!seen.insert({vs, fs}).second) {
+        return;
+    }
+    const double t =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+    std::fprintf(stderr, "order1886-redraw t=%.1f func=%s slope=%g vs=%llx fs=%llx\n", t,
+                 less_equal ? "LE" : "GE", slope, static_cast<unsigned long long>(vs),
+                 static_cast<unsigned long long>(fs));
+    std::fflush(stderr);
+}
+} // namespace
+
+void Rasterizer::UpdateDepthStencilState(const GraphicsPipeline* pipeline) const {
     const auto& regs = Regs();
     auto& dynamic_state = scheduler.GetDynamicState();
 
@@ -3918,7 +4017,7 @@ void Rasterizer::UpdateDepthStencilState() const {
     // carpet lying on it, and the whole carpet popped in and out as the camera moved (windows
     // and frames on walls likewise). Measured on an RTX 5050 with the v0.2.56 runtime, carpet
     // room and a face close-up: 0 brings the face dots back, 1.0 makes the carpet pop, 0.25
-    // keeps both right.
+    // keeps both right there (rugs elsewhere still flickered at 0.25; see WantsSlopeBias).
     static const float redraw_slope = [] {
         const char* env = std::getenv("ORDER1886_REDRAW_SLOPE_BIAS");
         return env ? float(std::atof(env)) : 0.25f;
@@ -3936,9 +4035,20 @@ void Rasterizer::UpdateDepthStencilState() const {
             front ? regs.poly_offset.front_offset : regs.poly_offset.back_offset,
             regs.poly_offset.depth_bias, slope / 16.f);
     } else if (redraw) {
-        const float toward_camera = func == AmdGpu::CompareFunc::LessEqual ? -1.f : 1.f;
-        dynamic_state.SetDepthBias(toward_camera * redraw_bias, 0.f,
-                                   toward_camera * redraw_slope);
+        static const bool redraw_log = [] {
+            const char* env = std::getenv("ORDER1886_REDRAW_LOG");
+            return env && std::atoi(env) != 0;
+        }();
+        // v0.2.57 still gave the slope part to every redraw, and 0.25 was not small enough:
+        // rugs vanished when seen at a low angle. Only the face redraws need it (see
+        // kFaceRedraws); every other redraw keeps the constant part alone, as before v0.2.56.
+        const float slope = WantsSlopeBias(pipeline) ? redraw_slope : 0.f;
+        const bool less_equal = func == AmdGpu::CompareFunc::LessEqual;
+        const float toward_camera = less_equal ? -1.f : 1.f;
+        dynamic_state.SetDepthBias(toward_camera * redraw_bias, 0.f, toward_camera * slope);
+        if (redraw_log) {
+            LogRedraw(pipeline, less_equal, slope);
+        }
     }
 
     const bool stencil_test_enabled = depth_stencil.stencil_test_enable;
