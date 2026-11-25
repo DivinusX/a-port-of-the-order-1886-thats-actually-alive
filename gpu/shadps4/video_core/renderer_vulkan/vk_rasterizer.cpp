@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <algorithm>
+#include <bit>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <mutex>
@@ -3714,7 +3716,7 @@ void Rasterizer::UnmapMemory(VAddr addr, u64 size) {
 
 void Rasterizer::UpdateDynamicState(const GraphicsPipeline* pipeline, const bool is_indexed) const {
     UpdateViewportScissorState();
-    UpdateDepthStencilState();
+    UpdateDepthStencilState(pipeline);
     UpdatePrimitiveState(is_indexed);
     UpdateRasterizationState();
     UpdateColorBlendingState(pipeline);
@@ -3876,7 +3878,76 @@ vk::Pipeline Rasterizer::SquarePass(const GraphicsPipeline& pipeline) const {
     return {};
 }
 
-void Rasterizer::UpdateDepthStencilState() const {
+namespace {
+// Issue #67 follow-up (test build): which redraws get the slope part of the redraw bias.
+// ORDER1886_REDRAW_SLOPE_ONLY=<hex>,<hex>  slope only on draws with one of these stage hashes
+// ORDER1886_REDRAW_SLOPE_EXCEPT=<hex>,...  slope on every redraw except these
+// ORDER1886_REDRAW_LOG=1                   print each redraw pipeline once (stderr)
+std::vector<u64> ParseHashList(const char* name) {
+    std::vector<u64> out;
+    const char* env = std::getenv(name);
+    if (!env) {
+        return out;
+    }
+    std::string s{env};
+    size_t pos = 0;
+    while (pos < s.size()) {
+        size_t end = s.find_first_of(",; ", pos);
+        if (end == std::string::npos) {
+            end = s.size();
+        }
+        if (end > pos) {
+            out.push_back(std::strtoull(s.substr(pos, end - pos).c_str(), nullptr, 16));
+        }
+        pos = end + 1;
+    }
+    return out;
+}
+bool HashListed(const std::vector<u64>& list, const GraphicsPipeline* pipeline) {
+    if (!pipeline) {
+        return false;
+    }
+    for (const size_t h : pipeline->GetGraphicsKey().stage_hashes) {
+        if (h != 0 && std::find(list.begin(), list.end(), u64(h)) != list.end()) {
+            return true;
+        }
+    }
+    return false;
+}
+void LogRedraw(const GraphicsPipeline* pipeline, bool less_equal, float slope) {
+    static std::mutex mutex;
+    static std::set<std::pair<u64, u64>> seen;
+    static const auto start = std::chrono::steady_clock::now();
+    if (!pipeline) {
+        return;
+    }
+    const auto& hashes = pipeline->GetGraphicsKey().stage_hashes;
+    u64 combined = 0;
+    for (const size_t h : hashes) {
+        combined = combined * 1000003u ^ u64(h);
+    }
+    std::scoped_lock lock{mutex};
+    if (!seen.insert({combined, std::bit_cast<u32>(slope)}).second) {
+        return;
+    }
+    const double t =
+        std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
+    std::string text;
+    for (size_t i = 0; i < hashes.size(); ++i) {
+        if (hashes[i] != 0) {
+            char buf[48];
+            std::snprintf(buf, sizeof(buf), " s%zu=%llx", i,
+                          static_cast<unsigned long long>(hashes[i]));
+            text += buf;
+        }
+    }
+    std::fprintf(stderr, "order1886-redraw t=%.1f func=%s slope=%g%s\n", t,
+                 less_equal ? "LE" : "GE", slope, text.c_str());
+    std::fflush(stderr);
+}
+} // namespace
+
+void Rasterizer::UpdateDepthStencilState(const GraphicsPipeline* pipeline) const {
     const auto& regs = Regs();
     auto& dynamic_state = scheduler.GetDynamicState();
 
@@ -3936,9 +4007,26 @@ void Rasterizer::UpdateDepthStencilState() const {
             front ? regs.poly_offset.front_offset : regs.poly_offset.back_offset,
             regs.poly_offset.depth_bias, slope / 16.f);
     } else if (redraw) {
-        const float toward_camera = func == AmdGpu::CompareFunc::LessEqual ? -1.f : 1.f;
-        dynamic_state.SetDepthBias(toward_camera * redraw_bias, 0.f,
-                                   toward_camera * redraw_slope);
+        static const std::vector<u64> slope_only = ParseHashList("ORDER1886_REDRAW_SLOPE_ONLY");
+        static const std::vector<u64> slope_except =
+            ParseHashList("ORDER1886_REDRAW_SLOPE_EXCEPT");
+        static const bool redraw_log = [] {
+            const char* env = std::getenv("ORDER1886_REDRAW_LOG");
+            return env && std::atoi(env) != 0;
+        }();
+        bool slope_here = true;
+        if (!slope_only.empty()) {
+            slope_here = HashListed(slope_only, pipeline);
+        } else if (!slope_except.empty()) {
+            slope_here = !HashListed(slope_except, pipeline);
+        }
+        const float slope = slope_here ? redraw_slope : 0.f;
+        const bool less_equal = func == AmdGpu::CompareFunc::LessEqual;
+        const float toward_camera = less_equal ? -1.f : 1.f;
+        dynamic_state.SetDepthBias(toward_camera * redraw_bias, 0.f, toward_camera * slope);
+        if (redraw_log) {
+            LogRedraw(pipeline, less_equal, slope);
+        }
     }
 
     const bool stencil_test_enabled = depth_stencil.stencil_test_enable;
