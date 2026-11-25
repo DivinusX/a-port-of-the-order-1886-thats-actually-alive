@@ -452,7 +452,11 @@ namespace {
 // paid from a bucket that holds `capacity` ms and refills at a quarter of real time: a cut can
 // spend the whole bucket at once, while waiting can never take more than a quarter of the time
 // over a longer stretch. What does not finish within the bucket is skipped as before.
-// ORDER1886_COMPILE_WAIT_MS sets the bucket (default 100; 0 restores plain skipping).
+// ORDER1886_COMPILE_WAIT_MS sets the bucket (default 33; 0 restores plain skipping).
+// Issue #67: a 100 ms bucket spent at one cut is a visible hitch every time a cutscene changes
+// camera on a fresh cache (v0.2.56 measured worst frame 745 -> 1773 ms). 33 ms is one 30 FPS
+// frame: a cut costs at most about one extra frame, quick compiles still land on the cut frame,
+// slower ones are skipped and appear a frame or two later.
 class CompileWaitBudget {
 public:
     using Clock = std::chrono::steady_clock;
@@ -472,7 +476,7 @@ public:
 private:
     static std::chrono::nanoseconds Capacity() {
         const char* env = std::getenv("ORDER1886_COMPILE_WAIT_MS");
-        const long ms = env ? std::strtol(env, nullptr, 10) : 100;
+        const long ms = env ? std::strtol(env, nullptr, 10) : 33;
         return std::chrono::milliseconds{std::clamp(ms, 0L, 1000L)};
     }
     std::chrono::nanoseconds capacity = Capacity();

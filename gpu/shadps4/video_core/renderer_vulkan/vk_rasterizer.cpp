@@ -3914,9 +3914,14 @@ void Rasterizer::UpdateDepthStencilState() const {
     // face through. A slope-scaled part (ORDER1886_REDRAW_SLOPE_BIAS, factor of the
     // triangle's own depth slope, 0 = off) covers the steep triangles where the error is large
     // and adds nothing to triangles facing the camera.
+    // Issue #67: at 1.0 the slope part also lifts a floor seen at a grazing angle over the
+    // carpet lying on it, and the whole carpet popped in and out as the camera moved (windows
+    // and frames on walls likewise). Measured on an RTX 5050 with the v0.2.56 runtime, carpet
+    // room and a face close-up: 0 brings the face dots back, 1.0 makes the carpet pop, 0.25
+    // keeps both right.
     static const float redraw_slope = [] {
         const char* env = std::getenv("ORDER1886_REDRAW_SLOPE_BIAS");
-        return env ? float(std::atof(env)) : 1.f;
+        return env ? float(std::atof(env)) : 0.25f;
     }();
     const auto func = regs.depth_control.depth_func;
     const bool redraw = depth_test_enabled && !depth_stencil.depth_write_enable &&
