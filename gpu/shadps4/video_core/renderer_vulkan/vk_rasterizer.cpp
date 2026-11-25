@@ -3962,6 +3962,19 @@ void AppendVertexFormats(const GraphicsPipeline* pipeline, std::string& text) {
         }
     }
 }
+// The game's own program hash of each stage. Stage hashes in the pipeline key also carry a
+// permutation index handed out in compile order, so they differ between sessions; these do not.
+bool ProgramListed(const std::vector<u64>& list, const GraphicsPipeline* pipeline) {
+    if (!pipeline) {
+        return false;
+    }
+    for (const Shader::Info* info : pipeline->GetStages()) {
+        if (info && std::find(list.begin(), list.end(), info->pgm_hash) != list.end()) {
+            return true;
+        }
+    }
+    return false;
+}
 bool HashListed(const std::vector<u64>& list, const GraphicsPipeline* pipeline) {
     if (!pipeline) {
         return false;
@@ -3997,6 +4010,15 @@ void LogRedraw(const GraphicsPipeline* pipeline, bool less_equal, float slope) {
             char buf[48];
             std::snprintf(buf, sizeof(buf), " s%zu=%llx", i,
                           static_cast<unsigned long long>(hashes[i]));
+            text += buf;
+        }
+    }
+    const auto stages = pipeline->GetStages();
+    for (size_t i = 0; i < stages.size(); ++i) {
+        if (stages[i]) {
+            char buf[48];
+            std::snprintf(buf, sizeof(buf), " p%zu=%llx", i,
+                          static_cast<unsigned long long>(stages[i]->pgm_hash));
             text += buf;
         }
     }
@@ -4079,8 +4101,12 @@ void Rasterizer::UpdateDepthStencilState(const GraphicsPipeline* pipeline) const
             const char* env = std::getenv("ORDER1886_REDRAW_SLOPE_RULE");
             return env && std::string{env} == "half";
         }();
+        static const std::vector<u64> slope_programs =
+            ParseHashList("ORDER1886_REDRAW_SLOPE_PROGRAMS");
         bool slope_here = true;
-        if (slope_half_rule) {
+        if (!slope_programs.empty()) {
+            slope_here = ProgramListed(slope_programs, pipeline);
+        } else if (slope_half_rule) {
             slope_here = ReadsHalfFloat(pipeline);
         } else if (!slope_only.empty()) {
             slope_here = HashListed(slope_only, pipeline);
