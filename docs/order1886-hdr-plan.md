@@ -1,7 +1,20 @@
-# HDR10 output (#66): plan
+# HDR10 output (#66): design
 
-Status: design, nothing built. Evidence: a frame capture and shader dump from Chapter I gameplay,
-v0.2.56 runtime, RTX 5050 (`user/order1886/hdr-capture/20261126-024229` in the player's install).
+Status: shipped in v0.2.59 (`vk_order_hdr.{h,cpp}`, `order_hdr_gain.comp`,
+`order_hdr_compose.comp`, `post_process.frag`). Evidence: a frame capture and shader dump from
+Chapter I gameplay, v0.2.56 runtime, RTX 5050.
+
+What changed from the plan below while it was built and tested:
+
+- The knee (`hdr_knee`, "Highlight start") defaults to 80% of SDR white: at 55% lit skin in
+  close-ups was boosted; at 80% a gameplay frame boosts about 0.1% of pixels (the sun glare).
+- The snapshot copies the display buffer with its own barriers and restores the tracked layout,
+  into one R8G8B8A8 image recreated only on a size change. Calling `runtime.Transit` from the draw
+  recording thread, and recreating the image every frame because the display buffer is seen both
+  as R8G8B8A8Unorm and as R8G8B8A8Srgb, made shadows flicker and vertices explode (bisected with
+  `ORDER1886_HDR_SKIP`).
+- The settings are runtime.ini keys (`hdr`, `hdr_paper_white`, `hdr_peak`, `hdr_knee`) shown in the
+  launcher and in F1 > Graphics > HDR; paper white, peak and knee apply live.
 
 ## What the frame does today
 
