@@ -49,6 +49,8 @@ void ShowNotice(const std::string& text, int milliseconds = 3000);
 
 /// Present thread: draws into `view` (layout ColorAttachmentOptimal).
 void Render(vk::CommandBuffer cmdbuf, vk::ImageView view, vk::Extent2D extent);
+/// HDR10 swapchain (#66): encode the overlay's colours as PQ at this paper white; 0 for SDR.
+void SetHdrPaperWhite(float nits);
 
 /// The menu is open or a text entry is shown: the game's input is held neutral.
 bool CapturesInput();

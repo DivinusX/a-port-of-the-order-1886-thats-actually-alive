@@ -388,6 +388,9 @@ Presenter::Presenter(Frontend::WindowSDL& window_, AmdGpu::Liverpool* liverpool_
     }
     pp_pass.Create(device, swapchain.GetSurfaceFormat().format);
     Ps4Overlay::Init(instance, swapchain.GetSurfaceFormat().format, num_images);
+    if (OrderHdr::Hdr10()) {
+        Ps4Overlay::SetHdrPaperWhite(OrderHdr::PaperWhite());
+    }
 
     const bool binary_cache = EmulatorSettingsImpl::Flag("ORDER1886_PIPELINE_BINARIES", true) &&
                               EmulatorSettings.IsPipelineCacheEnabled();
@@ -717,6 +720,16 @@ Frame* Presenter::PrepareFrame(const Libraries::VideoOut::BufferAttributeGroup& 
     }
     expected_ratio = static_cast<float>(image_size.width) / static_cast<float>(image_size.height);
 
+    // HDR (#66): this frame's boost, from the display buffer before FSR 1 resamples it. The
+    // display buffer itself stays SDR; post_process.frag applies the boost and encodes HDR.
+    const bool order_hdr = OrderHdr::Active();
+    vk::ImageView boost_view{};
+    if (order_hdr && !upscaled) {
+        boost_view = OrderHdr::Compose(*rasterizer, cmdbuf, cpu_address,
+                                       texture_cache.GetImage(image_id), image_view,
+                                       view_info.format);
+    }
+
     // FSR 1, RCAS and its strength come from the in-game menu, every frame.
     const auto& graphics = Ps4Settings::Get();
     fsr_settings.enable = graphics.fsr1;
@@ -730,14 +743,22 @@ Frame* Presenter::PrepareFrame(const Libraries::VideoOut::BufferAttributeGroup& 
         fsr_settings.use_rcas &&
         Ps4Graphics::FsrPassRuns(fsr_settings.enable, true, int(image_size.width), int(image_size.height),
                                   int(frame->width), int(frame->height));
+    // With HDR (#66) the display buffer is SDR: FSR 1 filters it as SDR.
     image_view = fsr_pass.Render(cmdbuf, image_view, image_size, {frame->width, frame->height},
-                                 fsr_settings, frame->is_hdr);
+                                 fsr_settings, frame->is_hdr && !order_hdr);
 
     // Vulkan has no sRGB variant of the 10-bit format, so an A2R10G10B10Srgb buffer reaches
     // the post process pass still sRGB encoded and has to be decoded there instead.
     pp_settings.srgb_input =
         attribute.attrib.pixel_format == Libraries::VideoOut::PixelFormat::A2R10G10B10Srgb;
-    pp_pass.Render(cmdbuf, image_view, image_size, *frame, pp_settings);
+    auto settings = pp_settings;
+    if (order_hdr) {
+        settings.hdr = OrderHdr::Output();
+        settings.paper_white = OrderHdr::PaperWhite();
+        settings.peak = OrderHdr::Peak();
+        settings.use_boost = boost_view ? 1u : 0u;
+    }
+    pp_pass.Render(cmdbuf, image_view, image_size, *frame, settings, boost_view);
     if (frame_dump) {
         // The presented image as the swapchain blit reads it (General after the pass).
         const vk::MemoryBarrier2 done{.srcStageMask = vk::PipelineStageFlagBits2::eAllCommands,

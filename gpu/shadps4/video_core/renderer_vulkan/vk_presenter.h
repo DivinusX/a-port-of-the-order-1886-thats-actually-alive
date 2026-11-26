@@ -11,6 +11,7 @@
 #include "core/libraries/videoout/buffer.h"
 #include "video_core/renderer_vulkan/host_passes/fsr_pass.h"
 #include "video_core/renderer_vulkan/host_passes/pp_pass.h"
+#include "video_core/renderer_vulkan/vk_order_hdr.h"
 #include "video_core/renderer_vulkan/vk_instance.h"
 #include "video_core/renderer_vulkan/vk_runtime.h"
 #include "video_core/renderer_vulkan/vk_scheduler.h"
@@ -82,7 +83,8 @@ public:
     }
 
     void SetHDR(bool enable) {
-        if (!IsHDRSupported()) {
+        // HDR (#66): the session's HDR10 swapchain stays, whatever the game asks for each flip.
+        if (!IsHDRSupported() || OrderHdr::Hdr10()) {
             return;
         }
         swapchain.SetHDR(enable);

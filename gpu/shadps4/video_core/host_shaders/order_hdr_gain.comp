@@ -1,0 +1,76 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+// HDR gain map (#66, docs/order1886-hdr-plan.md). Runs after The Order's tonemap draw
+// (ps 0x4403da37) on the same scene colour, exposure and constants, and writes per pixel how much
+// brighter the finished SDR pixel may be shown in HDR:
+//   gain = F_hdr(m) / min(F_sdr(m), 1),  m = brightest channel of the exposed scene colour.
+// F_sdr is the game's filmic curve (Hable form, blended with linear). F_hdr is F_sdr up to a knee
+// and an exponential shoulder from there to the peak, with the same slope at the knee. Below the
+// knee the gain is exactly 1, so only highlights the game compressed get brighter.
+// Chromatic aberration, the depth-dependent lens term, bloom, lens flare and grain are not
+// reproduced: they shift where a highlight is by a pixel or add on top of the curve.
+#version 450
+#extension GL_EXT_samplerless_texture_functions : require
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0) uniform texture2D scene_tex;    // RGBA16F, the tonemap's scene input
+layout(binding = 1) uniform texture2D exposure_tex; // R32F 1x1, log2 exposure
+layout(binding = 2, r16f) uniform writeonly image2D gain_out;
+
+layout(push_constant) uniform Constants {
+    uvec2 size;
+    float exposure_const;     // log2 exposure when the texture is not read (constant 213)
+    uint exposure_from_tex;   // constant 214 != 0
+    float aspect;             // render height / width (constants 75, 76)
+    float vignette_power;     // constant 269
+    float vignette_scale;     // constant 270
+    float vignette_bias;      // constant 218
+    float blend;              // constant 207: 0 linear, 1 filmic
+    float A, B, C, D;         // constants 208-211
+    float white_scale;        // 1 / H(W), W = constant 212
+    float knee_x;             // exposed value where the HDR curve leaves the SDR one
+    float knee_y;             // F_sdr(knee_x)
+    float knee_slope;         // F_sdr'(knee_x)
+    float peak;               // peak / paper white
+};
+
+float Hable(float x) {
+    const float num = x * (A * x + C * B) + D * 0.01;
+    const float den = x * (A * x + B) + D * 0.3;
+    return num / den - 0.01 / 0.3;
+}
+
+float Sdr(float x) {
+    return mix(x, Hable(x) * white_scale, blend);
+}
+
+float Hdr(float x) {
+    if (x <= knee_x) {
+        return Sdr(x);
+    }
+    const float room = max(peak - knee_y, 1e-4);
+    return knee_y + room * (1.0 - exp(-(x - knee_x) * knee_slope / room));
+}
+
+void main() {
+    const ivec2 p = ivec2(gl_GlobalInvocationID.xy);
+    if (any(greaterThanEqual(uvec2(p), size))) {
+        return;
+    }
+    const vec2 uv = (vec2(p) + 0.5) / vec2(size);
+    // The shader's vignette: radius 1 at the corners, in EV.
+    const float y = aspect * (2.0 * uv.y - 1.0);
+    const float x = 2.0 * uv.x - 1.0;
+    const float r = sqrt(x * x + y * y) * inversesqrt(aspect * aspect + 1.0);
+    const float vignette_ev = vignette_scale * pow(max(r, 1e-6), vignette_power) - vignette_bias;
+    const float log2_exposure =
+        exposure_from_tex != 0u ? texelFetch(exposure_tex, ivec2(0), 0).r : exposure_const;
+    const vec3 exposed = max(texelFetch(scene_tex, p, 0).rgb, vec3(0.0)) *
+                         exp2(log2_exposure - vignette_ev);
+    const float m = max(max(exposed.r, exposed.g), max(exposed.b, 1e-4));
+    float gain = 1.0;
+    if (m > knee_x) {
+        gain = Hdr(m) / clamp(Sdr(m), 1e-4, 1.0);
+    }
+    imageStore(gain_out, p, vec4(clamp(gain, 1.0, 64.0)));
+}

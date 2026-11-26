@@ -2,6 +2,7 @@
 #include "ps4_overlay.h"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cfloat>
 #include <chrono>
@@ -2184,6 +2185,40 @@ void SetTextEntry(bool active, const std::string& prompt, const std::string& tex
     text_entry_text = text;
 }
 
+namespace {
+/// HDR10 swapchain (#66): the overlay draws straight into PQ-encoded pixels, so its sRGB vertex
+/// colours are re-encoded as PQ at paper white (0: SDR swapchain, colours unchanged).
+float hdr_paper_white = 0.0f;
+std::array<u8, 256> hdr_lut{};
+
+void EncodeDrawDataPq(ImDrawData* data) {
+    if (!data) {
+        return;
+    }
+    for (int n = 0; n < data->CmdListsCount; ++n) {
+        for (ImDrawVert& v : data->CmdLists[n]->VtxBuffer) {
+            const u32 c = v.col;
+            v.col = (c & 0xFF000000u) | (u32(hdr_lut[(c >> 16) & 0xFF]) << 16) |
+                    (u32(hdr_lut[(c >> 8) & 0xFF]) << 8) | u32(hdr_lut[c & 0xFF]);
+        }
+    }
+}
+} // namespace
+
+void SetHdrPaperWhite(float nits) {
+    hdr_paper_white = nits;
+    if (nits <= 0.0f) {
+        return;
+    }
+    for (int i = 0; i < 256; ++i) {
+        const float s = float(i) / 255.0f;
+        const float linear = s <= 0.04045f ? s / 12.92f : std::pow((s + 0.055f) / 1.055f, 2.4f);
+        const float y = std::pow(linear * nits / 10000.0f, 0.1593017578125f);
+        const float pq = std::pow((0.8359375f + 18.8515625f * y) / (1.0f + 18.6875f * y), 78.84375f);
+        hdr_lut[i] = u8(std::clamp(pq * 255.0f + 0.5f, 0.0f, 255.0f));
+    }
+}
+
 void Render(vk::CommandBuffer cmdbuf, vk::ImageView view, vk::Extent2D extent) {
     // ImGui needs a UI delta even when no presentation sample exists yet.
     const auto now = std::chrono::steady_clock::now();
@@ -2234,6 +2269,9 @@ void Render(vk::CommandBuffer cmdbuf, vk::ImageView view, vk::Extent2D extent) {
         Menu::Draw();
     }
     ImGui::Render();
+    if (hdr_paper_white > 0.0f) {
+        EncodeDrawDataPq(ImGui::GetDrawData());
+    }
 
     const vk::RenderingAttachmentInfo attachment{
         .imageView = view,
