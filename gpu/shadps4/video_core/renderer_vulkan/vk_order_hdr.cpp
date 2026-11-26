@@ -226,6 +226,7 @@ struct State {
     VAddr snapshot_address = 0;
     u64 gain_frames = 0, composed = 0;
     u32 skips_logged = 0;
+    u32 snapshot_creates = 0;
     bool knee_logged = false;
 
     void Create(const Instance& instance) {
@@ -553,8 +554,30 @@ void OnLetterboxDraw(Rasterizer& rasterizer, VideoCore::ImageId display, VAddr a
     if (!(image.usage_flags & vk::ImageUsageFlagBits::eTransferSrc)) {
         return st.Skip("display buffer cannot be copied");
     }
-    if (!st.snapshot.Matches(format, w, h)) {
-        st.snapshot.Create(instance, format, w, h,
+    // One snapshot format for every 32-bit display buffer (a copy only needs the same texel
+    // size; Compose views it in the presented format). Recreated only when the size changes:
+    // display buffers that differ in format alone made it a new image every frame (#66 test:
+    // out of device memory after a minute).
+    switch (format) {
+    case vk::Format::eR8G8B8A8Unorm:
+    case vk::Format::eR8G8B8A8Srgb:
+    case vk::Format::eB8G8R8A8Unorm:
+    case vk::Format::eB8G8R8A8Srgb:
+    case vk::Format::eA2B10G10R10UnormPack32:
+    case vk::Format::eA2R10G10B10UnormPack32:
+        break;
+    default:
+        return st.Skip("display buffer is not a 32-bit colour format");
+    }
+    constexpr vk::Format snapshot_format = vk::Format::eR8G8B8A8Unorm;
+    if (!st.snapshot.Matches(snapshot_format, w, h)) {
+        if (++st.snapshot_creates > 4) {
+            return st.Skip("display buffer size keeps changing");
+        }
+        std::printf("HDR: scene snapshot %ux%u (display buffer %s)\n", w, h,
+                    vk::to_string(format).c_str());
+        std::fflush(stdout);
+        st.snapshot.Create(instance, snapshot_format, w, h,
                            vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled |
                                vk::ImageUsageFlagBits::eTransferSrc,
                            true);
