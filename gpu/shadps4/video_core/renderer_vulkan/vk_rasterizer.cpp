@@ -40,6 +40,7 @@
 #include "video_core/renderer_vulkan/vk_shader_hle.h"
 #include "video_core/renderer_vulkan/vk_shader_util.h"
 #include "video_core/host_shaders/indirect_index_clamp_comp.h"
+#include "video_core/renderer_vulkan/vk_order_hdr.h"
 #include "video_core/renderer_vulkan/vk_order_resolve.h"
 #include "video_core/renderer_vulkan/vk_temporal_probe.h"
 #include "video_core/texture_cache/image_rejection.h"
@@ -1135,6 +1136,19 @@ void Rasterizer::DrawRecord(const GraphicsPipeline* pipeline, const PreparedDraw
             draw();
         }
     });
+    // HDR (#66): the gain map after the tonemap draw, the scene snapshot after the letterbox.
+    if (OrderHdr::Active()) {
+        if (const auto* ps = pipeline->GetStages()[u32(Shader::SwStage::Fragment)]) {
+            if (ps->pgm_hash == OrderHdr::TonemapPsHash) {
+                OrderHdr::OnTonemapDraw(*this, std::span{bound_images.data(), bound_images.size()},
+                                        cb_descs[0].first, ps->FlatUserData());
+            } else if (ps->pgm_hash == OrderHdr::LetterboxPsHash && regs.color_buffers[0] &&
+                       FrameCapture::IsDisplayBuffer(regs.color_buffers[0].Address())) {
+                OrderHdr::OnLetterboxDraw(*this, cb_descs[0].first,
+                                          regs.color_buffers[0].Address());
+            }
+        }
+    }
     if (FrameCapture::Active()) {
         const auto* ps = pipeline->GetStages()[u32(Shader::SwStage::Fragment)];
         FrameCapture::Draw(vs_info.pgm_hash, ps ? ps->pgm_hash : 0, num_indices, num_instances);

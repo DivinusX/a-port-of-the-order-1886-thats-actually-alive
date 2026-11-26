@@ -138,6 +138,16 @@ void Set(Values& v, const std::string& key, const std::string& value) {
         }
     } else if (key == "htile_expand") {
         v.htile_expand = i != 0;
+    } else if (key == "hdr") {
+        v.hdr = i != 0;
+    } else if (key == "hdr_paper_white") {
+        v.hdr_paper_white = std::clamp(i, HdrPaperWhiteMin, HdrPaperWhiteMax);
+    } else if (key == "hdr_peak") {
+        v.hdr_peak = std::clamp(i, HdrPeakMin, HdrPeakMax);
+    } else if (key == "hdr_knee") {
+        // Percent; a fraction (0.8, the test builds' ORDER1886_HDR_KNEE) is accepted too.
+        const int percent = f > 0.0f && f <= 1.0f ? int(f * 100.0f + 0.5f) : i;
+        v.hdr_knee = std::clamp(percent, HdrKneeMin, HdrKneeMax);
     } else if (key == "live_resolution") {
         v.live_resolution = value == "auto" ? -1 : std::clamp(i, 0, 1);
     } else if (key == "output_res") {
@@ -191,6 +201,8 @@ void Load() {
         {"ORDER1886_RCAS", "rcas"},                        {"ORDER1886_FRAMES_AHEAD", "frames_queued"},
         {"ORDER1886_ANISOTROPY", "anisotropy"},            {"ORDER1886_VIBRATION", "vibration"},
         {"ORDER1886_SUN_SYNC", "sun_sync"},                {"ORDER1886_HTILE_DRAW_EXPAND", "htile_expand"},
+        {"ORDER1886_HDR", "hdr"},                          {"ORDER1886_HDR_PAPER_WHITE", "hdr_paper_white"},
+        {"ORDER1886_HDR_PEAK", "hdr_peak"},                {"ORDER1886_HDR_KNEE", "hdr_knee"},
     };
     for (const auto& [env, key] : env_keys) {
         if (const char* value = std::getenv(env); value && value[0]) {
@@ -215,6 +227,9 @@ void Load() {
     v.startup_deferred_readback = v.deferred_readback;
     v.startup_stale_readback = v.stale_readback;
     v.startup_anisotropy = v.anisotropy;
+    v.startup_hdr = v.hdr;
+    std::printf("Settings: HDR %s (paper white %d nits, peak %d nits, highlights from %d%%)\n",
+                v.hdr ? "on" : "off", v.hdr_paper_white.load(), v.hdr_peak.load(), v.hdr_knee.load());
     const int out = v.output_res;
     std::printf("Settings: output %s, sharpening %s (%d), anisotropy %d, async shaders %d, "
                 "frames queued %d, overlay items 0x%x, sun sync %d, htile expand %d\n",
@@ -308,6 +323,9 @@ void Save() {
     // readback mode and expand switch, or the next launch silently reverts the flicker fix.
     std::fprintf(file, "sun_sync=%d\nhtile_expand=%d\n",
         v.sun_sync.load(), int(v.htile_expand.load()));
+    // HDR (#66): the launcher imports these back (order1886.py, MENU_SETTING_MAP).
+    std::fprintf(file, "hdr=%d\nhdr_paper_white=%d\nhdr_peak=%d\nhdr_knee=%d\n", int(v.hdr.load()),
+        v.hdr_paper_white.load(), v.hdr_peak.load(), v.hdr_knee.load());
     // The launcher's FSR 3.1 choice arrives as this key; dropping it on an in-game save would
     // switch the player back to the game's own resolve at the next launch.
     if (v.requested_upscaler != UpscalerOff) {

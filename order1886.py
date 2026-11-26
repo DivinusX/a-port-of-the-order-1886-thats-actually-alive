@@ -555,6 +555,8 @@ TEMPORAL_PROVIDERS = ('fsr3', 'fsr4', 'dlss')
 PRESENTATION_FILTERS = ('linear', 'fsr1', 'fsr3', 'fsr4', 'dlss')
 
 
+# Ranges of the integer HDR settings (#66); the runtime (gpu/shim/ps4_settings.h) clamps to the same.
+HDR_RANGES = {'hdr_paper_white': (80, 500), 'hdr_peak': (400, 4000), 'hdr_knee': (50, 95)}
 # Keys the in-game menu can change that also exist as launcher settings. The runtime writes
 # them into the same runtime.ini the launcher generates, so a menu change would otherwise be
 # overwritten by the next Play without anyone noticing.
@@ -566,7 +568,14 @@ MENU_SETTING_MAP = {
     'mouse_look': ('mouse_look', None),
     'mouse_invert_y': ('mouse_invert_y', None),
     'mouse_sensitivity': ('mouse_sensitivity', None),
+    # HDR10 (#66): F1 > Graphics > HDR.
+    'hdr': ('hdr', None),
+    'hdr_paper_white': ('hdr_paper_white', None),
+    'hdr_peak': ('hdr_peak', None),
+    'hdr_knee': ('hdr_knee', None),
 }
+# Integer menu settings and their accepted ranges; every other entry without choices is on/off.
+MENU_INTEGER_RANGES = {'mouse_sensitivity': (10, 500), **HDR_RANGES}
 
 
 def menu_settings_import(state, values):
@@ -608,15 +617,14 @@ def menu_settings_import(state, values):
                 candidate = text
                 if candidate not in allowed:
                     continue
-            elif key == 'mouse_sensitivity':
+            elif key in MENU_INTEGER_RANGES:
                 candidate = int(text)
-                if not 10 <= candidate <= 500:
+                low, high = MENU_INTEGER_RANGES[key]
+                if not low <= candidate <= high:
                     continue
             else:
                 candidate = bool(int(text))
         except ValueError:
-            continue
-        if setting in ('mouse_sensitivity',) and type(candidate) is not int:
             continue
         if values.get(setting) != candidate:
             changed[setting] = candidate
@@ -636,7 +644,10 @@ GRAPHICS_DEFAULTS = {'output_resolution': 'automatic', 'sharpness': 0, 'anisotro
                      'overlay_frametime': True, 'overlay_gpu': False, 'overlay_cpu': False,
                      'overlay_memory': False, 'async_shaders': True, 'background_warmup': False,
                      'parallel_warmup': False, 'speculative_readbacks': False,
-                     'sun_sync': 1, 'htile_expand': True}
+                     'sun_sync': 1, 'htile_expand': True,
+                     # HDR10 output (#66): on/off applies at the next launch; paper white and peak
+                     # (nits) and the highlight start (percent of SDR white) the runtime reads live.
+                     'hdr': False, 'hdr_paper_white': 200, 'hdr_peak': 1000, 'hdr_knee': 80}
 
 
 def graphics_settings(settings):
@@ -645,7 +656,8 @@ def graphics_settings(settings):
     if values['output_resolution'] not in OUTPUT_RESOLUTIONS:
         raise ValueError('Invalid output resolution')
     for key, allowed in (('sharpness', range(0, 101)), ('anisotropy', (1, 2, 4, 8, 16)),
-                         ('frames_queued', (0, 1, 2)), ('sun_sync', (0, 1, 2))):
+                         ('frames_queued', (0, 1, 2)), ('sun_sync', (0, 1, 2)),
+                         *((key, range(lo, hi + 1)) for key, (lo, hi) in HDR_RANGES.items())):
         if type(values[key]) is not int or values[key] not in allowed:
             raise ValueError(f'Invalid {key.replace("_", " ")}: {values[key]!r}')
     for key, default in GRAPHICS_DEFAULTS.items():
@@ -693,6 +705,9 @@ def write_runtime_config(user, settings):
               # draw-time HTILE expand (on) fix The Chase's every-other-frame sun flicker. The
               # runtime also keeps these across its own in-game Save.
               'sun_sync': graphics['sun_sync'], 'htile_expand': int(graphics['htile_expand']),
+              # HDR10 output (#66, vk_order_hdr.h); the in-game menu writes these back.
+              'hdr': int(graphics['hdr']), 'hdr_paper_white': graphics['hdr_paper_white'],
+              'hdr_peak': graphics['hdr_peak'], 'hdr_knee': graphics['hdr_knee'],
               # The runtime's "off" is 0; the launcher shows it as the game's own 1x.
               'anisotropy': 0 if graphics['anisotropy'] == 1 else graphics['anisotropy'],
               'frames_queued': graphics['frames_queued'],
@@ -878,8 +893,16 @@ def argument_parser():
                         help='Frames the GPU command thread may run ahead; 0 is unbounded')
     for name, default in (('overlay-frametime', 1), ('overlay-gpu', 0), ('overlay-cpu', 0),
                           ('overlay-memory', 0), ('async-shaders', 1), ('background-warmup', 0),
-                          ('parallel-warmup', 0), ('speculative-readbacks', 0), ('htile-expand', 1)):
+                          ('parallel-warmup', 0), ('speculative-readbacks', 0), ('htile-expand', 1),
+                          ('hdr', 0)):
         parser.add_argument('--' + name, type=int, choices=[0, 1], default=default)
+    # HDR10 (#66): ranges are checked with the other graphics settings (HDR_RANGES).
+    parser.add_argument('--hdr-paper-white', type=int, default=200,
+                        help='HDR paper white: nits for SDR white (HUD, menus, normal scene), 80 to 500')
+    parser.add_argument('--hdr-peak', type=int, default=1000,
+                        help='HDR peak brightness in nits, 400 to 4000')
+    parser.add_argument('--hdr-knee', type=int, default=80,
+                        help='HDR highlight start: percent of SDR white where highlights brighten, 50 to 95')
     parser.add_argument('--sun-sync', type=int, choices=[0, 1, 2], default=1,
                         help='Sun shadow readback: 0 off, 1 staging (default, fixes The Chase '
                              'flicker), 2 legacy synchronous drain')

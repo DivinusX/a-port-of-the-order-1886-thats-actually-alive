@@ -12,6 +12,7 @@
 #include "imgui/renderer/imgui_core.h"
 #include "sdl_window.h"
 #include "video_core/renderer_vulkan/vk_instance.h"
+#include "video_core/renderer_vulkan/vk_order_hdr.h"
 #include "video_core/renderer_vulkan/vk_scheduler.h"
 #include "video_core/renderer_vulkan/vk_swapchain.h"
 
@@ -26,9 +27,17 @@ Swapchain::Swapchain(const Instance& instance_, const Frontend::WindowSDL& windo
     : instance{instance_}, window{window_}, surface{CreateSurface(instance.GetInstance(), window)} {
     FindPresentFormat();
     FindPresentMode();
+    // HDR (#66): The Order never asks for HDR itself. When the player turned it on and the display
+    // offers HDR10, the swapchain is HDR10 from the start, so the frames, the post-process pass
+    // and the overlay are all created for that format.
+    OrderHdr::ConfigureSurface(supports_hdr);
+    if (supports_hdr && OrderHdr::Hdr10()) {
+        needs_hdr = true;
+        pinned_hdr = true;
+    }
 
     Create(window.GetWidth(), window.GetHeight());
-    ImGui::Core::Initialize(instance, window, image_count, surface_format.format);
+    ImGui::Core::Initialize(instance, window, image_count, GetSurfaceFormat().format);
 }
 
 Swapchain::~Swapchain() {
@@ -95,7 +104,7 @@ void Swapchain::Recreate(u32 width_, u32 height_) {
 }
 
 void Swapchain::SetHDR(bool hdr) {
-    if (needs_hdr == hdr) {
+    if (pinned_hdr || needs_hdr == hdr) {
         return;
     }
 

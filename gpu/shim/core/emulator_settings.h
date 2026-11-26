@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <string>
 #include "common/types.h"
+#include "ps4_settings.h"
 
 u32 Ps4DisplayRefreshHz(); // ps4gpu.cpp: primary display refresh rate, 60 when unknown
 
@@ -67,7 +68,12 @@ public:
     bool IsCopyGpuBuffers() { static const auto value = Flag("ORDER1886_COPY_GPU_BUFFERS", false); return value; }
     bool IsDirectMemoryAccessEnabled() { static const auto value = Flag("ORDER1886_DIRECT_MEMORY_ACCESS", false); return value; }
     bool IsDumpShaders() { static const auto value = Flag("ORDER1886_DUMP_SHADERS", false); return value; }
-    bool IsHdrAllowed() { static const auto value = Flag("ORDER1886_HDR", false); return value; }
+    // HDR10 (#66): the player's runtime.ini hdr=1 (read by Ps4Settings::Load before the Vulkan
+    // instance exists) or ORDER1886_HDR=1.
+    bool IsHdrAllowed() {
+        static const auto value = Flag("ORDER1886_HDR", false) || Ps4Settings::Get().startup_hdr;
+        return value;
+    }
     bool IsNullGPU() { static const auto value = Flag("ORDER1886_NULL_GPU", false); return value; }
     bool IsPatchShaders() { return false; }
     bool IsPipelineCacheArchived() { return false; }

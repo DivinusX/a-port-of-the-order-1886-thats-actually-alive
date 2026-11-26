@@ -46,8 +46,12 @@ public:
         return images_view[image_index];
     }
 
+    /// The format frames and pipelines are created for: HDR10 for the whole session when the
+    /// player turned HDR on (#66, OrderHdr::Hdr10), else the SDR surface format.
     vk::SurfaceFormatKHR GetSurfaceFormat() const {
-        return surface_format;
+        return pinned_hdr ? vk::SurfaceFormatKHR{vk::Format::eA2B10G10R10UnormPack32,
+                                                 vk::ColorSpaceKHR::eHdr10St2084EXT}
+                          : surface_format;
     }
 
     vk::SwapchainKHR GetHandle() const {
@@ -140,6 +144,7 @@ private:
     bool needs_recreation = true;
     bool needs_hdr = false;    // The game requested HDR swapchain
     bool supports_hdr = false; // SC supports HDR output
+    bool pinned_hdr = false;   // HDR10 for the whole session (#66); SetHDR leaves it alone
 };
 
 } // namespace Vulkan

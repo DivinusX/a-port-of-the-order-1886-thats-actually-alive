@@ -1,0 +1,40 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+// HDR boost at display resolution (#66, docs/order1886-hdr-plan.md). The gain map covers the
+// scene, which the game's letterbox pass (ps 0xa41511a2) copies 1:1 into the display buffer at
+// floor((display - scene) / 2). Anything drawn into the display buffer after that pass (HUD,
+// subtitles, prompts) differs from the snapshot taken right after it and keeps gain 1, as do the
+// bars around the scene.
+#version 450
+#extension GL_EXT_samplerless_texture_functions : require
+
+layout(local_size_x = 8, local_size_y = 8) in;
+
+layout(binding = 0) uniform texture2D display_tex;  // final display buffer (sRGB view: linear)
+layout(binding = 1) uniform texture2D snapshot_tex; // display buffer right after the letterbox
+layout(binding = 2) uniform texture2D gain_tex;     // R16F, scene size
+layout(binding = 3, r16f) uniform writeonly image2D boost_out;
+
+layout(push_constant) uniform Constants {
+    uvec2 display_size;
+    ivec2 scene_offset;
+    uvec2 scene_size;
+};
+
+void main() {
+    const ivec2 p = ivec2(gl_GlobalInvocationID.xy);
+    if (any(greaterThanEqual(uvec2(p), display_size))) {
+        return;
+    }
+    const ivec2 s = p - scene_offset;
+    float boost = 1.0;
+    if (all(greaterThanEqual(s, ivec2(0))) && all(lessThan(uvec2(s), scene_size))) {
+        const vec3 now = texelFetch(display_tex, p, 0).rgb;
+        const vec3 then = texelFetch(snapshot_tex, p, 0).rgb;
+        const vec3 d = abs(now - then);
+        // 8-bit sRGB steps are about 0.002-0.01 in linear: anything clearly larger is a later draw.
+        const float hud = smoothstep(0.004, 0.02, max(d.r, max(d.g, d.b)));
+        const float gain = texelFetch(gain_tex, s, 0).r;
+        boost = 1.0 + (gain - 1.0) * (1.0 - hud);
+    }
+    imageStore(boost_out, p, vec4(boost));
+}

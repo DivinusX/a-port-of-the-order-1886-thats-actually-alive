@@ -30,6 +30,11 @@ inline constexpr int OutputCount = 4;
 inline constexpr int OutputAutomatic = -1;
 inline constexpr int OutputDefault = OutputAutomatic;
 
+/// HDR ranges (#66), shared by runtime.ini parsing and the menu; the launcher uses the same.
+inline constexpr int HdrPaperWhiteMin = 80, HdrPaperWhiteMax = 500;
+inline constexpr int HdrPeakMin = 400, HdrPeakMax = 4000;
+inline constexpr int HdrKneeMin = 50, HdrKneeMax = 95;
+
 /// Quality presets of the menu, in menu order.
 enum QualityPreset : int { QualityDeck, QualityLow, QualityMedium, QualityHigh, QualityCustom };
 
@@ -100,6 +105,16 @@ struct Values {
     std::atomic<int> sun_sync{1};
     /// Draw-time HTILE expand for depth-writing passes (the decisive half of #26 on RDNA4).
     std::atomic<bool> htile_expand{true};
+    /// HDR10 output (#66, vk_order_hdr.h). hdr is the player's choice; the swapchain is created
+    /// once, so startup_hdr is what this session runs with. Paper white (nits for SDR white: HUD,
+    /// menus, the normal scene), peak (nits for the brightest highlights) and knee (percent of SDR
+    /// white where highlights start to get brighter) are read every frame.
+    std::atomic<bool> hdr{false};
+    bool startup_hdr = false;
+    std::atomic<int> hdr_paper_white{200}, hdr_peak{1000}, hdr_knee{80};
+    /// Set by the renderer: 0 HDR off, 1 HDR10 output running, 2 asked for but the display does
+    /// not offer HDR10 ("Use HDR" off in Windows, or an SDR display).
+    std::atomic<int> hdr_state{0};
     std::atomic<int> active_render_width{0}, active_render_height{0};
     std::atomic<int> output_res{OutputDefault}; ///< index into OutputWidths, or OutputAutomatic
     /// Live resolution and preset changes (run.sh): 0 off by default (startup patch, fastest
