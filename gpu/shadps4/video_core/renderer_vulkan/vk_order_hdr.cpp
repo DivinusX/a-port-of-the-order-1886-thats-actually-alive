@@ -12,8 +12,6 @@
 #include <optional>
 #include <string>
 
-#include <vk_mem_alloc.h>
-
 #include "core/emulator_settings.h"
 #include "video_core/host_shaders/order_hdr_compose_comp.h"
 #include "video_core/host_shaders/order_hdr_gain_comp.h"
@@ -25,6 +23,10 @@
 #include "video_core/renderer_vulkan/vk_scheduler.h"
 #include "video_core/renderer_vulkan/vk_shader_util.h"
 #include "video_core/texture_cache/texture_cache.h"
+
+// After vk_common.h (via the headers above): it enables the beta extensions vulkan.hpp expects
+// before anything includes vulkan.h.
+#include <vk_mem_alloc.h>
 
 namespace Vulkan::OrderHdr {
 
