@@ -1,5 +1,29 @@
 # Changes Made - November 18, 2026
 
+## v0.2.59 — November 26, 2026 (Windows and Linux)
+
+- **HDR10 output** ([#66](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/66)).
+  The game's frame stays SDR and unchanged. After its tonemap draw (ps `0x4403da37`) a compute
+  pass rebuilds the game's filmic curve (Hable form, white 6) from that frame's constants and
+  writes a gain map: 1 below the knee, then a shoulder up to peak / paper white, so only the
+  highlights the curve compressed get brighter. After the letterbox draw (ps `0xa41511a2`) the
+  display buffer is snapshotted, so the HUD, subtitles and bars drawn later keep gain 1. At
+  presentation the SDR frame times the boost is encoded as HDR10 (BT.2020, SMPTE ST 2084 PQ) on an
+  HDR10 swapchain pinned for the session; the F1 overlay's colours are re-encoded as PQ.
+  Settings: `hdr`, `hdr_paper_white` (200 nits), `hdr_peak` (1000 nits), `hdr_knee` (80%) in
+  runtime.ini, shown in the launcher (Graphics → HDR) and F1 → Graphics → HDR; the last three
+  apply live. Diagnostics: `ORDER1886_HDR_PREVIEW=1|2`, `ORDER1886_HDR_DUMP_TRIGGER`,
+  `ORDER1886_HDR_SKIP`. Design: `docs/order1886-hdr-plan.md`.
+- **A simpler launcher.** Six pages (Home, Graphics, Game, Controls, Saves and achievements,
+  System) with sections, one-line summaries ("More information" opens the full text), options
+  shown only under the switch they depend on, and the diagnostics under System → Advanced,
+  collapsed. The window is now readable source with no build step
+  (`launcher-go/order1886-frontend/assets/launcher.js`, `launcher.css`) in place of the vendored
+  minified bundle. Setting keys are unchanged.
+- **F1 menu scrolling:** mouse wheel, draggable scroll bar, scrolling long descriptions.
+- Verified: HDR with the SDR previews and frame dumps on an RTX 5050 and played on an HDR TV; the
+  launcher reviewed in a test build. Not run: HDR on AMD GPUs and on Linux.
+
 ## v0.2.58 — November 25, 2026 (Windows and Linux)
 
 - **Rugs and carpets no longer flicker or pop out at low angles** ([#67](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/67)).
