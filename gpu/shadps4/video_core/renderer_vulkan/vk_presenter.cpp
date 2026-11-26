@@ -1065,6 +1065,10 @@ void Presenter::Present(Frame* frame, bool is_reusing_frame, bool is_game_frame)
                                vk::PipelineStageFlagBits::eAllCommands,
                                vk::DependencyFlagBits::eByRegion, {}, {}, post_barriers);
         if (overlay) {
+            if (OrderHdr::Hdr10()) {
+                // Paper white changes live from the F1 menu (#66); same thread as Render.
+                Ps4Overlay::SetHdrPaperWhite(OrderHdr::PaperWhite());
+            }
             Ps4Overlay::Render(cmdbuf, swapchain.ImageView(), extent);
             const vk::ImageMemoryBarrier to_present{
                 .srcAccessMask = vk::AccessFlagBits::eColorAttachmentWrite,

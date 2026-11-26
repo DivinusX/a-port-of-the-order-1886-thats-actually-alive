@@ -16,3 +16,22 @@ jobs:
     with:
       package_version: test-${{ github.sha }}
       fsr4_bundle_url: ''
+
+  # Launcher settings checks for the change under test (the package build does not run them).
+  launcher-tests:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Launcher settings, wiring and catalogue tests
+        run: |
+          python -m pip install --disable-pip-version-check 'cryptography==50.0.1'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          foreach ($test in 'test_order1886_graphics_wiring.py', 'test_order1886_menu_settings.py',
+                            'test_order1886_ui_catalog.py', 'test_order1886_field_coverage.py',
+                            'test_order1886_worker.py') {
+            python -m unittest discover -s tests -p $test
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }

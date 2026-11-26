@@ -133,6 +133,30 @@ field("htile_expand", "HTILE draw expand", "graphics", "boolean", True,
       "writes depth, so the sun's EVSM compute reads caster geometry instead of the cleared "
       "state. Off restores the v0.2.15 behaviour (sun shadows and wet-surface specular can "
       "vanish, theorder1886-port#26); turn it off only to A/B a report.")
+# HDR10 output (#66, gpu/shadps4/video_core/renderer_vulkan/vk_order_hdr.h). The game's frame stays
+# SDR; the runtime brightens the highlights the game's tone mapping compressed and presents HDR10.
+# The in-game menu (F1 > Graphics > HDR) has the same settings and the launcher imports its changes.
+field("hdr", "HDR10 output", "graphics", "boolean", False,
+      "Shows the highlights the game squeezes into SDR white (the sun, bright sky, lamps and metal "
+      "glints) brighter on an HDR display; everything else, the HUD and subtitles included, keeps its "
+      "normal brightness. Needs an HDR display with Use HDR turned on in the Windows display "
+      "settings; without one the game stays SDR. Applies on next launch; also in the in-game menu "
+      "(F1 > Graphics > HDR).")
+field("hdr_paper_white", "HDR paper white (nits)", "graphics", "number", 200,
+      "How bright normal white is with HDR10 output: the HUD, menus, subtitles and the scene below "
+      "the highlights. 200 nits suits most TVs and monitors; raise it in a bright room. The in-game "
+      "menu changes it while you play.",
+      minimum=80, maximum=500)
+field("hdr_peak", "HDR peak brightness (nits)", "graphics", "number", 1000,
+      "How bright the brightest highlights may get with HDR10 output. Set it to your display's peak "
+      "brightness (its HDR specification, or the Windows HDR Calibration result): higher than the "
+      "display can show clips the brightest detail. The in-game menu changes it while you play.",
+      minimum=400, maximum=4000)
+field("hdr_knee", "HDR highlight start (%)", "graphics", "number", 80,
+      "Where in the SDR range highlights start to get brighter with HDR10 output. Lower brightens "
+      "more of the picture (bright skin and walls too); higher keeps it to the sun, lamps and "
+      "glints. 80% keeps faces exactly as in SDR. The in-game menu changes it while you play.",
+      minimum=50, maximum=95)
 # Each switch edits the prepared copy of the executable (scripts/order1886_post_effects.py) so the
 # game takes its own path for a lens without that effect. There is no model-detail switch: the
 # only level-of-detail control found in the executable is a frame-capture flag with no located

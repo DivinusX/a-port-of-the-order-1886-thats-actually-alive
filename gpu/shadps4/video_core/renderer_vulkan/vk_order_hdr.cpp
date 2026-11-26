@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "core/emulator_settings.h"
+#include "ps4_settings.h"
 #include "video_core/host_shaders/order_hdr_compose_comp.h"
 #include "video_core/host_shaders/order_hdr_gain_comp.h"
 #include "video_core/renderer_vulkan/vk_instance.h"
@@ -34,24 +35,10 @@ namespace Vulkan::OrderHdr {
 
 namespace {
 
-float EnvFloat(const char* name, float fallback, float lo, float hi) {
-    const char* v = std::getenv(name);
-    if (!v || !*v) {
-        return fallback;
-    }
-    char* end = nullptr;
-    const float value = std::strtof(v, &end);
-    if (end == v || !std::isfinite(value)) {
-        return fallback;
-    }
-    return std::clamp(value, lo, hi);
-}
-
+// The player's settings live in Ps4Settings (runtime.ini keys hdr, hdr_paper_white, hdr_peak,
+// hdr_knee; the ORDER1886_HDR* variables override them at start). Only diagnostics stay here.
 struct Config {
     bool wanted;
-    float paper_white;
-    float peak;
-    float knee;
     int preview;
     const char* dump_trigger;
     // ORDER1886_HDR_SKIP=gain,snapshot,compose (diagnostics): leave out a step.
@@ -61,10 +48,7 @@ struct Config {
 const Config& Cfg() {
     static const Config config = [] {
         Config c{};
-        c.wanted = EmulatorSettings.IsHdrAllowed();
-        c.paper_white = EnvFloat("ORDER1886_HDR_PAPER_WHITE", 200.0f, 80.0f, 500.0f);
-        c.peak = std::max(EnvFloat("ORDER1886_HDR_PEAK", 1000.0f, 200.0f, 10000.0f), c.paper_white);
-        c.knee = EnvFloat("ORDER1886_HDR_KNEE", 0.8f, 0.2f, 0.95f);
+        c.wanted = Ps4Settings::Get().startup_hdr || EmulatorSettings.IsHdrAllowed();
         c.preview = int(EmulatorSettingsImpl::Number("ORDER1886_HDR_PREVIEW", 0));
         c.dump_trigger = std::getenv("ORDER1886_HDR_DUMP_TRIGGER");
         const char* skip = std::getenv("ORDER1886_HDR_SKIP");
@@ -327,16 +311,19 @@ void ConfigureSurface(bool hdr10_offered) {
         return;
     }
     const auto& c = Cfg();
+    auto& s = Ps4Settings::Get();
+    s.hdr_state = c.wanted ? (hdr10_offered ? 1 : 2) : 0;
     if (c.wanted && hdr10_offered) {
-        std::printf("HDR: HDR10 output on (paper white %.0f nits, peak %.0f nits, knee %.2f)\n",
-                    c.paper_white, c.peak, c.knee);
+        std::printf("HDR: HDR10 output on (paper white %.0f nits, peak %.0f nits, highlights from "
+                    "%d%%)\n",
+                    PaperWhite(), Peak(), s.hdr_knee.load());
     } else if (c.wanted) {
         std::printf("HDR: asked for, but this display does not offer HDR10 (turn on \"Use HDR\" in "
                     "the Windows display settings); output stays SDR%s\n",
                     c.preview ? ", HDR preview on" : "");
     } else if (c.preview) {
         std::printf("HDR: preview %d on an SDR display (paper white %.0f nits, peak %.0f nits)\n",
-                    c.preview, c.paper_white, c.peak);
+                    c.preview, PaperWhite(), Peak());
     }
     std::fflush(stdout);
 }
@@ -364,11 +351,20 @@ u32 Output() {
 }
 
 float PaperWhite() {
-    return Cfg().paper_white;
+    return float(std::clamp(Ps4Settings::Get().hdr_paper_white.load(std::memory_order_relaxed),
+                            Ps4Settings::HdrPaperWhiteMin, Ps4Settings::HdrPaperWhiteMax));
 }
 
 float Peak() {
-    return Cfg().peak;
+    const float peak = float(std::clamp(Ps4Settings::Get().hdr_peak.load(std::memory_order_relaxed),
+                                        Ps4Settings::HdrPeakMin, Ps4Settings::HdrPeakMax));
+    return std::max(peak, PaperWhite());
+}
+
+float Knee() {
+    return float(std::clamp(Ps4Settings::Get().hdr_knee.load(std::memory_order_relaxed),
+                            Ps4Settings::HdrKneeMin, Ps4Settings::HdrKneeMax)) /
+           100.0f;
 }
 
 void OnTonemapDraw(Rasterizer& rasterizer, std::span<const VideoCore::ImageId> images,
@@ -423,15 +419,16 @@ void OnTonemapDraw(Rasterizer& rasterizer, std::span<const VideoCore::ImageId> i
     }
     curve.white_scale = 1.0f / hable_white;
 
-    // The knee: where the SDR curve reaches Cfg().knee (it rises monotonically).
-    const auto& c = Cfg();
-    const float peak = c.peak / c.paper_white;
+    // The knee: where the SDR curve reaches the player's highlight start (it rises
+    // monotonically). Paper white, peak and knee are read every frame: the F1 menu changes them live.
+    const float knee = Knee();
+    const float peak = Peak() / PaperWhite();
     float lo = 1e-4f, hi = 64.0f;
     float knee_x = 1e9f, knee_y = 1.0f, knee_slope = 0.0f;
-    if (curve.Sdr(hi) > c.knee && curve.Sdr(lo) < c.knee) {
+    if (curve.Sdr(hi) > knee && curve.Sdr(lo) < knee) {
         for (int i = 0; i < 40; ++i) {
             const float mid = 0.5f * (lo + hi);
-            (curve.Sdr(mid) < c.knee ? lo : hi) = mid;
+            (curve.Sdr(mid) < knee ? lo : hi) = mid;
         }
         knee_x = 0.5f * (lo + hi);
         knee_y = curve.Sdr(knee_x);

@@ -73,9 +73,25 @@ class GraphicsWiringTests(unittest.TestCase):
         for name in ('BACKGROUND_WARMUP', 'PARALLEL_WARMUP', 'DEFERRED_READBACK'):
             self.assertEqual(env['ORDER1886_' + name], '0', name)
 
+    def test_hdr_settings_reach_runtime_ini(self):
+        # HDR10 output (#66): off by default, and every launcher value reaches the runtime.
+        defaults = runtime_ini(through_backend(launcher_values()))
+        self.assertEqual((defaults['hdr'], defaults['hdr_paper_white'], defaults['hdr_peak'],
+                          defaults['hdr_knee']), ('0', '200', '1000', '80'))
+        chosen = runtime_ini(through_backend(launcher_values(hdr=True, hdr_paper_white=250,
+                                                             hdr_peak=800, hdr_knee=85)))
+        self.assertEqual((chosen['hdr'], chosen['hdr_paper_white'], chosen['hdr_peak'],
+                          chosen['hdr_knee']), ('1', '250', '800', '85'))
+        fields = {item['key']: item for item in FIELDS}
+        for key, (low, high) in order1886.HDR_RANGES.items():
+            with self.subTest(key=key):
+                self.assertEqual((fields[key]['minimum'], fields[key]['maximum']), (low, high))
+                self.assertEqual(fields[key]['default'], order1886.GRAPHICS_DEFAULTS[key])
+
     def test_invalid_values_are_refused(self):
         for key, bad in (('output_resolution', '800x600'), ('sharpness', 101), ('anisotropy', 3),
-                         ('frames_queued', 4), ('async_shaders', 'yes')):
+                         ('frames_queued', 4), ('async_shaders', 'yes'), ('hdr', 'yes'),
+                         ('hdr_paper_white', 79), ('hdr_peak', 4001), ('hdr_knee', 96)):
             with self.subTest(key=key), self.assertRaises(ValueError):
                 order1886.graphics_settings({key: bad})
 

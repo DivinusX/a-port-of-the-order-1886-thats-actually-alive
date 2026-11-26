@@ -997,6 +997,110 @@ void ApplySharpening(int index) {
     Ps4Settings::StoreLauncherNumber("sharpness", strength); // the launcher owns this setting
 }
 
+// ---- HDR (#66) --------------------------------------------------------------------------------
+// HDR10 output is decided when the swapchain is created, so the switch applies at the next launch;
+// paper white, peak and highlight start are read every frame (vk_order_hdr.cpp). All of them are
+// saved to runtime.ini when the menu closes and the launcher imports them (MENU_SETTING_MAP).
+constexpr int HdrPaperWhites[] = {80, 100, 150, 200, 250, 300, 400, 500};
+constexpr int HdrPeaks[] = {400, 600, 800, 1000, 1500, 2000, 3000, 4000};
+constexpr int HdrKnees[] = {50, 60, 70, 75, 80, 85, 90, 95};
+std::vector<int> hdr_paper_choices, hdr_peak_choices, hdr_knee_choices;
+
+/// The fixed steps plus the current value when it is not one of them (a value typed in the
+/// launcher), sorted; `current` gets the index of the current value.
+template <size_t N>
+std::vector<int> HdrChoices(const int (&steps)[N], int value, int& current) {
+    std::vector<int> choices(std::begin(steps), std::end(steps));
+    if (std::find(choices.begin(), choices.end(), value) == choices.end()) {
+        choices.push_back(value);
+        std::sort(choices.begin(), choices.end());
+    }
+    current = int(std::find(choices.begin(), choices.end(), value) - choices.begin());
+    return choices;
+}
+
+void ApplyHdr(int index) {
+    Ps4Settings::Get().hdr = index == 1;
+}
+void ApplyHdrPaperWhite(int index) {
+    if (index >= 0 && index < int(hdr_paper_choices.size())) {
+        Ps4Settings::Get().hdr_paper_white = hdr_paper_choices[size_t(index)];
+    }
+}
+void ApplyHdrPeak(int index) {
+    if (index >= 0 && index < int(hdr_peak_choices.size())) {
+        Ps4Settings::Get().hdr_peak = hdr_peak_choices[size_t(index)];
+    }
+}
+void ApplyHdrKnee(int index) {
+    if (index >= 0 && index < int(hdr_knee_choices.size())) {
+        Ps4Settings::Get().hdr_knee = hdr_knee_choices[size_t(index)];
+    }
+}
+
+void AddHdrRows(std::vector<Row>& rows) {
+    auto& s = Ps4Settings::Get();
+    const bool on = s.hdr.load();
+    const bool pending = on != s.startup_hdr;
+    const int state = s.hdr_state.load();
+    std::string note;
+    if (state == 1) {
+        note = "Running now: HDR10 output.";
+    } else if (state == 2) {
+        note = "HDR is on, but this display does not offer HDR10 now: turn on \"Use HDR\" in the "
+               "Windows display settings, then restart the game.";
+    }
+    if (pending) {
+        note += std::string(note.empty() ? "" : " ") +
+                (on ? "Restart the game to start HDR10 output." : "Restart the game to go back to SDR.");
+    }
+    rows.push_back({"HDR", "HDR10 output", Kind::Toggle, {"Off", "On"}, on ? 1 : 0, true, "HDR10 output",
+                    "Shows the highlights the game squeezes into SDR white - the sun, bright sky, lamps "
+                    "and metal glints - brighter on an HDR display. Everything else, the HUD and "
+                    "subtitles included, keeps its normal brightness. Needs an HDR display with "
+                    "\"Use HDR\" turned on in the Windows display settings. Applies at the next launch.",
+                    note, ApplyHdr});
+    if (pending) {
+        rows.back().badge = "Restart";
+    }
+
+    const bool running = state == 1;
+    const std::string live = running ? "Changes right away." : "Takes effect while HDR10 output is running.";
+    int current = 0;
+    hdr_paper_choices = HdrChoices(HdrPaperWhites, s.hdr_paper_white.load(), current);
+    std::vector<std::string> labels;
+    for (const int nits : hdr_paper_choices) {
+        labels.push_back(std::to_string(nits) + " nits" + (nits == 200 ? " (default)" : ""));
+    }
+    rows.push_back({nullptr, "Paper white", Kind::Choice, labels, current, true, "Paper white",
+                    "How bright normal white is: the HUD, menus, subtitles and the scene below the "
+                    "highlights. Raise it in a bright room, lower it in a dark one. 200 nits suits most "
+                    "TVs and monitors.",
+                    live, ApplyHdrPaperWhite});
+
+    hdr_peak_choices = HdrChoices(HdrPeaks, s.hdr_peak.load(), current);
+    labels.clear();
+    for (const int nits : hdr_peak_choices) {
+        labels.push_back(std::to_string(nits) + " nits" + (nits == 1000 ? " (default)" : ""));
+    }
+    rows.push_back({nullptr, "Peak brightness", Kind::Choice, labels, current, true, "Peak brightness",
+                    "How bright the brightest highlights may get. Set it to your display's peak "
+                    "brightness (its HDR specification, or the Windows HDR Calibration result): higher "
+                    "than the display can show clips the brightest detail, lower wastes its range.",
+                    live, ApplyHdrPeak});
+
+    hdr_knee_choices = HdrChoices(HdrKnees, s.hdr_knee.load(), current);
+    labels.clear();
+    for (const int percent : hdr_knee_choices) {
+        labels.push_back(std::to_string(percent) + "%" + (percent == 80 ? " (default)" : ""));
+    }
+    rows.push_back({nullptr, "Highlight start", Kind::Choice, labels, current, true, "Highlight start",
+                    "Where in the SDR range highlights start to get brighter than in SDR. Lower "
+                    "brightens more of the picture (bright skin and walls too); higher keeps it to the "
+                    "sun, lamps and glints. 80% keeps faces exactly as in SDR.",
+                    live, ApplyHdrKnee});
+}
+
 // ---- Mods (cheats; issue #24) ---------------------------------------------------------------
 // Toggling a cheat patches the loaded image right away: every site's expected bytes are
 // checked first (Ps4Cheats), so a build that differs from the verified one is refused and
@@ -1227,6 +1331,7 @@ std::vector<Row> BuildRows(int tab) {
                         Ps4Settings::Get().ultrawide = index == 1;
                         Ps4Settings::SaveQuality();
                     }});
+    AddHdrRows(rows);
     rows.push_back({"Overlay", "FPS counter", Kind::Toggle, {"Off", "On"}, s.show_fps ? 1 : 0, true,
                     "FPS counter", "The performance card in a corner of the screen: frame rate, frame "
                     "time, GPU and CPU load and temperature, memory. F9 also shows or hides it.",
@@ -1580,10 +1685,58 @@ void Draw() {
     }
     const float content = y - gap;
     const float avail = bottom - top;
-    float shift = 0.0f;
-    if (content > avail) {
-        shift = std::clamp(ys[focused] + row_h - avail, 0.0f, content - avail);
+    const float max_scroll = std::max(content - avail, 0.0f);
+    // Scrolling: the mouse wheel over the list and the scroll bar move the list freely; moving the
+    // keyboard or controller focus scrolls only as far as needed to show the focused row.
+    static float scroll = 0.0f;
+    static int scroll_tab = -1, scroll_focus = -1;
+    static bool dragging = false;
+    static float drag_offset = 0.0f;
+    if (scroll_tab != active_tab) {
+        scroll_tab = active_tab;
+        scroll = 0.0f;
+        scroll_focus = -1;
+        dragging = false;
     }
+    if (focused != scroll_focus) {
+        scroll_focus = focused;
+        const float head = focused > 0 && rows[focused].section ? heads[focused] : 0.0f;
+        if (ys[focused] - head < scroll) {
+            scroll = ys[focused] - head;
+        } else if (ys[focused] + row_h > scroll + avail) {
+            scroll = ys[focused] + row_h - avail;
+        }
+    }
+    const float bar_x = left + list_w + 10.0f * s, bar_w = 8.0f * s;
+    if (!dialog && max_scroll > 0.0f && io.MouseWheel != 0.0f &&
+        inside(ImVec2(left, top), ImVec2(bar_x + bar_w + 6.0f * s, bottom))) {
+        scroll -= io.MouseWheel * (row_h + gap) * 1.5f;
+    }
+    float thumb_h = avail, thumb_y = top;
+    if (max_scroll > 0.0f) {
+        thumb_h = std::max(avail * avail / content, 40.0f * s);
+        thumb_y = top + (avail - thumb_h) * (std::clamp(scroll, 0.0f, max_scroll) / max_scroll);
+        const ImVec2 track_a(bar_x - 6.0f * s, top), track_b(bar_x + bar_w + 6.0f * s, bottom);
+        if (!dialog && ImGui::IsMouseClicked(0) && inside(track_a, track_b)) {
+            if (mouse.y >= thumb_y && mouse.y < thumb_y + thumb_h) {
+                dragging = true;
+                drag_offset = mouse.y - thumb_y;
+            } else {
+                scroll += (mouse.y < thumb_y ? -1.0f : 1.0f) * avail * 0.9f; // a page per click
+            }
+        }
+        if (dragging) {
+            if (ImGui::IsMouseDown(0)) {
+                scroll = (mouse.y - drag_offset - top) / std::max(avail - thumb_h, 1.0f) * max_scroll;
+            } else {
+                dragging = false;
+            }
+        }
+    } else {
+        dragging = false;
+    }
+    scroll = std::clamp(scroll, 0.0f, max_scroll);
+    const float shift = scroll;
     dl->PushClipRect(ImVec2(left - 8.0f * s, top - 4.0f * s), ImVec2(left + list_w + 24.0f * s, bottom + 4.0f * s), true);
     for (int i = 0; i < count; ++i) {
         Row& r = rows[i];
@@ -1665,13 +1818,13 @@ void Draw() {
         }
     }
     dl->PopClipRect();
-    if (content > avail) {
-        // Scroll indicator beside the list.
-        const float tx = left + list_w + 12.0f * s;
-        dl->AddRectFilled(ImVec2(tx, top), ImVec2(tx + 4.0f * s, bottom), Surface2, 2.0f * s);
-        const float h = std::max(avail * avail / content, 40.0f * s);
-        const float y0 = top + (avail - h) * (shift / (content - avail));
-        dl->AddRectFilled(ImVec2(tx, y0), ImVec2(tx + 4.0f * s, y0 + h), AccentLine, 2.0f * s);
+    if (max_scroll > 0.0f) {
+        // Scroll bar beside the list: drag the thumb, click the track to move a page.
+        const float y0 = top + (avail - thumb_h) * (shift / max_scroll);
+        const bool bar_hover = !dialog && inside(ImVec2(bar_x - 6.0f * s, top), ImVec2(bar_x + bar_w + 6.0f * s, bottom));
+        dl->AddRectFilled(ImVec2(bar_x, top), ImVec2(bar_x + bar_w, bottom), Surface2, bar_w * 0.5f);
+        dl->AddRectFilled(ImVec2(bar_x, y0), ImVec2(bar_x + bar_w, y0 + thumb_h),
+                          dragging ? Accent : (bar_hover ? Focus : AccentLine), bar_w * 0.5f);
     }
 
     // Description card for the focused row.
@@ -1681,7 +1834,22 @@ void Draw() {
     dl->AddRectFilled(da, ImVec2(db.x, da.y + 92.0f * s), Surface2, 14.0f * s, ImDrawFlags_RoundCornersTop);
     dl->AddRect(da, db, Line, 14.0f * s);
     const float pad = 32.0f * s, wrap = db.x - da.x - pad * 2;
-    float dy = da.y + pad - 4.0f * s;
+    // Long descriptions scroll with the mouse wheel over the card; the card's height last frame
+    // tells how far. A new row starts at the top.
+    static float desc_scroll = 0.0f, desc_height = 0.0f;
+    static int desc_row = -1, desc_tab = -1;
+    if (desc_row != focused || desc_tab != active_tab) {
+        desc_row = focused;
+        desc_tab = active_tab;
+        desc_scroll = 0.0f;
+    }
+    const float desc_max = std::max(desc_height - (db.y - da.y), 0.0f);
+    if (!dialog && desc_max > 0.0f && io.MouseWheel != 0.0f && inside(da, db)) {
+        desc_scroll -= io.MouseWheel * 60.0f * s;
+    }
+    desc_scroll = std::clamp(desc_scroll, 0.0f, desc_max);
+    dl->PushClipRect(da, db, true);
+    float dy = da.y + pad - 4.0f * s - desc_scroll;
     Text(dl, 31.0f * s, ImVec2(da.x + pad, dy), Focus, r.title);
     dy += 46.0f * s;
     dl->AddRectFilled(ImVec2(da.x + pad, dy), ImVec2(da.x + pad + 46.0f * s, dy + 3.0f * s), Accent, 1.5f * s);
@@ -1712,6 +1880,16 @@ void Draw() {
         dl->AddRectFilled(na, nb, ToneSoft(tone), 10.0f * s);
         dl->AddRectFilled(ImVec2(na.x, na.y), ImVec2(na.x + 4.0f * s, nb.y), ToneInk(tone), 2.0f * s);
         Text(dl, 22.0f * s, ImVec2(na.x + 24.0f * s, na.y + 15.0f * s), Ink, r.note.c_str(), nw);
+        dy = nb.y;
+    }
+    dl->PopClipRect();
+    desc_height = dy + desc_scroll + pad - da.y;
+    if (desc_max > 0.0f) {
+        // A thin indicator inside the card's right edge.
+        const float ch = db.y - da.y, th = std::max(ch * ch / desc_height, 30.0f * s);
+        const float ty = da.y + (ch - th) * (desc_scroll / desc_max);
+        dl->AddRectFilled(ImVec2(db.x - 10.0f * s, ty + 6.0f * s), ImVec2(db.x - 6.0f * s, ty + th - 6.0f * s),
+                          AccentLine, 2.0f * s);
     }
 
     // Footer: a reminder on the left, key hints on the right.
@@ -2206,6 +2384,9 @@ void EncodeDrawDataPq(ImDrawData* data) {
 } // namespace
 
 void SetHdrPaperWhite(float nits) {
+    if (nits == hdr_paper_white) {
+        return;
+    }
     hdr_paper_white = nits;
     if (nits <= 0.0f) {
         return;

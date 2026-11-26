@@ -40,6 +40,22 @@ class ImportTests(unittest.TestCase):
             self.assertEqual(changed['mouse_sensitivity'], 250)
             self.assertEqual(changed['frame_rate'], 60)
 
+    def test_hdr_menu_choices_are_imported_within_their_ranges(self):
+        # F1 > Graphics > HDR (#66): the runtime writes hdr, paper white, peak and highlight start.
+        with tempfile.TemporaryDirectory() as temporary:
+            state = Path(temporary)
+            (state / 'settings.json').write_text('{}', encoding='utf-8')
+            write_ini(state, hdr='1', hdr_paper_white='250', hdr_peak='800', hdr_knee='85')
+            age(state, 'runtime.ini', 5)
+            changed = order1886.menu_settings_import(state, {'hdr': False, 'hdr_paper_white': 200,
+                                                             'hdr_peak': 1000, 'hdr_knee': 80})
+            self.assertIs(changed['hdr'], True)
+            self.assertEqual((changed['hdr_paper_white'], changed['hdr_peak'], changed['hdr_knee']),
+                             (250, 800, 85))
+            write_ini(state, hdr_paper_white='20', hdr_peak='99999', hdr_knee='x')
+            age(state, 'runtime.ini', 10)
+            self.assertEqual(order1886.menu_settings_import(state, {'hdr_paper_white': 200}), {})
+
     def test_an_older_runtime_ini_never_overwrites_a_launcher_change(self):
         with tempfile.TemporaryDirectory() as temporary:
             state = Path(temporary)

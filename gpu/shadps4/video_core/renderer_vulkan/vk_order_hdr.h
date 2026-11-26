@@ -9,12 +9,14 @@
 //  3. at presentation a boost image at display size: gain inside the scene, 1 on the HUD and bars.
 // post_process.frag multiplies the SDR frame by the boost and encodes it as HDR10 (PQ, Rec.2020).
 //
-// Switches (environment, read once):
-//   ORDER1886_HDR=1               HDR10 output when the display offers it (also allows the
-//                                 HDR swapchain at all, EmulatorSettings::IsHdrAllowed)
-//   ORDER1886_HDR_PAPER_WHITE=200 nits for SDR white (HUD, menus, the scene below the knee)
-//   ORDER1886_HDR_PEAK=1000       nits for the brightest highlight
-//   ORDER1886_HDR_KNEE=0.55       SDR level where highlights start to get brighter than in SDR
+// Settings (launcher Graphics > HDR, F1 > Graphics > HDR; runtime.ini, Ps4Settings):
+//   hdr=1                  HDR10 output when the display offers it; read at start (the swapchain
+//                          is created once), so a change applies at the next launch
+//   hdr_paper_white=200    nits for SDR white (HUD, menus, the scene below the knee)     live
+//   hdr_peak=1000          nits for the brightest highlight                              live
+//   hdr_knee=80            percent of SDR white where highlights start to get brighter   live
+// The ORDER1886_HDR, _PAPER_WHITE, _PEAK and _KNEE variables override them at start.
+// Diagnostics (environment, read once):
 //   ORDER1886_HDR_PREVIEW=1|2     run the passes on an SDR display: 1 compresses the HDR range
 //                                 into SDR, 2 tints boosted pixels (for checking without an HDR
 //                                 display); ignored while HDR10 output is on
@@ -62,8 +64,11 @@ void ConfigureSurface(bool hdr10_offered);
 [[nodiscard]] bool Active();
 /// post_process.frag mode for this session's frames (OutputSdr when inactive).
 [[nodiscard]] u32 Output();
+/// The player's current values (live): nits for SDR white, nits for the brightest highlight
+/// (never below paper white), and the SDR level where highlights start to brighten (0.5-0.95).
 [[nodiscard]] float PaperWhite();
 [[nodiscard]] float Peak();
+[[nodiscard]] float Knee();
 
 /// After the tonemap draw is recorded. `images` are the draw's bound images, `target` its colour
 /// target, `flatbuf` the pixel shader's flattened user data.
