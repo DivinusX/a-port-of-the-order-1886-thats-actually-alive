@@ -77,10 +77,11 @@ $incomplete = Join-Path $destination 'GO-BUILD-INCOMPLETE.txt'
 'This Go preview is incomplete until packaging and smoke checks finish.' | Set-Content -LiteralPath $incomplete -Encoding UTF8
 Push-Location (Join-Path $projectRoot 'launcher-go')
 try {
-    # The fork's launcher UI is launcher-go/order1886-frontend (static dist, vendored from
-    # the release repo); upstream frontend/src is the retired sidebar UI and must never be
-    # npm-built into dist. Stage the fork frontend, then build with -s (skip frontend
-    # build), exactly as launcher-go-overlay/README.md prescribes.
+    # The fork's launcher UI is launcher-go/order1886-frontend: readable source with no build
+    # step (assets/launcher.js and launcher.css over the vendored index-*.css); edit it there.
+    # Upstream frontend/src is the retired sidebar UI and must never be npm-built into dist.
+    # Stage the fork frontend, then build with -s (skip frontend build), exactly as
+    # launcher-go-overlay/README.md prescribes.
     $forkFrontend = Join-Path $projectRoot 'launcher-go/order1886-frontend'
     if (-not $SkipFrontendBuild -and (Test-Path -LiteralPath $forkFrontend)) {
         $dist = Join-Path $projectRoot 'launcher-go/frontend/dist'

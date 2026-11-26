@@ -5,11 +5,11 @@ import sys
 from launcher.order1886_lang import LANGUAGES
 from scripts.order1886_input import BUTTONS, UNBOUND
 
+# Six pages; each field's page, section and one-line summary are set in LAYOUT at the end.
 PAGES = [
     {"id": "home", "title": "Home"}, {"id": "graphics", "title": "Graphics"},
-    {"id": "performance", "title": "Performance"}, {"id": "controls", "title": "Controls"},
-    {"id": "game", "title": "Game & Content"}, {"id": "achievements", "title": "Achievements"},
-    {"id": "system", "title": "System"},
+    {"id": "game", "title": "Game"}, {"id": "controls", "title": "Controls"},
+    {"id": "achievements", "title": "Saves and achievements"}, {"id": "system", "title": "System"},
 ]
 # The game's temporal inputs are mapped and a provider replaces its temporal resolve (#7, #10);
 # FSR 3.1 and FSR 4 run their own providers built from this tree on every platform.
@@ -240,3 +240,101 @@ field("update_channel", "Update channel", "system", "select", "preview",
       [("preview", "Preview — every published Go preview", ""),
        ("stable", "Stable — released builds only", "")])
 
+
+
+# ---- Layout -----------------------------------------------------------------------------------
+# Where each field is shown: page, section heading, a one-line summary (the description above is
+# the "More information" text), advanced (inside the collapsed Advanced section of its page) and
+# depends_on (shown only while that boolean field is on). Unavailable fields stay hidden by the
+# launcher; they still get a place so a later qualification only flips availability.
+SECTION_ORDER = {
+    "graphics": ["Display", "Image quality", "HDR", "Effects"],
+    "game": ["Game files", "Language", "Frame rate", "In-game tools", "DLC and mods", "Patches and cheats"],
+    "controls": ["Mouse", "Buttons"],
+    "achievements": ["Achievements"],
+    "system": ["Launcher", "Advanced"],
+}
+LAYOUT = {
+    # Graphics
+    "display_mode": ("graphics", "Display", "Window, borderless or fullscreen."),
+    "vsync": ("graphics", "Display", "Prevents tearing; adds a little input delay."),
+    "aspect_ratio": ("graphics", "Display", "Original cinematic bars, or 16:9 framing."),
+    "output_resolution": ("graphics", "Display", "Size of the finished picture before it fits the window."),
+    "render_width": ("graphics", "Image quality", "The size the game renders at. Higher is sharper and slower."),
+    "custom_render_width": ("graphics", "Image quality", "Width used when Render resolution is Custom."),
+    "presentation_filter": ("graphics", "Image quality", "How the picture is anti-aliased and scaled."),
+    "upscale_preset": ("graphics", "Image quality", "Render below the output size and reconstruct it."),
+    "sharpness": ("graphics", "Image quality", "Sharpening strength in percent; 0 is off."),
+    "anisotropy": ("graphics", "Image quality", "Keeps floors and walls sharp at glancing angles."),
+    "hdr": ("graphics", "HDR", "Brighter highlights on an HDR display."),
+    "hdr_paper_white": ("graphics", "HDR", "Brightness of normal white: HUD, menus, the scene.", {"depends_on": "hdr"}),
+    "hdr_peak": ("graphics", "HDR", "Your display's peak brightness.", {"depends_on": "hdr"}),
+    "hdr_knee": ("graphics", "HDR", "Where highlights start to get brighter.", {"depends_on": "hdr"}),
+    "film_grain": ("graphics", "Effects", "Animated grain over the picture."),
+    "motion_blur": ("graphics", "Effects", "Blur while the camera moves."),
+    "depth_of_field": ("graphics", "Effects", "Background blur in cutscenes and while aiming."),
+    "chromatic_aberration": ("graphics", "Effects", "Colour fringes toward the screen edges."),
+    # Game
+    "game_dir": ("game", "Game files", "Your extracted game folder."),
+    "game_language": ("game", "Language", "Text and voices; the language must be in your game files."),
+    "frame_rate": ("game", "Frame rate", "30 FPS is native; higher rates are experimental."),
+    "fps_cap": ("game", "Frame rate", "Upper limit for presented frames."),
+    "frame_generation": ("game", "Frame rate", "Generated in-between frames."),
+    "game_menu": ("game", "In-game tools", "Press F1 in game for settings and mods."),
+    "show_fps": ("game", "In-game tools", "Frame rate and system load in a corner of the screen."),
+    "overlay_frametime": ("game", "In-game tools", "Shown in the performance overlay.", {"depends_on": "show_fps"}),
+    "overlay_gpu": ("game", "In-game tools", "Shown in the performance overlay.", {"depends_on": "show_fps"}),
+    "overlay_cpu": ("game", "In-game tools", "Shown in the performance overlay.", {"depends_on": "show_fps"}),
+    "overlay_memory": ("game", "In-game tools", "Shown in the performance overlay.", {"depends_on": "show_fps"}),
+    "dlc_dir": ("game", "DLC and mods", "Folder with your extracted add-on content."),
+    "mods_enabled": ("game", "DLC and mods", "Mount mod folders over the game files."),
+    "mods_dir": ("game", "DLC and mods", "Folder that holds your mods.", {"depends_on": "mods_enabled"}),
+    "mod_order": ("game", "DLC and mods", "One folder per line; later ones win.", {"depends_on": "mods_enabled"}),
+    "selected_patches": ("game", "Patches and cheats", "Recipes applied when the game is prepared."),
+    "infinite_health": ("game", "Patches and cheats", "Infinite health."),
+    "infinite_ammo": ("game", "Patches and cheats", "Infinite ammunition."),
+    "skip_reload": ("game", "Patches and cheats", "Skip reload."),
+    # Controls
+    "mouse_look": ("controls", "Mouse", "Move the camera with the mouse."),
+    "mouse_sensitivity": ("controls", "Mouse", "Camera speed in percent."),
+    "mouse_invert_y": ("controls", "Mouse", "Invert up and down."),
+    "button_prompts": ("controls", "Buttons", "PlayStation, Xbox or keyboard prompts in the game."),
+    "vibration": ("controls", "Buttons", "Controller vibration."),
+    "keyboard_bindings": ("controls", "Buttons", "Choose a key for each PS4 button."),
+    "controller_bindings": ("controls", "Buttons", "Choose a controller button for each PS4 button."),
+    "input_remapping": ("controls", "Buttons", "Stick axes and analog triggers."),
+    # Saves and achievements
+    "trophy_key": ("achievements", "Achievements", "Shows trophy names and descriptions from your game."),
+    # System
+    "ui_language": ("system", "Launcher", "Language of this launcher."),
+    "automatic_updates": ("system", "Launcher", "Look for a new version when the launcher starts."),
+    "update_channel": ("system", "Launcher", "Preview gets every build; Stable only releases."),
+    # System > Advanced: diagnostics and unqualified paths, collapsed by default.
+    "runtime": ("system", "Advanced", "Use a different runtime executable.", {"advanced": True}),
+    "performance_capture": ("system", "Advanced", "Record frame times in the session logs.", {"advanced": True}),
+    "sun_sync": ("system", "Advanced", "Sun shadow readback mode (fixes The Chase flicker).", {"advanced": True}),
+    "htile_expand": ("system", "Advanced", "Depth metadata fix for sun shadows.", {"advanced": True}),
+    "htile_unqualified": ("system", "Advanced", "Experimental depth metadata reads.", {"advanced": True}),
+    "synchronous_recording": ("system", "Advanced", "Record GPU commands on the submitting thread.", {"advanced": True}),
+    "texture_update_locking": ("system", "Advanced", "Lock texture update checks.", {"advanced": True}),
+    "readbacks": ("system", "Advanced", "How CPU reads of GPU output are synchronized.", {"advanced": True}),
+    "frames_queued": ("system", "Advanced", "Frames the GPU thread may run ahead.", {"advanced": True}),
+    "async_shaders": ("system", "Advanced", "Compile shaders off the GPU thread.", {"advanced": True}),
+    "background_warmup": ("system", "Advanced", "Load cached pipelines while the game runs.", {"advanced": True}),
+    "parallel_warmup": ("system", "Advanced", "Build cached pipelines on several threads.", {"advanced": True}),
+    "speculative_readbacks": ("system", "Advanced", "Copy GPU images back to memory in batches.", {"advanced": True}),
+}
+for _item in FIELDS:
+    _place = LAYOUT.get(_item["key"])
+    if _place is None:
+        raise RuntimeError(f"launcher field {_item['key']!r} has no place in LAYOUT")
+    _page, _section, _summary, *_extra = _place
+    if _section not in SECTION_ORDER[_page]:
+        raise RuntimeError(f"launcher field {_item['key']!r}: unknown section {_section!r}")
+    _item.update(page=_page, section=_section, summary=_summary, advanced=False, depends_on="")
+    if _extra:
+        _item.update(_extra[0])
+del _item, _place, _page, _section, _summary, _extra
+for _page in PAGES:
+    _page["sections"] = SECTION_ORDER.get(_page["id"], [])
+del _page

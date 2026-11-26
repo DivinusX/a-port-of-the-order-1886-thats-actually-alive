@@ -1,0 +1,37 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+/* Additions for launcher.js on top of index-NM6hMv8S.css: page sections, "More information",
+   dependent options, the collapsed Advanced section and search breadcrumbs. */
+
+.settings-section{margin-top:30px}
+.settings-section:first-of-type{margin-top:4px}
+.section-title{display:flex;align-items:center;gap:12px;font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin:0 0 10px}
+.section-title:after{content:"";flex:1;height:1px;background:var(--line)}
+.settings-section>.quiet-copy{margin:-2px 0 12px}
+.settings-section>.utility-section{margin-top:0}
+.settings-section>.rows+.utility-section{margin-top:12px}
+.settings-section>.rows+.trophy-list{margin-top:14px}
+
+/* One-line summary under each label; the full description opens on request. */
+.setting-copy .more{margin-top:4px;font-size:12px}
+.setting-copy .more summary{display:inline-block;cursor:pointer;color:var(--accent);list-style:none;opacity:.85}
+.setting-copy .more summary::-webkit-details-marker{display:none}
+.setting-copy .more summary:after{content:" ▸";font-size:10px}
+.setting-copy .more[open] summary:after{content:" ▾"}
+.setting-copy .more summary:hover{opacity:1;text-decoration:underline;text-underline-offset:3px}
+.setting-copy .more p{margin-top:6px;color:var(--muted);max-width:62ch}
+
+/* Options that only apply while another switch is on sit indented under it. */
+.setting-row.dependent{padding-inline-start:18px;border-inline-start:2px solid var(--line-strong);margin-inline-start:2px}
+
+/* Search results say where each option lives. */
+.breadcrumb{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:0 0 3px!important}
+
+/* Advanced: diagnostics and experimental options, collapsed by default. */
+.advanced{margin-top:34px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+.advanced>summary{display:grid;gap:4px;padding:16px 22px;cursor:pointer;list-style:none}
+.advanced>summary::-webkit-details-marker{display:none}
+.advanced>summary>span:first-child{font-size:14px;font-weight:600}
+.advanced>summary>span:first-child:before{content:"▸ ";color:var(--accent)}
+.advanced[open]>summary>span:first-child:before{content:"▾ "}
+.advanced>.rows{margin:0 14px 14px;background:var(--bg)}
+.advanced>.utility-section{margin:0 14px 14px}

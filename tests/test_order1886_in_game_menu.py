@@ -46,7 +46,7 @@ class InGameMenuTests(unittest.TestCase):
         field = next(item for item in options.FIELDS if item['key'] == 'game_menu')
         self.assertEqual(field['default'], True)
         self.assertEqual(field['kind'], 'boolean')
-        self.assertEqual(field['page'], 'performance')
+        self.assertEqual(field['page'], 'game')
         self.assertTrue(field['available'])
         self.assertIn('F1', field['description'])
         self.assertFalse([item for item in options.FIELDS if item['key'] == 'in_game_menu'],

@@ -31,7 +31,9 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           foreach ($test in 'test_order1886_graphics_wiring.py', 'test_order1886_menu_settings.py',
                             'test_order1886_ui_catalog.py', 'test_order1886_field_coverage.py',
-                            'test_order1886_worker.py') {
+                            'test_order1886_worker.py', 'test_order1886_launcher_layout.py',
+                            'test_order1886_effect_toggles.py', 'test_order1886_htile_control.py',
+                            'test_order1886_in_game_menu.py') {
             python -m unittest discover -s tests -p $test
             if ($LASTEXITCODE) { exit $LASTEXITCODE }
           }
