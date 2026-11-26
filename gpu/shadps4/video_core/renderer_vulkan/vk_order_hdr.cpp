@@ -11,6 +11,8 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <utility>
+#include <vector>
 
 #include "core/emulator_settings.h"
 #include "video_core/host_shaders/order_hdr_compose_comp.h"
@@ -177,6 +179,12 @@ struct OwnImage {
     void Create(const Instance& instance, vk::Format f, u32 w, u32 h, vk::ImageUsageFlags usage,
                 bool mutable_format) {
         const vk::Device device = instance.GetDevice();
+        // Commands still in flight may use the previous image: it is kept, not destroyed (sizes
+        // change rarely; waiting for the GPU from the draw recording thread is not allowed).
+        if (image) {
+            static std::vector<std::pair<VideoCore::UniqueImage, vk::UniqueImageView>> retired;
+            retired.emplace_back(std::move(*image), std::move(view));
+        }
         view.reset();
         image.emplace(device, instance.GetAllocator());
         image->Create(vk::ImageCreateInfo{
@@ -439,7 +447,6 @@ void OnTonemapDraw(Rasterizer& rasterizer, std::span<const VideoCore::ImageId> i
     }
 
     if (!st.gain.Matches(vk::Format::eR16Sfloat, w, h)) {
-        scheduler.Finish(); // the previous gain map may still be in use
         st.gain.Create(instance, vk::Format::eR16Sfloat, w, h,
                        vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled |
                            vk::ImageUsageFlagBits::eTransferSrc,
@@ -547,26 +554,34 @@ void OnLetterboxDraw(Rasterizer& rasterizer, VideoCore::ImageId display, VAddr a
         return st.Skip("display buffer cannot be copied");
     }
     if (!st.snapshot.Matches(format, w, h)) {
-        scheduler.Finish(); // the previous snapshot may still be in use
         st.snapshot.Create(instance, format, w, h,
                            vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled |
                                vk::ImageUsageFlagBits::eTransferSrc,
                            true);
     }
+    // The display buffer is copied in the layout the game's tracking says it is in and put back
+    // into exactly that layout by this command's own barriers: runtime.Transit is not used here.
+    // Transitions from the draw recording thread raced the game's own layout tracking (#66 test:
+    // shadows flickered and vertices exploded while the snapshot ran).
+    const vk::ImageLayout layout = image.backing->state.layout;
+    if (layout == vk::ImageLayout::eUndefined || !image.backing->subresource_states.empty()) {
+        return st.Skip("display buffer layout unknown");
+    }
     scheduler.EndRendering();
-    runtime.Transit(&image, vk::ImageLayout::eTransferSrcOptimal,
-                    vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferRead);
-    runtime.FlushBarriers();
     const vk::Image source = image.GetImage();
     const vk::Image snapshot = *st.snapshot.image;
     scheduler.Record([=](vk::CommandBuffer cmdbuf) {
         const auto transfer = vk::PipelineStageFlagBits2::eTransfer;
-        const auto start = Barrier(snapshot, vk::ImageLayout::eUndefined,
-                                   vk::ImageLayout::eTransferDstOptimal,
-                                   vk::PipelineStageFlagBits2::eAllCommands,
-                                   vk::AccessFlagBits2::eShaderRead, transfer,
-                                   vk::AccessFlagBits2::eTransferWrite);
-        cmdbuf.pipelineBarrier2({.imageMemoryBarrierCount = 1, .pImageMemoryBarriers = &start});
+        const auto all = vk::PipelineStageFlagBits2::eAllCommands;
+        const auto any = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite;
+        const std::array<vk::ImageMemoryBarrier2, 2> start{
+            Barrier(snapshot, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal,
+                    all, vk::AccessFlagBits2::eShaderRead, transfer,
+                    vk::AccessFlagBits2::eTransferWrite),
+            Barrier(source, layout, vk::ImageLayout::eTransferSrcOptimal, all,
+                    vk::AccessFlagBits2::eMemoryWrite, transfer, vk::AccessFlagBits2::eTransferRead),
+        };
+        cmdbuf.pipelineBarrier2({.imageMemoryBarrierCount = 2, .pImageMemoryBarriers = start.data()});
         const vk::ImageCopy region{
             .srcSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
             .dstSubresource = {vk::ImageAspectFlagBits::eColor, 0, 0, 1},
@@ -574,12 +589,15 @@ void OnLetterboxDraw(Rasterizer& rasterizer, VideoCore::ImageId display, VAddr a
         };
         cmdbuf.copyImage(source, vk::ImageLayout::eTransferSrcOptimal, snapshot,
                          vk::ImageLayout::eTransferDstOptimal, region);
-        const auto done = Barrier(snapshot, vk::ImageLayout::eTransferDstOptimal,
-                                  vk::ImageLayout::eShaderReadOnlyOptimal, transfer,
-                                  vk::AccessFlagBits2::eTransferWrite,
-                                  vk::PipelineStageFlagBits2::eComputeShader,
-                                  vk::AccessFlagBits2::eShaderRead);
-        cmdbuf.pipelineBarrier2({.imageMemoryBarrierCount = 1, .pImageMemoryBarriers = &done});
+        const std::array<vk::ImageMemoryBarrier2, 2> done{
+            Barrier(snapshot, vk::ImageLayout::eTransferDstOptimal,
+                    vk::ImageLayout::eShaderReadOnlyOptimal, transfer,
+                    vk::AccessFlagBits2::eTransferWrite, vk::PipelineStageFlagBits2::eComputeShader,
+                    vk::AccessFlagBits2::eShaderRead),
+            Barrier(source, vk::ImageLayout::eTransferSrcOptimal, layout, transfer,
+                    vk::AccessFlagBits2::eTransferRead, all, any),
+        };
+        cmdbuf.pipelineBarrier2({.imageMemoryBarrierCount = 2, .pImageMemoryBarriers = done.data()});
     });
     st.snapshot_fresh = true;
     st.snapshot_address = address;
@@ -608,8 +626,6 @@ vk::ImageView Compose(Rasterizer& rasterizer, vk::CommandBuffer cmdbuf, VAddr ad
         st.snapshot.SetView(st.device, view_format);
     }
     if (!st.boost.Matches(vk::Format::eR16Sfloat, dw, dh)) {
-        // Rare (display buffer size change): the previous boost image may still be read.
-        (void)st.device.waitIdle();
         st.boost.Create(instance, vk::Format::eR16Sfloat, dw, dh,
                         vk::ImageUsageFlagBits::eStorage | vk::ImageUsageFlagBits::eSampled |
                             vk::ImageUsageFlagBits::eTransferSrc,
