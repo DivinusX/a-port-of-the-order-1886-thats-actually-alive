@@ -109,7 +109,7 @@ class EffectToggleTests(unittest.TestCase):
                 field = next(item for item in worker.FIELDS if item['key'] == key)
                 self.assertIs(field['default'], False)
                 self.assertEqual(field['kind'], 'boolean')
-                self.assertEqual(field['page'], 'performance')
+                self.assertEqual(field['page'], 'system')
                 self.assertTrue(field['available'])
                 self.assertEqual(field['apply'], 'next_launch')
                 self.assertIn('unqualified', field['description'].lower())

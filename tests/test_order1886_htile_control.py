@@ -58,7 +58,7 @@ class HtileControlTests(unittest.TestCase):
         field = next(item for item in worker.FIELDS if item['key'] == 'htile_unqualified')
         self.assertEqual(field['default'], False)
         self.assertEqual(field['kind'], 'boolean')
-        self.assertEqual(field['page'], 'performance')
+        self.assertEqual(field['page'], 'system')
         self.assertTrue(field['available'])
         self.assertIn('qualification', field['description'].lower())
 

@@ -71,7 +71,7 @@ def main():
         assert replies[0]["result"]["settings"]["vsync"] is False
         assert "error" in replies[1]
         assert replies[2]["result"]["settings"]["ui_language"] == "pt"
-        assert len(replies[2]["result"]["pages"]) == 7
+        assert len(replies[2]["result"]["pages"]) == 6
         assert len(replies[2]["result"]["languages"]) == 13
         assert replies[3]["result"]["ready"] is True
         rows = replies[4]["result"]["recipes"]
