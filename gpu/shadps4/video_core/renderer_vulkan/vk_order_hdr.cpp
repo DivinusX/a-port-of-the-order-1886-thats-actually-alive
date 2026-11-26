@@ -52,6 +52,8 @@ struct Config {
     float knee;
     int preview;
     const char* dump_trigger;
+    // ORDER1886_HDR_SKIP=gain,snapshot,compose (diagnostics): leave out a step.
+    bool skip_gain, skip_snapshot, skip_compose;
 };
 
 const Config& Cfg() {
@@ -60,9 +62,19 @@ const Config& Cfg() {
         c.wanted = EmulatorSettings.IsHdrAllowed();
         c.paper_white = EnvFloat("ORDER1886_HDR_PAPER_WHITE", 200.0f, 80.0f, 500.0f);
         c.peak = std::max(EnvFloat("ORDER1886_HDR_PEAK", 1000.0f, 200.0f, 10000.0f), c.paper_white);
-        c.knee = EnvFloat("ORDER1886_HDR_KNEE", 0.55f, 0.2f, 0.95f);
+        c.knee = EnvFloat("ORDER1886_HDR_KNEE", 0.8f, 0.2f, 0.95f);
         c.preview = int(EmulatorSettingsImpl::Number("ORDER1886_HDR_PREVIEW", 0));
         c.dump_trigger = std::getenv("ORDER1886_HDR_DUMP_TRIGGER");
+        const char* skip = std::getenv("ORDER1886_HDR_SKIP");
+        const std::string skips = skip ? skip : "";
+        c.skip_gain = skips.find("gain") != std::string::npos;
+        c.skip_snapshot = skips.find("snapshot") != std::string::npos;
+        c.skip_compose = skips.find("compose") != std::string::npos;
+        if (!skips.empty()) {
+            std::printf("HDR: diagnostics skip gain %d snapshot %d compose %d\n", c.skip_gain,
+                        c.skip_snapshot, c.skip_compose);
+            std::fflush(stdout);
+        }
         return c;
     }();
     return config;
@@ -352,7 +364,7 @@ float Peak() {
 
 void OnTonemapDraw(Rasterizer& rasterizer, std::span<const VideoCore::ImageId> images,
                    VideoCore::ImageId target, std::span<const u32> flatbuf) {
-    if (!Active() || !target) {
+    if (!Active() || !target || Cfg().skip_gain) {
         return;
     }
     auto& runtime = rasterizer.GetRuntime();
@@ -434,14 +446,20 @@ void OnTonemapDraw(Rasterizer& rasterizer, std::span<const VideoCore::ImageId> i
                        false);
     }
 
+    // The tonemap draw has just sampled both images, so they are in a readable layout; they are
+    // read in that layout (no transition: the game's own layout tracking stays untouched).
     auto& scene = texture_cache.GetImage(scene_id);
     auto& exposure = texture_cache.GetImage(exposure_id);
+    const auto readable = [](vk::ImageLayout layout) {
+        return layout == vk::ImageLayout::eShaderReadOnlyOptimal ||
+               layout == vk::ImageLayout::eGeneral;
+    };
+    const vk::ImageLayout scene_layout = scene.backing->state.layout;
+    const vk::ImageLayout exposure_layout = exposure.backing->state.layout;
+    if (!readable(scene_layout) || !readable(exposure_layout)) {
+        return st.Skip("tonemap inputs not in a readable layout");
+    }
     scheduler.EndRendering();
-    runtime.Transit(&scene, vk::ImageLayout::eShaderReadOnlyOptimal,
-                    vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead);
-    runtime.Transit(&exposure, vk::ImageLayout::eShaderReadOnlyOptimal,
-                    vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead);
-    runtime.FlushBarriers();
 
     const GainPush push{
         .width = w,
@@ -475,10 +493,17 @@ void OnTonemapDraw(Rasterizer& rasterizer, std::span<const VideoCore::ImageId> i
         const auto start = Barrier(gain_image, vk::ImageLayout::eUndefined,
                                    vk::ImageLayout::eGeneral,
                                    vk::PipelineStageFlagBits2::eAllCommands, rw, compute, rw);
-        cmdbuf.pipelineBarrier2({.imageMemoryBarrierCount = 1, .pImageMemoryBarriers = &start});
+        const vk::MemoryBarrier2 inputs{.srcStageMask = vk::PipelineStageFlagBits2::eAllCommands,
+                                        .srcAccessMask = vk::AccessFlagBits2::eMemoryWrite,
+                                        .dstStageMask = compute,
+                                        .dstAccessMask = vk::AccessFlagBits2::eShaderRead};
+        cmdbuf.pipelineBarrier2({.memoryBarrierCount = 1,
+                                 .pMemoryBarriers = &inputs,
+                                 .imageMemoryBarrierCount = 1,
+                                 .pImageMemoryBarriers = &start});
         const std::array<vk::DescriptorImageInfo, 3> infos{{
-            {{}, scene_in, vk::ImageLayout::eShaderReadOnlyOptimal},
-            {{}, exposure_in, vk::ImageLayout::eShaderReadOnlyOptimal},
+            {{}, scene_in, scene_layout},
+            {{}, exposure_in, exposure_layout},
             {{}, gain_view, vk::ImageLayout::eGeneral},
         }};
         std::array<vk::WriteDescriptorSet, 3> writes{};
@@ -504,7 +529,7 @@ void OnTonemapDraw(Rasterizer& rasterizer, std::span<const VideoCore::ImageId> i
 }
 
 void OnLetterboxDraw(Rasterizer& rasterizer, VideoCore::ImageId display, VAddr address) {
-    if (!Active() || !display) {
+    if (!Active() || !display || Cfg().skip_snapshot) {
         return;
     }
     auto& runtime = rasterizer.GetRuntime();
@@ -567,7 +592,8 @@ vk::ImageView Compose(Rasterizer& rasterizer, vk::CommandBuffer cmdbuf, VAddr ad
     if (!Active() || !st.ready) {
         return {};
     }
-    const bool fresh = st.gain_fresh && st.snapshot_fresh && st.snapshot_address == address;
+    const bool fresh = st.gain_fresh && st.snapshot_fresh && st.snapshot_address == address &&
+                       !Cfg().skip_compose;
     st.gain_fresh = false;
     st.snapshot_fresh = false;
     const u32 dw = display.info.size.width, dh = display.info.size.height;
