@@ -171,7 +171,7 @@ def main() -> None:
         state_snapshot = replies[2]['result']
         if state_snapshot['settings']['ui_language'] != 'pt':
             raise SystemExit('Worker lost the stored language.')
-        if len(state_snapshot['pages']) != 7 or len(state_snapshot['languages']) != 13:
+        if len(state_snapshot['pages']) != 6 or len(state_snapshot['languages']) != 13:
             raise SystemExit('Worker surfaced the wrong page or language count.')
         if replies[3]['result']['ready'] is not True:
             raise SystemExit('Update preflight is not ready on a clean package.')

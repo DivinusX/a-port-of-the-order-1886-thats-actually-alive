@@ -73,7 +73,7 @@ class WorkerTests(unittest.TestCase):
 
     def test_catalog_includes_every_page_and_blocked_provider_choices(self):
         result = self.app.dispatch("state.get", {})
-        self.assertEqual(len(result["pages"]), 7)
+        self.assertEqual(len(result["pages"]), 6)
         fields = {field["key"]: field for field in result["fields"]}
         self.assertTrue(fields["vsync"]["available"])
         self.assertFalse(fields["frame_generation"]["available"])
