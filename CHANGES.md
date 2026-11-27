@@ -1,5 +1,23 @@
 # Changes Made - November 18, 2026
 
+## v0.2.60 — November 27, 2026 (Windows and Linux)
+
+- **AMD FSR 4 crash fixed** ([#70](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/70)).
+  `Device lost during submit` after a few minutes with FSR 4 (RTX 4070 SUPER). The provider's
+  completion watermark was `Presenter::CompletedPresentations()`, a present-fence count since
+  boot that always ran ahead of the provider's dispatch ids, so every issued frame was retired,
+  including the one in flight; the v07 backend then reset that slot's descriptor pool and
+  constant buffer while the GPU read them. `vk_order_resolve.cpp` now records the scheduler tick
+  of each dispatch and passes the highest id whose tick the GPU signalled (ABI 2 field
+  documented in `order1886_upscale.h`).
+- **F1 settings survive a restart.** Pending menu changes are saved when the window closes with
+  the menu open; `output_res` is written and imported as `output_resolution`; the menu's frame
+  rate is written as `menu_frame_rate` (with `menu_settings=2`) and imported as the launcher's
+  rate (30/60/90), or unlocked with `fps_cap` at 120/144/165, or unlocked with cap 240, instead
+  of being guessed from `fps_limit`. Launcher tests in `tests/test_order1886_menu_settings.py`.
+- Verified: the FSR 4 fix played on an RTX 5050 at 60 FPS from a test build. Not run: the F1
+  change in game, FSR 4 on the RTX 4070 SUPER, AMD GPUs and Linux.
+
 ## v0.2.59 — November 26, 2026 (Windows and Linux)
 
 - **HDR10 output** ([#66](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/66)).
