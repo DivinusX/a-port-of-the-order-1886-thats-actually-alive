@@ -26,6 +26,8 @@
 
 typedef struct {
     int used, type, channels, is_float, frames, sample_bytes, std_layout, downmix;
+    int speakers;                   /* output channels reported to the game (#69): 2, 6 or 8 */
+    int state_logged;
     int32_t volume[8];
     SDL_AudioStream *stream;
     uint64_t next_deadline_ns; /* next return of sceAudioOutOutput */
@@ -110,6 +112,19 @@ static ABI int32_t audio_init(void) {
     pthread_mutex_unlock(&table_lock);
     return r;
 }
+/* Surround (#69). The game opens one 8-channel port but mixes for the speaker count that
+ * sceAudioOutGetPortState reports: with 2 it fills only front left and right (measured: the
+ * other six channels stay exactly zero). A PS4 reports 2, 6 or 8 for its HDMI output, so the
+ * port reports what the Windows/Linux default output device has. ORDER1886_AUDIO_SPEAKERS=2|6|8
+ * overrides it (stereo on a surround device, or a test without a device). */
+static int speakers_for(int device_channels) {
+    const char *forced=getenv("ORDER1886_AUDIO_SPEAKERS");
+    if (forced && *forced) {
+        const int n=atoi(forced);
+        if (n==2 || n==6 || n==8) return n;
+    }
+    return device_channels>=8 ? 8 : device_channels>=6 ? 6 : 2;
+}
 static ABI int32_t audio_open(int32_t user, int32_t type, int32_t index, uint32_t length, uint32_t freq, uint32_t param) {
     (void)user; (void)index;
     if (!initialized) return ERR_NOT_INIT;
@@ -130,10 +145,12 @@ static ABI int32_t audio_open(int32_t user, int32_t type, int32_t index, uint32_
     p->used=1; p->type=type; p->channels=channels[format]; p->is_float=format>=3 && format!=6;
     p->sample_bytes=p->is_float ? 4 : 2; p->frames=(int)length; p->std_layout=format>=6;
     for (int c=0;c<8;++c) p->volume[c]=VOLUME_0DB;
+    int device_channels=2;
     if (sdl_audio()) {
         SDL_AudioSpec device; int device_frames;
-        p->downmix=p->channels==8 && SDL_GetAudioDeviceFormat(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,&device,&device_frames)
-                   && device.channels==2;
+        const int known=SDL_GetAudioDeviceFormat(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,&device,&device_frames);
+        if (known) device_channels=device.channels;
+        p->downmix=p->channels==8 && known && device_channels==2;
         SDL_AudioSpec spec={p->is_float ? SDL_AUDIO_F32 : SDL_AUDIO_S16, p->downmix ? 2 : p->channels, 48000};
         p->stream=SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK,&spec,NULL,NULL);
         if (p->stream) SDL_ResumeAudioStreamDevice(p->stream);
@@ -146,10 +163,12 @@ static ABI int32_t audio_open(int32_t user, int32_t type, int32_t index, uint32_
         snprintf(path,sizeof(path),"%s.port%d.%dch.%s",dump,id,p->downmix ? 2 : p->channels,p->is_float ? "f32" : "s16");
         p->dump=fopen(path,"wb");
     }
+    p->speakers=p->channels>2 ? speakers_for(device_channels) : p->channels;
     ++ports_opened;
     pthread_mutex_unlock(&table_lock);
-    printf("Runtime: audio port %d opened (type %d, %d ch, %s, %u frames%s)\n",id,type,p->channels,p->is_float ? "float" : "s16",length,
-           p->downmix ? ", downmixed to stereo" : "");
+    printf("Runtime: audio port %d opened (type %d, %d ch, %s, %u frames%s; device %d ch, game told %d speakers)\n",
+           id,type,p->channels,p->is_float ? "float" : "s16",length,
+           p->downmix ? ", downmixed to stereo" : "",device_channels,p->speakers);
     return (type<<16) | id | 0x20000000;
 }
 static ABI int32_t audio_close(int32_t handle) {
@@ -273,7 +292,15 @@ static ABI int32_t audio_state(int32_t handle, PortState *state) {
     switch (p->type) {
     case 2: case 3: state->output=0x40; state->channel=1; break;          /* headphone */
     case 4: state->output=0x04; state->channel=1; state->volume=127; break; /* pad speaker */
-    default: state->output=0x01; state->channel=(uint8_t)(p->channels>2 ? 2 : p->channels); break;
+    default:
+        state->output=0x01;                   /* primary output (HDMI on a PS4) */
+        state->channel=(uint8_t)p->speakers;  /* 2, 6 or 8: the game mixes for this many (#69) */
+        if (!p->state_logged) {
+            p->state_logged=1;
+            printf("Runtime: audio port state queried: %d output channels\n",p->speakers);
+            fflush(stdout);
+        }
+        break;
     }
     return 0;
 }
