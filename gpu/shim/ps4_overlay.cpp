@@ -70,7 +70,9 @@ std::atomic<u32> background_done{0}, background_total{0};
 std::mutex notice_mutex;
 std::string notice_text;
 std::atomic<s64> notice_until{0}; // steady_clock milliseconds
-bool dirty = false; // settings changed while open: saved on close
+// Settings changed while open: saved on close, or when the window closes with the menu
+// still open (SaveChangedSettings, window thread).
+std::atomic<bool> dirty{false};
 int requested_tab = -1; // switch on the next frame (L1/R1, Q/E, menu opened)
 int active_tab = 0;     // the tab being drawn; 0 Graphics, 1 Mods
 constexpr int TabCount = 2;
@@ -112,8 +114,7 @@ void SetOpen(bool value) {
     if (value) {
         requested_tab = Ps4Settings::Get().menu_tab;
     }
-    if (!value && dirty) {
-        dirty = false;
+    if (!value && dirty.exchange(false)) {
         Ps4Settings::Save();
     }
 }
@@ -845,6 +846,7 @@ void SetGameFrameRate(int index) {
     std::scoped_lock lock{hold_mutex};
     chosen_interval = interval + 1;
     Ps4Settings::Get().fps_limit = rate;
+    Ps4Settings::Get().menu_frame_rate = rate; // kept for the next launch (runtime.ini)
     if (Ps4Settings::Get().native_rate_held.load()) {
         return; // applied when the hold ends
     }
@@ -2316,6 +2318,13 @@ void ConfirmRestart() {
     s.restart_unconfirmed = false;
     Ps4Settings::Save();
     std::puts("Settings: graphics options confirmed after restart");
+}
+
+void SaveChangedSettings() {
+    if (dirty.exchange(false)) {
+        Ps4Settings::Save();
+        std::puts("Settings: menu changes saved on exit");
+    }
 }
 
 void SetBackgroundLoading(u32 done, u32 total) {

@@ -92,6 +92,55 @@ class ImportTests(unittest.TestCase):
             self.assertEqual(order1886.menu_settings_import(state, {'show_fps': False}),
                              {'show_fps': True})
 
+    def test_the_menu_output_resolution_is_imported(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            state = Path(temporary)
+            (state / 'settings.json').write_text('{}', encoding='utf-8')
+            write_ini(state, output_res='3840x2160', menu_settings='2')
+            age(state, 'runtime.ini', 5)
+            self.assertEqual(order1886.menu_settings_import(state, {'output_resolution': 'automatic'}),
+                             {'output_resolution': '3840x2160'})
+            write_ini(state, output_res='1234x567', menu_settings='2')
+            age(state, 'runtime.ini', 10)
+            self.assertEqual(order1886.menu_settings_import(state, {'output_resolution': 'automatic'}), {})
+
+    def test_the_menu_frame_rate_maps_onto_the_launcher_rate_and_cap(self):
+        cases = [
+            # (menu_frame_rate, launcher values, expected change)
+            ('60', {'frame_rate': 30, 'fps_cap': 120}, {'frame_rate': 60}),
+            ('90', {'frame_rate': 30, 'fps_cap': 60}, {'frame_rate': 90, 'fps_cap': 90}),
+            ('144', {'frame_rate': 30, 'fps_cap': 120}, {'frame_rate': 0, 'fps_cap': 144}),
+            ('0', {'frame_rate': 60, 'fps_cap': 120}, {'frame_rate': 0, 'fps_cap': 240}),
+            ('30', {'frame_rate': 30, 'fps_cap': 120}, {}),
+            ('999', {'frame_rate': 30, 'fps_cap': 120}, {}),
+        ]
+        for rate, values, expected in cases:
+            with self.subTest(rate=rate), tempfile.TemporaryDirectory() as temporary:
+                state = Path(temporary)
+                (state / 'settings.json').write_text('{}', encoding='utf-8')
+                write_ini(state, fps_limit='60', menu_settings='2', menu_frame_rate=rate)
+                age(state, 'runtime.ini', 5)
+                self.assertEqual(order1886.menu_settings_import(state, values), expected)
+
+    def test_without_a_menu_rate_the_presentation_cap_is_not_read_as_the_game_rate(self):
+        # Launcher: 90 FPS with a 60 cap, so the runtime runs fps_limit=60. A menu save that did
+        # not touch the frame rate must not turn the launcher's 90 into 60.
+        with tempfile.TemporaryDirectory() as temporary:
+            state = Path(temporary)
+            (state / 'settings.json').write_text('{}', encoding='utf-8')
+            write_ini(state, fps_limit='60', vsync='0', menu_settings='2')
+            age(state, 'runtime.ini', 5)
+            self.assertEqual(order1886.menu_settings_import(state, {'frame_rate': 90, 'fps_cap': 60,
+                                                                    'vsync': True}),
+                             {'vsync': False})
+
+    def test_the_runtime_writes_the_keys_the_launcher_imports(self):
+        source = (ROOT / 'gpu' / 'shim' / 'ps4_settings.cpp').read_text(encoding='utf-8')
+        for key in ('output_res=', 'menu_settings=2', 'menu_frame_rate='):
+            self.assertIn(key, source)
+        gpu = (ROOT / 'gpu' / 'shim' / 'ps4gpu.cpp').read_text(encoding='utf-8')
+        self.assertIn('Ps4Overlay::SaveChangedSettings()', gpu)
+
     def test_an_engine_rate_the_launcher_does_not_offer_is_not_adopted(self):
         with tempfile.TemporaryDirectory() as temporary:
             state = Path(temporary)

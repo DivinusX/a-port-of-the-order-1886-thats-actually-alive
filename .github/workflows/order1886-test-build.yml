@@ -16,3 +16,19 @@ jobs:
     with:
       package_version: test-${{ github.sha }}
       fsr4_bundle_url: ''
+
+  # F1 menu settings survive a restart: the launcher imports what the runtime saved.
+  menu-settings:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Menu settings import
+        run: |
+          python -m pip install --disable-pip-version-check 'cryptography==50.0.1'
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python -m unittest discover -s tests -p test_order1886_menu_settings.py -v
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }

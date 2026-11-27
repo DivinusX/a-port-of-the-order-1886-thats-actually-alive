@@ -248,6 +248,7 @@ extern "C" int ps4gpu_init(const Ps4GpuConfig* config) {
         }
         // LOG_INFO is filtered from the boot log; a clean exit needs a visible cause (#127).
         std::printf("Window: closed by user (close button, Alt+F4 or a system quit request)\n");
+        Ps4Overlay::SaveChangedSettings(); // F1 changes made with the menu still open
         runtime_report();
         std::fflush(stdout);
         std::_Exit(0);
