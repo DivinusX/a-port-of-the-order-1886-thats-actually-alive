@@ -1,5 +1,18 @@
 # Changes Made - November 18, 2026
 
+## v0.2.61 — November 27, 2026 (Windows and Linux)
+
+- **Surround sound** ([#69](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/69)).
+  The game opens one 8-channel port and mixes for the speaker count `sceAudioOutGetPortState`
+  reports; the runtime always reported 2, so a raw dump of the port (title screen, 87 s) had the
+  centre, LFE and surrounds at exactly zero. `src/runtime_audio.c` now reports the default output
+  device's layout (8 for 7.1, 6 for 5.1, otherwise 2); `ORDER1886_AUDIO_SPEAKERS=2|6|8` overrides
+  it. The port-open log line names the device layout and the count told to the game. Test in
+  `tests/test_audio_downmix.c`.
+- Verified: port dumps from a test build: told 6, centre, LFE and surrounds carry sound; told 8,
+  the surrounds do. Not run: listening on real 5.1/7.1 speakers, side vs back placement in 7.1,
+  Linux.
+
 ## v0.2.60 — November 27, 2026 (Windows and Linux)
 
 - **AMD FSR 4 crash fixed** ([#70](https://github.com/DivinusX/a-port-of-the-order-1886-thats-actually-alive/issues/70)).
