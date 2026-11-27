@@ -36,6 +36,10 @@ void SetBackgroundLoading(u32 done, u32 total);
 /// Whether anything is drawn this frame (menu open or FPS counter on).
 bool Visible();
 
+/// Any thread, before the process exits: writes runtime.ini when the menu changed settings
+/// that were not saved yet (the window closed while the menu was still open).
+void SaveChangedSettings();
+
 /// Holds the game at its native 30 FPS (true) or returns to the player's rate (false): the
 /// prologue lift cutscene breaks above 30 (#38). False when the image is not the verified one.
 bool HoldNativeFrameRate(bool on);

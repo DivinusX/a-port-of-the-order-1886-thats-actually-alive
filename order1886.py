@@ -404,10 +404,13 @@ def validate_in_game_menu(enabled):
     return enabled
 
 
+FPS_CAP_RANGE = (30, 240)
+
+
 def validate_fps_cap(settings):
     """Presentation cap only: it can throttle the present thread, never the engine."""
     value = settings.get('fps_cap', 120)
-    if type(value) is not int or not 30 <= value <= 240:
+    if type(value) is not int or not FPS_CAP_RANGE[0] <= value <= FPS_CAP_RANGE[1]:
         raise ValueError('Presentation frame cap must be a whole number from 30 to 240')
     return value
 
@@ -628,8 +631,16 @@ def menu_settings_import(state, values):
             continue
         if values.get(setting) != candidate:
             changed[setting] = candidate
-    # fps_limit is a presentation cap the launcher owns separately: only adopt it when it is
-    # one of the engine rates the launcher itself offers.
+    # F1 > Output resolution, written in the launcher's own format.
+    if raw.get('output_res') in OUTPUT_RESOLUTIONS and values.get('output_resolution') != raw['output_res']:
+        changed['output_resolution'] = raw['output_res']
+    if 'menu_settings' in raw:
+        # A runtime that names the menu's frame-rate choice (menu_frame_rate, only when F1
+        # changed it). fps_limit is then only the presentation cap and is not read back.
+        changed.update(menu_frame_rate_import(raw.get('menu_frame_rate'), values))
+        return changed
+    # Older runtimes: fps_limit is a presentation cap the launcher owns separately: only adopt
+    # it when it is one of the engine rates the launcher itself offers.
     try:
         limit = int(raw.get('fps_limit', ''))
     except ValueError:
@@ -637,6 +648,31 @@ def menu_settings_import(state, values):
     if limit in (30, 60) and values.get('frame_rate') != limit:
         changed['frame_rate'] = limit
     return changed
+
+
+def menu_frame_rate_import(text, values):
+    """Launcher settings for the rate picked in F1 > Game frame rate (0 = unlocked).
+
+    The launcher's game rates are 30, 60, 90 and unlocked; the menu also offers 120, 144 and
+    165, which are unlocked with the presentation cap at that rate. A cap below the chosen
+    rate would throttle it, so it is raised to the rate; unlocked lifts it to the maximum.
+    """
+    try:
+        rate = int(text)
+    except (TypeError, ValueError):
+        return {}
+    low, high = FPS_CAP_RANGE
+    if rate in (30, 60, 90):
+        settings = {'frame_rate': rate}
+        if values.get('fps_cap', 120) < rate:
+            settings['fps_cap'] = rate
+    elif rate == 0:
+        settings = {'frame_rate': 0, 'fps_cap': high}
+    elif low <= rate <= high:
+        settings = {'frame_rate': 0, 'fps_cap': rate}
+    else:
+        return {}
+    return {key: value for key, value in settings.items() if values.get(key) != value}
 
 OUTPUT_RESOLUTIONS = ('automatic', '1280x720', '1920x1080', '2560x1440', '3840x2160')
 # Launcher key -> default. Booleans arrive as bool from settings.json and as 0/1 from the CLI.

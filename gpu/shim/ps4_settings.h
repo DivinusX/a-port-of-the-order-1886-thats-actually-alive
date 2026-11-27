@@ -64,6 +64,9 @@ struct Values {
     std::atomic<int> display_mode{0};
     std::atomic<bool> vsync{true};
     std::atomic<int> fps_limit{30};
+    /// The rate picked in F1 > Game frame rate this session (0 unlocked), -1 when untouched;
+    /// Save() hands it to the launcher as menu_frame_rate.
+    std::atomic<int> menu_frame_rate{-1};
     /// A cutscene holds the game at its native 30 FPS (#38): the presentation cap and the
     /// game's interval follow it; fps_limit keeps the player's choice.
     std::atomic<bool> native_rate_held{false};

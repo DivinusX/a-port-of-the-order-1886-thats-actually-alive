@@ -331,6 +331,20 @@ void Save() {
     if (v.requested_upscaler != UpscalerOff) {
         std::fprintf(file, "upscaler=%s\n", UpscalerName(v.requested_upscaler));
     }
+    // F1 > Output resolution, in the launcher's own format (output_resolution).
+    const int out = v.output_res;
+    if (out >= 0 && out < OutputCount) {
+        std::fprintf(file, "output_res=%dx%d\n", OutputWidths[out], OutputHeights[out]);
+    } else {
+        std::fprintf(file, "output_res=automatic\n");
+    }
+    // menu_settings=2: this file carries the menu's frame-rate choice as menu_frame_rate (only
+    // when F1 changed it), so the launcher no longer guesses it from fps_limit, which is the
+    // presentation cap and differs from the game rate whenever the launcher's cap is lower.
+    std::fprintf(file, "menu_settings=2\n");
+    if (const int rate = v.menu_frame_rate; rate >= 0) {
+        std::fprintf(file, "menu_frame_rate=%d\n", rate);
+    }
     std::fclose(file);
 }
 
