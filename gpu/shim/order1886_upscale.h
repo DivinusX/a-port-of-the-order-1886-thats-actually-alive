@@ -62,9 +62,11 @@ typedef struct OrderUpscaleFrame {
     float frame_time_ms, pre_exposure;
     float camera_near, camera_far, vertical_fov;
     uint32_t reset_history;
-    // ABI 2: GPU work through this many presented frames has completed (host-proven by a
-    // signalled present fence). Temporal providers use it as the retirement watermark for
-    // history slots; providers built against ABI 1 read only the prefix and are unaffected.
+    // ABI 2: the GPU has finished this many of this context's dispatch() calls, counted
+    // from 1 (host-proven by the scheduler timeline the dispatches were submitted on; never
+    // more than the dispatches issued before this one). Temporal providers use it as the
+    // retirement watermark for history slots; providers built against ABI 1 read only the
+    // prefix and are unaffected.
     uint64_t gpu_frames_completed;
 } OrderUpscaleFrame;
 
