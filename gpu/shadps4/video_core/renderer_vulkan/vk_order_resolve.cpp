@@ -64,6 +64,32 @@ struct Resolve {
     std::atomic<u64> frames{0};
     u32 skips_logged = 0;
 
+    // Provider frame lifetime (#70). The provider numbers its dispatches 1, 2, 3... per
+    // context and frees a frame's descriptor pool and constant-buffer slot once the host
+    // reports it complete. Each dispatch is recorded into the scheduler submission whose
+    // timeline tick is CurrentTick() at Record() time, so a dispatch is complete exactly
+    // when that tick is free. (The present-fence count used before counted presents from
+    // boot, menus and loading too, ran ahead of the dispatch ids and retired the frame
+    // the GPU was still executing: device lost on NVIDIA.)
+    static constexpr u64 kTickRing = 8;
+    std::array<u64, kTickRing> dispatch_ticks{};
+    u64 dispatches_issued = 0;    ///< provider frame ids handed out in this context
+    u64 dispatches_completed = 0; ///< highest id whose submission the GPU has finished
+
+    /// Registers the next provider dispatch (recorded into the submission at `tick`) and
+    /// returns the completion watermark to pass with it.
+    u64 BeginDispatch(Scheduler& scheduler) {
+        const u64 id = ++dispatches_issued;
+        dispatch_ticks[id % kTickRing] = scheduler.CurrentTick();
+        // An id older than the ring holds a newer (larger) tick in its slot, so the check
+        // below stays conservative; the provider's own queue drain covers that case.
+        while (dispatches_completed + 1 < id &&
+               scheduler.IsFree(dispatch_ticks[(dispatches_completed + 1) % kTickRing])) {
+            ++dispatches_completed;
+        }
+        return dispatches_completed;
+    }
+
     void CreatePipeline(const Instance& instance) {
         device = instance.GetDevice();
         std::array<vk::DescriptorSetLayoutBinding, 7> bindings{};
@@ -113,6 +139,8 @@ struct Resolve {
             provider->api.destroy(context);
             context = nullptr;
         }
+        dispatches_issued = 0; // a new context numbers its frames from 1 again
+        dispatches_completed = 0;
         for (auto& target : targets) {
             target.view.reset();
             target.image.emplace(device, instance.GetAllocator());
@@ -423,7 +451,6 @@ void ReplaceTemporalResolve(Rasterizer& rasterizer, std::span<const VideoCore::I
         info.format = image.info.pixel_format;
         return *image.FindView(info).image_view;
     };
-    const u64 completed_presentations = Presenter::CompletedPresentations();
     const vk::ImageView color_in = view(color), velocity_in = view(velocity),
                         exposure_in = view(exposure), depth_in = view(depth);
     const auto read = [&](VideoCore::Image& image, vk::ImageLayout layout) {
@@ -458,6 +485,8 @@ void ReplaceTemporalResolve(Rasterizer& rasterizer, std::span<const VideoCore::I
     const bool reset = resolve.reset;
     resolve.reset = false;
     scheduler.EndRendering();
+    // After EndRendering: the dispatch below lands in the submission at CurrentTick().
+    const u64 dispatches_completed = resolve.BeginDispatch(scheduler);
     scheduler.Record([=, &resolve](vk::CommandBuffer cmdbuf) {
         const auto barrier = [&](vk::Image image, vk::ImageLayout from, vk::ImageLayout to,
                                  vk::PipelineStageFlags2 src_stage, vk::AccessFlags2 src_access,
@@ -543,7 +572,7 @@ void ReplaceTemporalResolve(Rasterizer& rasterizer, std::span<const VideoCore::I
             .camera_far = 1000.0f, // finite: DLSS checks far > near even with infinite depth
             .vertical_fov = 0.7f,
             .reset_history = reset ? 1u : 0u,
-            .gpu_frames_completed = static_cast<uint64_t>(completed_presentations),
+            .gpu_frames_completed = static_cast<uint64_t>(dispatches_completed),
         };
         char error[256]{};
         if (resolve.provider->api.dispatch(resolve.context, &frame, error, sizeof(error)) !=
