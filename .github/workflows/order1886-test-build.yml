@@ -1,0 +1,19 @@
+# Test build from a push to a test/** branch: the Windows package only, as a workflow artifact.
+# Nothing is published; the artifact is for trying a runtime change on a tester's machine.
+name: The Order 1886 test build
+
+on:
+  push:
+    branches:
+      - 'test/**'
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    uses: ./.github/workflows/order1886-go-package.yml
+    with:
+      package_version: test-${{ github.sha }}
+      fsr4_bundle_url: ''
+

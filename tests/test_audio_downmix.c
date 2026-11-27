@@ -11,6 +11,15 @@ uintptr_t runtime_lookup(const RuntimeExport *table, size_t count, const char *n
 
 static int near(float a, float b) { return fabsf(a-b)<1e-3f; }
 
+/* "" clears the override. */
+static void set_speakers(const char *value) {
+#ifdef _WIN32
+    assert(_putenv_s("ORDER1886_AUDIO_SPEAKERS",value)==0);
+#else
+    assert((*value ? setenv("ORDER1886_AUDIO_SPEAKERS",value,1) : unsetenv("ORDER1886_AUDIO_SPEAKERS"))==0);
+#endif
+}
+
 /* One float frame in SDL order (FL FR C LFE BL BR SL SR) folded to stereo. */
 static void fold_one(const float in[8], float out[2]) {
     unsigned char buf[8*4];
@@ -36,6 +45,18 @@ int main(void) {
     assert(downmix_stereo((unsigned char *)s,2,0)==2*2*2);
     assert(s[0]==16383 && s[1]==0);
     assert(s[2]==32767 && s[3]==32767);
+
+    /* Speakers reported to the game (#69): the device's layout, or ORDER1886_AUDIO_SPEAKERS. */
+    set_speakers("");
+    assert(speakers_for(2)==2 && speakers_for(1)==2 && speakers_for(4)==2);
+    assert(speakers_for(6)==6 && speakers_for(8)==8 && speakers_for(12)==8);
+    set_speakers("8");
+    assert(speakers_for(2)==8);
+    set_speakers("2");
+    assert(speakers_for(8)==2);
+    set_speakers("5"); /* not a PS4 value: ignored */
+    assert(speakers_for(6)==6);
+    set_speakers("");
     puts("audio downmix ok");
     return 0;
 }
