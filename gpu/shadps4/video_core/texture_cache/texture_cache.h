@@ -31,6 +31,7 @@
 #include "video_core/texture_cache/image.h"
 #include "video_core/texture_cache/image_view.h"
 #include "video_core/texture_cache/sampler.h"
+#include "video_core/texture_cache/texture_cache_budget.h"
 #include "video_core/texture_cache/tile_manager.h"
 
 namespace AmdGpu {
@@ -317,6 +318,9 @@ public:
     /// Runs the garbage collector.
     void RunGarbageCollector();
 
+    /// Aggressively evicts idle images when Vulkan hits out-of-device-memory. Returns evicted count.
+    u64 ReclaimMemory();
+
     template <typename Func>
     void ForEachImageInRegion(VAddr cpu_addr, size_t size, Func&& func) {
         using FuncReturn = typename std::invoke_result<Func, ImageId, Image&>::type;
@@ -426,6 +430,8 @@ private:
         DeleteImage(image_id);
     }
 
+    void UpdateGcThresholds();
+    u64 EvictImages(bool pressured, u64 ticks_to_destroy, size_t max_deletions);
     void GarbageCollectImages();
     void GarbageCollectSamplers();
 
@@ -449,6 +455,7 @@ private:
     u64 trigger_gc_memory = 0;
     u64 pressure_gc_memory = 0;
     u64 critical_gc_memory = 0;
+    TextureCacheGcThresholds startup_gc_thresholds{};
     u64 total_used_samplers = 0;
     u64 trigger_gc_samplers = 0;
     u64 pressure_gc_samplers = 0;

@@ -117,10 +117,12 @@ void UniqueImage::Create(const vk::ImageCreateInfo& image_ci) {
     // the guest asked for, and the warning makes the overspend visible.
     if (result == VK_ERROR_OUT_OF_DEVICE_MEMORY) {
         alloc_ci.flags &= ~VMA_ALLOCATION_CREATE_WITHIN_BUDGET_BIT;
-        LOG_WARNING(Render_Vulkan, "Allocating image of size {} bytes over budget.",
-                    alloc_info.size);
         result = vmaCreateImage(allocator, &image_ci_unsafe, &alloc_ci, &unsafe_image, &allocation,
                                 &alloc_info);
+        if (result == VK_SUCCESS) {
+            LOG_WARNING(Render_Vulkan, "Allocated image of size {} bytes over budget.",
+                        alloc_info.size);
+        }
     }
     ASSERT_MSG(result == VK_SUCCESS, "Failed allocating image with error {}",
                vk::to_string(vk::Result{result}));

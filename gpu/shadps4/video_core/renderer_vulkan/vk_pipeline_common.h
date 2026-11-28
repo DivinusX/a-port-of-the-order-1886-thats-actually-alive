@@ -36,6 +36,10 @@ public:
         return *pipeline;
     }
 
+    bool OutOfDeviceMemory() const noexcept {
+        return out_of_device_memory;
+    }
+
     vk::PipelineLayout GetLayout() const noexcept {
         return *pipeline_layout;
     }
@@ -77,6 +81,7 @@ protected:
     std::array<const Shader::Info*, Shader::MaxStageTypes> stages{};
     bool uses_push_descriptors{};
     bool is_compute;
+    bool out_of_device_memory{};
 };
 
 } // namespace Vulkan

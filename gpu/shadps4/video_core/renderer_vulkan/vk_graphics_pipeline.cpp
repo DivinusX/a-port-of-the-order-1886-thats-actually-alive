@@ -49,7 +49,8 @@ GraphicsPipeline::GraphicsPipeline(
     vk::PipelineCache pipeline_cache, std::span<const Shader::Info*, MaxShaderStages> infos,
     std::span<const Shader::RuntimeInfo, MaxShaderStages> runtime_infos,
     std::optional<const Shader::Gcn::FetchShaderData> fetch_shader_,
-    std::span<const vk::ShaderModule> modules, SerializationSupport& sdata, bool preloading)
+    std::span<const vk::ShaderModule> modules, SerializationSupport& sdata, bool preloading,
+    bool allow_oom)
     : Pipeline{instance, scheduler, desc_heap, profile, pipeline_cache}, key{key_},
       fetch_shader{std::move(fetch_shader_)} {
     const auto started = Clock::now();
@@ -516,6 +517,13 @@ GraphicsPipeline::GraphicsPipeline(
         LOG_WARNING(Render_Vulkan,
                     "Skipping a cached graphics pipeline the driver rejected ({}): {}",
                     vk::to_string(pipeline_result), debug_str);
+        return;
+    }
+    if (allow_oom && pipeline_result == vk::Result::eErrorOutOfDeviceMemory) {
+        out_of_device_memory = true;
+        LOG_WARNING(Render_Vulkan,
+                    "Graphics pipeline creation hit out-of-device-memory; deferring for VRAM reclaim: {}",
+                    debug_str);
         return;
     }
     ASSERT_MSG(pipeline_result == vk::Result::eSuccess, "Failed to create graphics pipeline: {}",

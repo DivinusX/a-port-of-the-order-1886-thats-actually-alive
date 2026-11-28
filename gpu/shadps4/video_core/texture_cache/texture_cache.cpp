@@ -56,25 +56,13 @@ TextureCache::TextureCache(const Vulkan::Instance& instance_, Vulkan::Scheduler&
     }
 
     const s64 device_local_memory = static_cast<s64>(instance.GetTotalMemoryBudget());
-    const s64 min_spacing_expected = device_local_memory - 1_GB;
-    const s64 min_spacing_critical = device_local_memory - 512_MB;
-    const s64 mem_threshold = std::min<s64>(device_local_memory, TARGET_GC_THRESHOLD);
-    const s64 min_vacancy_expected = (6 * mem_threshold) / 10;
-    const s64 min_vacancy_critical = (2 * mem_threshold) / 10;
-    // Taken from upstream shadPS4: the floor has to follow the device. With the fixed defaults a
-    // sub-6 GB budget got a critical threshold above the whole budget, so the critical pass could
-    // never fire and the pressure pass started later than the driver allows.
-    const s64 min_pressure_floor =
-        std::clamp<s64>(device_local_memory / 4, 256_MB, DEFAULT_PRESSURE_GC_MEMORY);
-    const s64 min_critical_floor =
-        std::clamp<s64>(device_local_memory / 2, 512_MB, DEFAULT_CRITICAL_GC_MEMORY);
-    pressure_gc_memory = static_cast<u64>(
-        std::max<s64>(std::min(device_local_memory - min_vacancy_expected, min_spacing_expected),
-                      min_pressure_floor));
-    critical_gc_memory = static_cast<u64>(
-        std::max<s64>(std::min(device_local_memory - min_vacancy_critical, min_spacing_critical),
-                      min_critical_floor));
-    trigger_gc_memory = static_cast<u64>((device_local_memory - mem_threshold) / 2);
+    startup_gc_thresholds = ComputeStartupTextureCacheGcThresholds(
+        device_local_memory, TARGET_GC_THRESHOLD, DEFAULT_PRESSURE_GC_MEMORY,
+        DEFAULT_CRITICAL_GC_MEMORY);
+    trigger_gc_memory = startup_gc_thresholds.trigger;
+    pressure_gc_memory = startup_gc_thresholds.pressure;
+    critical_gc_memory = startup_gc_thresholds.critical;
+    UpdateGcThresholds();
 }
 
 TextureCache::~TextureCache() {
@@ -1535,50 +1523,30 @@ void TextureCache::UntrackImageTail(ImageId image_id) {
     tracker.UpdatePageWatchers<false>(addr, size);
 }
 
-void TextureCache::GarbageCollectImages() {
-    Ps4Stats::Timer gc_timer{Ps4Stats::t_gc};
-    if (instance.CanReportMemoryUsage()) {
-        total_used_memory = instance.GetDeviceMemoryUsage();
-        // on integrated GPUs (Steam Deck) the usage covers system-memory heaps holding
-        // much more than images (buffers backing guest memory), and the startup budget left
-        // ~1 GB after its 8 GB system reserve: usage stayed above the critical mark, so the
-        // collector evicted images used two or three frames ago on every submission and wrote
-        // GPU-written ones back. Compare with the driver's current budget instead.
-        // ORDER1886_GC_BUDGET_MB=N: this rule with a fixed budget on any GPU (tests on a desktop).
-        static const u64 forced_budget = [] {
-            const char* env = std::getenv("ORDER1886_GC_BUDGET_MB");
-            return env ? std::strtoull(env, nullptr, 10) << 20 : 0;
-        }();
-        if (instance.IsIntegrated() || forced_budget) {
-            const u64 budget = forced_budget ? forced_budget : instance.GetDeviceMemoryBudgetNow();
-            if (budget != 0) {
-                trigger_gc_memory = budget / 10 * 7;
-                pressure_gc_memory = budget / 100 * 85;
-                critical_gc_memory = budget / 100 * 95;
-            }
-        }
-    }
-    if (total_used_memory < trigger_gc_memory) {
+void TextureCache::UpdateGcThresholds() {
+    if (!instance.CanReportMemoryUsage()) {
         return;
     }
-    std::scoped_lock lock{mutex};
-    bool pressured = false;
-    bool aggresive = false;
-    u64 ticks_to_destroy = 0;
-    size_t num_deletions = 0;
+    // ORDER1886_GC_BUDGET_MB=N: override live budget on any GPU (tests on a desktop).
+    static const u64 forced_budget = [] {
+        const char* env = std::getenv("ORDER1886_GC_BUDGET_MB");
+        return env ? std::strtoull(env, nullptr, 10) << 20 : 0;
+    }();
+    const u64 live_budget = instance.GetDeviceMemoryBudgetNow();
+    const auto refined = RefineTextureCacheGcThresholds(
+        startup_gc_thresholds, live_budget, instance.IsIntegrated(), forced_budget);
+    trigger_gc_memory = refined.trigger;
+    pressure_gc_memory = refined.pressure;
+    critical_gc_memory = refined.critical;
+}
 
-    const auto configure = [&](bool allow_aggressive) {
-        pressured = total_used_memory >= pressure_gc_memory;
-        aggresive = allow_aggressive && total_used_memory >= critical_gc_memory;
-        ticks_to_destroy = aggresive ? 160 : pressured ? 80 : 16;
-        ticks_to_destroy = std::min(ticks_to_destroy, gc_tick);
-        num_deletions = aggresive ? 40 : pressured ? 20 : 10;
-    };
+u64 TextureCache::EvictImages(bool pressured, u64 ticks_to_destroy, size_t max_deletions) {
+    size_t num_deletions = max_deletions;
+    u64 evicted = 0;
     const auto clean_up = [&](ImageId image_id) {
         if (num_deletions == 0) {
             return true;
         }
-        --num_deletions;
         auto& image = slot_images[image_id];
         ResolveReadbacks(image.info.guest_address, image.info.guest_size, true,
                          ReadbackSource::CacheCleanup);
@@ -1591,6 +1559,7 @@ void TextureCache::GarbageCollectImages() {
         if (download && !pressured) {
             return false;
         }
+        --num_deletions;
         if (download) {
             // synchronously, while the image still protects its pages. A deferred
             // write-back landed after FreeImage had unprotected them, over whatever the game
@@ -1599,29 +1568,43 @@ void TextureCache::GarbageCollectImages() {
             ++gc_downloads;
         }
         ++gc_evictions;
+        ++evicted;
         FreeImage(image_id);
-        if (total_used_memory < critical_gc_memory) {
-            if (aggresive) {
-                num_deletions >>= 2;
-                aggresive = false;
-                return false;
-            }
-            if (pressured && total_used_memory < pressure_gc_memory) {
-                num_deletions >>= 1;
-                pressured = false;
-            }
-        }
         return false;
     };
 
-    // Try to remove anything old enough and not high priority.
-    configure(false);
-    lru_cache.ForEachItemBelow(gc_tick - ticks_to_destroy, clean_up);
+    const u64 min_tick = gc_tick - std::min(ticks_to_destroy, gc_tick);
+    lru_cache.ForEachItemBelow(min_tick, clean_up);
+    return evicted;
+}
+
+u64 TextureCache::ReclaimMemory() {
+    std::scoped_lock lock{mutex};
+    if (instance.CanReportMemoryUsage()) {
+        total_used_memory = instance.GetDeviceMemoryUsage();
+        UpdateGcThresholds();
+    }
+    const u64 ticks_to_destroy = gc_tick > 1 ? 1 : 0;
+    return EvictImages(true, ticks_to_destroy, 256);
+}
+
+void TextureCache::GarbageCollectImages() {
+    Ps4Stats::Timer gc_timer{Ps4Stats::t_gc};
+    if (instance.CanReportMemoryUsage()) {
+        total_used_memory = instance.GetDeviceMemoryUsage();
+        UpdateGcThresholds();
+    }
+    if (total_used_memory < trigger_gc_memory) {
+        return;
+    }
+    std::scoped_lock lock{mutex};
+    const bool pressured = total_used_memory >= pressure_gc_memory;
+    const auto pass1 = SelectTextureCacheGcPass(pressured, false, gc_tick);
+    EvictImages(pressured, pass1.ticks_to_destroy, pass1.max_deletions);
 
     if (total_used_memory >= critical_gc_memory) {
-        // If we are still over the critical limit, run an aggressive GC
-        configure(true);
-        lru_cache.ForEachItemBelow(gc_tick - ticks_to_destroy, clean_up);
+        const auto pass2 = SelectTextureCacheGcPass(true, true, gc_tick);
+        EvictImages(true, pass2.ticks_to_destroy, pass2.max_deletions);
     }
     // evictions under memory pressure, at most every 5 s (ORDER1886_FRAME_STATS or not).
     if (pressured || gc_downloads != 0) {

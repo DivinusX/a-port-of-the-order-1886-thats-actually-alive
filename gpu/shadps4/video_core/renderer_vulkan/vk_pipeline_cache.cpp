@@ -691,6 +691,21 @@ void PipelineCache::PublishGraphics(bool wait) {
             continue;
         }
         const auto key = it.key();
+        if (!build->pipeline || !build->pipeline->Handle()) {
+            if (build->pipeline && build->pipeline->OutOfDeviceMemory() && reclaim_device_memory) {
+                reclaim_device_memory();
+                Shader::Gcn::ScopedFetchShaderSnapshot snapshot{build->fetch[u32(SwStage::Vertex)]};
+                auto& s = build->selection;
+                build->pipeline = std::make_unique<GraphicsPipeline>(
+                    instance, scheduler, desc_heap, profile, s.graphics_key, *pipeline_cache,
+                    s.infos, s.runtime_infos, s.fetch_shader, s.modules, build->data, false, false);
+            } else {
+                LOG_ERROR(Render_Vulkan, "ps4: pipeline {:#x} produced no handle",
+                          std::hash<GraphicsPipelineKey>{}(key));
+                it = pending_graphics.erase(it);
+                continue;
+            }
+        }
         build->pipeline->PublishStages(build->live_infos);
         RegisterPipelineData(key, std::hash<GraphicsPipelineKey>{}(key), build->data);
         graphics_pipelines.emplace(key, std::move(build->pipeline));
@@ -851,7 +866,7 @@ const GraphicsPipeline* PipelineCache::GetGraphicsPipeline(const DrawIndirectPar
                 build->pipeline = std::make_unique<GraphicsPipeline>(
                     instance, scheduler, desc_heap, profile, s.graphics_key,
                     *worker_pipeline_caches[AsyncCompiler::WorkerIndex()],
-                    s.infos, s.runtime_infos, s.fetch_shader, s.modules, build->data, false);
+                    s.infos, s.runtime_infos, s.fetch_shader, s.modules, build->data, false, true);
                 return build;
             });
             if (queued) {
@@ -881,9 +896,17 @@ const GraphicsPipeline* PipelineCache::GetGraphicsPipeline(const DrawIndirectPar
         CompileTimer timer;
 
         GraphicsPipeline::SerializationSupport sdata{};
+        const bool allow_oom = static_cast<bool>(reclaim_device_memory);
         it.value() = std::make_unique<GraphicsPipeline>(
             instance, scheduler, desc_heap, profile, sel.graphics_key, *pipeline_cache, sel.infos,
-            sel.runtime_infos, sel.fetch_shader, sel.modules, sdata, false);
+            sel.runtime_infos, sel.fetch_shader, sel.modules, sdata, false, allow_oom);
+        if (!it.value()->Handle() && it.value()->OutOfDeviceMemory() && reclaim_device_memory) {
+            reclaim_device_memory();
+            sdata = {};
+            it.value() = std::make_unique<GraphicsPipeline>(
+                instance, scheduler, desc_heap, profile, sel.graphics_key, *pipeline_cache,
+                sel.infos, sel.runtime_infos, sel.fetch_shader, sel.modules, sdata, false, false);
+        }
 
         RegisterPipelineData(sel.graphics_key, pipeline_hash, sdata);
         ++num_new_pipelines;
@@ -915,9 +938,17 @@ const ComputePipeline* PipelineCache::GetComputePipeline() {
         CompileTimer timer;
 
         ComputePipeline::SerializationSupport sdata{};
+        const bool allow_oom = static_cast<bool>(reclaim_device_memory);
         it.value() = std::make_unique<ComputePipeline>(instance, scheduler, desc_heap, profile,
                                                        *pipeline_cache, compute_key, *sel.infos[0],
-                                                       sel.modules[0], sdata, false);
+                                                       sel.modules[0], sdata, false, allow_oom);
+        if (!it.value()->Handle() && it.value()->OutOfDeviceMemory() && reclaim_device_memory) {
+            reclaim_device_memory();
+            sdata = {};
+            it.value() = std::make_unique<ComputePipeline>(
+                instance, scheduler, desc_heap, profile, *pipeline_cache, compute_key,
+                *sel.infos[0], sel.modules[0], sdata, false, false);
+        }
         RegisterPipelineData(compute_key, sdata);
         ++num_new_pipelines;
 

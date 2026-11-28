@@ -18,7 +18,8 @@ ComputePipeline::ComputePipeline(const Instance& instance, Scheduler& scheduler,
                                  DescriptorHeap& desc_heap, const Shader::Profile& profile,
                                  vk::PipelineCache pipeline_cache, ComputePipelineKey compute_key_,
                                  const Shader::Info& info_, vk::ShaderModule module,
-                                 SerializationSupport& sdata, bool preloading /*=false*/)
+                                 SerializationSupport& sdata, bool preloading /*=false*/,
+                                 bool allow_oom /*=false*/)
     : Pipeline{instance, scheduler, desc_heap, profile, pipeline_cache, true},
       compute_key{compute_key_} {
     auto& info = stages[int(Shader::SwStage::Compute)];
@@ -121,6 +122,13 @@ ComputePipeline::ComputePipeline(const Instance& instance, Scheduler& scheduler,
         LOG_WARNING(Render_Vulkan,
                     "Skipping a cached compute pipeline the driver rejected ({}): {}",
                     vk::to_string(pipeline_result), debug_str);
+        return;
+    }
+    if (allow_oom && pipeline_result == vk::Result::eErrorOutOfDeviceMemory) {
+        out_of_device_memory = true;
+        LOG_WARNING(Render_Vulkan,
+                    "Compute pipeline creation hit out-of-device-memory; deferring for VRAM reclaim: {}",
+                    debug_str);
         return;
     }
     ASSERT_MSG(pipeline_result == vk::Result::eSuccess, "Failed to create compute pipeline: {}",

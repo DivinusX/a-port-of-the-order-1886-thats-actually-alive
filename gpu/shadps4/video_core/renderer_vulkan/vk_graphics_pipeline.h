@@ -109,7 +109,7 @@ public:
                      std::span<const Shader::RuntimeInfo, MaxShaderStages> runtime_infos,
                      std::optional<const Shader::Gcn::FetchShaderData> fetch_shader,
                      std::span<const vk::ShaderModule> modules, SerializationSupport& sdata,
-                     bool preloading);
+                     bool preloading, bool allow_oom = false);
     ~GraphicsPipeline();
 
     // switch from compiler-owned snapshots to live stage data on publication.

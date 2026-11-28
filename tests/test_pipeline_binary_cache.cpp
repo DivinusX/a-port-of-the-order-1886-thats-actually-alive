@@ -37,7 +37,7 @@ void TestGraphicsKeyCopy() {
 }
 
 unsigned compiled{}, restored{}, destroyed{}, released{};
-bool reject_binary{}, reject_pipeline{}, fail_capture{}, fail_compile{};
+bool reject_binary{}, reject_pipeline{}, fail_capture{}, fail_compile{}, fail_all_oom{};
 VKAPI_ATTR VkResult VKAPI_CALL GetKey(VkDevice, const VkPipelineCreateInfoKHR* info,
                                       VkPipelineBinaryKeyKHR* key) {
     assert(info && info->pNext);
@@ -112,9 +112,14 @@ VKAPI_ATTR VkResult VKAPI_CALL CreatePipeline(VkDevice, VkPipelineCache cache, u
             assert(!cache);
             const auto* flags = reinterpret_cast<const VkPipelineCreateFlags2CreateInfoKHR*>(first);
             assert(flags->flags & VK_PIPELINE_CREATE_2_CAPTURE_DATA_BIT_KHR);
+            if (fail_all_oom) {
+                return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+            }
             if (fail_compile) {
                 return VK_ERROR_UNKNOWN;
             }
+        } else if (fail_all_oom) {
+            return VK_ERROR_OUT_OF_DEVICE_MEMORY;
         }
     }
     *pipeline = reinterpret_cast<VkPipeline>(uintptr_t{21});
@@ -167,6 +172,14 @@ void TestComputeDriverFallback(const std::filesystem::path& root) {
     reject_pipeline = false;
     create({});
     assert(compiled == 4 && released == 3);
+    fail_all_oom = true;
+    {
+        auto result = Vulkan::CreateCachedComputePipeline(device, cache, info, key, global,
+                                                          root / "oom");
+        assert(result.result == vk::Result::eErrorOutOfDeviceMemory && !result.value);
+    }
+    assert(compiled == 6 && released == 3);
+    fail_all_oom = false;
     dispatch = original;
 }
 
@@ -250,6 +263,14 @@ void TestDriverFallback(const std::filesystem::path& root) {
         assert(result.result == vk::Result::eSuccess);
     }
     assert(compiled == 8 && released == 5 && destroyed == 13);
+    fail_all_oom = true;
+    {
+        auto result = Vulkan::CreateCachedGraphicsPipeline(device, cache, info, key, global,
+                                                           root / "oom");
+        assert(result.result == vk::Result::eErrorOutOfDeviceMemory && !result.value);
+    }
+    assert(compiled == 10 && released == 5);
+    fail_all_oom = false;
     dispatch = original;
 }
 

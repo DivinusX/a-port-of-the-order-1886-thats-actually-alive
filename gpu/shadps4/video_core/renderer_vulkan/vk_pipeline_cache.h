@@ -149,6 +149,9 @@ public:
     void StartOnDemand();
     void Sync();
     void ReportCompilerStats();
+    void SetOutOfMemoryCallback(std::function<void()> callback) {
+        reclaim_device_memory = std::move(callback);
+    }
 
     bool LoadComputePipeline(Serialization::Archive& ar);
     bool LoadGraphicsPipeline(Serialization::Archive& ar);
@@ -257,6 +260,7 @@ private:
     PipelineSelection sel{}; ///< GPU thread selection state
     ComputePipelineKey compute_key{};
     u32 num_new_pipelines{}; // new pipelines added to the cache since the game start
+    std::function<void()> reclaim_device_memory{};
 
     // Only if Config::collectShadersForDebug()
     tsl::robin_map<vk::ShaderModule,

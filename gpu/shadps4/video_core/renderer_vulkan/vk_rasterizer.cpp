@@ -75,6 +75,15 @@ Rasterizer::Rasterizer(const Instance& instance_, Scheduler& scheduler_, Runtime
       guest_markers_enabled{EmulatorSettings.IsVkGuestMarkersEnabled()} {
     // Before the rasterizer is bound: Liverpool enqueues buffers only once it sees it.
     draw_prep = std::make_unique<DrawPreparation>(pipeline_cache);
+    pipeline_cache.SetOutOfMemoryCallback([this] {
+        DrainDrawPipe();
+        scheduler.Finish();
+        scheduler.PopPendingOperations();
+        if (texture_cache.ReclaimMemory() > 0) {
+            scheduler.Finish();
+            scheduler.PopPendingOperations();
+        }
+    });
     scene_targets = std::make_unique<SceneTargets>(instance, scheduler, runtime, texture_cache);
     // Scheduler entry points on the GPU command thread wait for the draw recording thread.
     scheduler.SetDrawPipeDrain([this] { DrainDrawPipe(); });
