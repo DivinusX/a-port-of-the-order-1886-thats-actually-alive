@@ -510,6 +510,14 @@ public:
         return supports_memory_budget;
     }
 
+    struct DeviceMemoryStatus {
+        u64 usage{};
+        u64 budget{};
+    };
+
+    /// Returns current usage and driver budget across tracked heaps in a single Vulkan query.
+    [[nodiscard]] DeviceMemoryStatus GetDeviceMemoryUsageAndBudget() const;
+
     /// Returns the amount of memory used.
     [[nodiscard]] u64 GetDeviceMemoryUsage() const;
 

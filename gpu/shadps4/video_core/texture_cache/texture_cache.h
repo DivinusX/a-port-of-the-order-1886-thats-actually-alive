@@ -26,6 +26,7 @@
 #include "common/lru_cache.h"
 #include "common/slot_vector.h"
 #include "shader_recompiler/resource.h"
+#include "video_core/frame_cadence.h"
 #include "video_core/multi_level_page_table.h"
 #include "video_core/texture_cache/blit_helper.h"
 #include "video_core/texture_cache/image.h"
@@ -430,7 +431,7 @@ private:
         DeleteImage(image_id);
     }
 
-    void UpdateGcThresholds();
+    void UpdateGcThresholds(std::optional<u64> live_budget = std::nullopt);
     u64 EvictImages(bool pressured, u64 ticks_to_destroy, size_t max_deletions);
     void GarbageCollectImages();
     void GarbageCollectSamplers();
@@ -461,6 +462,7 @@ private:
     u64 pressure_gc_samplers = 0;
     u64 critical_gc_samplers = 0;
     u64 gc_tick = 0;
+    VideoCore::FrameCadence gc_cadence{};
     Common::LeastRecentlyUsedCache<ImageId, u64> lru_cache;
     Common::LeastRecentlyUsedCache<u64, u64> sampler_lru_cache;
     const bool readback_linear_images;

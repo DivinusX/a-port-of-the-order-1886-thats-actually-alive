@@ -1523,7 +1523,7 @@ void TextureCache::UntrackImageTail(ImageId image_id) {
     tracker.UpdatePageWatchers<false>(addr, size);
 }
 
-void TextureCache::UpdateGcThresholds() {
+void TextureCache::UpdateGcThresholds(std::optional<u64> live_budget) {
     if (!instance.CanReportMemoryUsage()) {
         return;
     }
@@ -1532,9 +1532,9 @@ void TextureCache::UpdateGcThresholds() {
         const char* env = std::getenv("ORDER1886_GC_BUDGET_MB");
         return env ? std::strtoull(env, nullptr, 10) << 20 : 0;
     }();
-    const u64 live_budget = instance.GetDeviceMemoryBudgetNow();
+    const u64 budget = live_budget.value_or(instance.GetDeviceMemoryBudgetNow());
     const auto refined = RefineTextureCacheGcThresholds(
-        startup_gc_thresholds, live_budget, instance.IsIntegrated(), forced_budget);
+        startup_gc_thresholds, budget, instance.IsIntegrated(), forced_budget);
     trigger_gc_memory = refined.trigger;
     pressure_gc_memory = refined.pressure;
     critical_gc_memory = refined.critical;
@@ -1581,8 +1581,9 @@ u64 TextureCache::EvictImages(bool pressured, u64 ticks_to_destroy, size_t max_d
 u64 TextureCache::ReclaimMemory() {
     std::scoped_lock lock{mutex};
     if (instance.CanReportMemoryUsage()) {
-        total_used_memory = instance.GetDeviceMemoryUsage();
-        UpdateGcThresholds();
+        const auto status = instance.GetDeviceMemoryUsageAndBudget();
+        total_used_memory = status.usage;
+        UpdateGcThresholds(status.budget);
     }
     const u64 ticks_to_destroy = gc_tick > 1 ? 1 : 0;
     return EvictImages(true, ticks_to_destroy, 256);
@@ -1591,8 +1592,9 @@ u64 TextureCache::ReclaimMemory() {
 void TextureCache::GarbageCollectImages() {
     Ps4Stats::Timer gc_timer{Ps4Stats::t_gc};
     if (instance.CanReportMemoryUsage()) {
-        total_used_memory = instance.GetDeviceMemoryUsage();
-        UpdateGcThresholds();
+        const auto status = instance.GetDeviceMemoryUsageAndBudget();
+        total_used_memory = status.usage;
+        UpdateGcThresholds(status.budget);
     }
     if (total_used_memory < trigger_gc_memory) {
         return;
@@ -1628,48 +1630,48 @@ void TextureCache::GarbageCollectSamplers() {
         return;
     }
     std::scoped_lock lock{samplers_mutex};
-    bool pressured = false;
-    bool aggresive = false;
-    u64 ticks_to_destroy = 0;
-    size_t num_deletions = 0;
-
-    const auto configure = [&](bool allow_aggressive) {
-        pressured = total_used_samplers >= pressure_gc_samplers;
-        aggresive = allow_aggressive && total_used_samplers >= critical_gc_samplers;
-        ticks_to_destroy = aggresive ? 160 : pressured ? 80 : 16;
-        ticks_to_destroy = std::min(ticks_to_destroy, gc_tick);
-        num_deletions = aggresive ? 40 : pressured ? 20 : 10;
-    };
-    const auto clean_up = [&](u64 hash) {
-        if (num_deletions == 0) {
-            return true;
-        }
-        --num_deletions;
-        const size_t lru_id = samplers.at(hash).lru_id;
-        samplers.erase(hash);
-        sampler_lru_cache.Free(lru_id);
-        return false;
+    const auto evict = [&](const VideoCore::TextureCacheGcPass& pass) {
+        size_t num_deletions = pass.max_deletions;
+        const auto clean_up = [&](u64 hash) {
+            if (num_deletions == 0) {
+                return true;
+            }
+            --num_deletions;
+            const size_t lru_id = samplers.at(hash).lru_id;
+            samplers.erase(hash);
+            sampler_lru_cache.Free(lru_id);
+            return false;
+        };
+        sampler_lru_cache.ForEachItemBelow(gc_tick - pass.ticks_to_destroy, clean_up);
     };
 
-    // Try to remove anything old enough and not high priority.
-    configure(false);
-    sampler_lru_cache.ForEachItemBelow(gc_tick - ticks_to_destroy, clean_up);
+    const bool pressured = total_used_samplers >= pressure_gc_samplers;
+    evict(SelectTextureCacheGcPass(pressured, false, gc_tick));
 
     if (total_used_samplers >= critical_gc_samplers) {
-        // If we are still over the critical limit, run an aggressive GC
-        configure(true);
-        sampler_lru_cache.ForEachItemBelow(gc_tick - ticks_to_destroy, clean_up);
+        evict(SelectTextureCacheGcPass(true, true, gc_tick));
     }
 }
 
 void TextureCache::RunGarbageCollector() {
-    SCOPE_EXIT {
-        ++gc_tick;
-    };
-    {
+    if (has_backing_writes.load(std::memory_order_acquire)) {
         std::scoped_lock lock{mutex};
         ApplyBackingWrites();
     }
+
+    // Command processor submissions run 65-80 times per frame: advance GC once per GPU frame
+    // (with a submission fallback) so LRU ages represent real frames and driver budget queries
+    // run ~60/s rather than ~9,000/s (#71). Critical pressure still runs immediately.
+    const bool frame_step = gc_cadence.Step(Ps4Stats::gpu_frames.load(std::memory_order_relaxed));
+    const bool critical_pending = critical_gc_memory != 0 && total_used_memory >= critical_gc_memory;
+    if (!frame_step && !critical_pending) {
+        return;
+    }
+    SCOPE_EXIT {
+        if (frame_step) {
+            ++gc_tick;
+        }
+    };
 
     GarbageCollectImages();
     GarbageCollectSamplers();

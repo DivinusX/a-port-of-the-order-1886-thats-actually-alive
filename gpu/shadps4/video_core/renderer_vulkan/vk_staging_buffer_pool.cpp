@@ -160,6 +160,9 @@ void StagingBufferPool::FreeDeferred(const StagingBufferRef& ref) {
 }
 
 void StagingBufferPool::TickFrame() {
+    if (!trim_cadence.Step(Ps4Stats::gpu_frames.load(std::memory_order_relaxed))) {
+        return;
+    }
     ++frame;
     for (Ring& ring : rings) {
         TrimRing(ring);

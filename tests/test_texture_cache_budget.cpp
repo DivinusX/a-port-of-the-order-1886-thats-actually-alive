@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstdio>
 
+#include "video_core/frame_cadence.h"
 #include "video_core/texture_cache/texture_cache_budget.h"
 
 int main() {
@@ -29,6 +30,15 @@ int main() {
     assert(squeezed.critical == 2800_MB * 90 / 100);
     const auto recovered = RefineTextureCacheGcThresholds(rx580_startup, 3800_MB, false, 0);
     assert(recovered.critical == rx580_startup.critical);
+
+    // 2b. 8 GB discrete GPU (RX 6600, issue #71): ~6.3 GiB post-reserve budget, 7.2 GiB live.
+    //     4.2 GiB active VRAM must NOT trigger continuous pressured GC.
+    const auto rx6600_startup = ComputeStartupTextureCacheGcThresholds(
+        6300_MB, TARGET, DEFAULT_PRESSURE, DEFAULT_CRITICAL);
+    const auto rx6600_live = RefineTextureCacheGcThresholds(rx6600_startup, 7200_MB, false, 0);
+    assert(rx6600_live.trigger > 4200_MB);
+    assert(rx6600_live.pressure > 5000_MB);
+    assert(rx6600_live.critical <= 7200_MB * 90 / 100);
 
     // 3. Large discrete GPU (16 GB): normal startup thresholds are unaffected when VRAM is ample.
     const auto gpu16g_startup = ComputeStartupTextureCacheGcThresholds(
@@ -62,6 +72,25 @@ int main() {
     // Clamps safely when gc_tick is tiny.
     const auto early = SelectTextureCacheGcPass(false, false, 1);
     assert(early.ticks_to_destroy == 1);
+
+    // 6. FrameCadence runs once per frame across 80-submit bursts, with fallback when stationary.
+    FrameCadence cadence{};
+    int steps = 0;
+    for (int sub = 0; sub < 80; ++sub) {
+        if (cadence.Step(1)) {
+            ++steps;
+        }
+    }
+    assert(steps == 1);
+    assert(cadence.Step(2));
+    assert(!cadence.Step(2));
+    int fallback_steps = 0;
+    for (int sub = 0; sub < 256; ++sub) {
+        if (cadence.Step(2)) {
+            ++fallback_steps;
+        }
+    }
+    assert(fallback_steps == 2);
 
     std::puts("texture-cache-budget-test: OK");
     return 0;

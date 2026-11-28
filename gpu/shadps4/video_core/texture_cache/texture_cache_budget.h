@@ -24,6 +24,22 @@ inline TextureCacheGcThresholds ComputeStartupTextureCacheGcThresholds(s64 devic
                                                                        s64 target_threshold,
                                                                        s64 default_pressure_floor,
                                                                        s64 default_critical_floor) {
+    if (device_local_memory <= 0) {
+        return {
+            .trigger = 0,
+            .pressure = static_cast<u64>(std::max<s64>(0, default_pressure_floor)),
+            .critical = static_cast<u64>(std::max<s64>(0, default_critical_floor)),
+        };
+    }
+    // Upstream's 8 GB target and 60% vacancy floor collapse trigger to 0 and pressure to ~40% on
+    // 4-8 GB GPUs (e.g. RX 580 4GB, RX 6600 8GB), keeping GC permanently pressured mid-scene (#71).
+    if (device_local_memory <= static_cast<s64>(10_GB)) {
+        return {
+            .trigger = static_cast<u64>(device_local_memory * 70 / 100),
+            .pressure = static_cast<u64>(device_local_memory * 82 / 100),
+            .critical = static_cast<u64>(device_local_memory * 90 / 100),
+        };
+    }
     const s64 min_spacing_expected = device_local_memory - 1_GB;
     const s64 min_spacing_critical = device_local_memory - 512_MB;
     const s64 mem_threshold = std::min<s64>(device_local_memory, target_threshold);

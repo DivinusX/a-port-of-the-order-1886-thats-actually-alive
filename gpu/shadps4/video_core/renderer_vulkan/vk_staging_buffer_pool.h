@@ -9,6 +9,7 @@
 
 #include "common/types.h"
 #include "video_core/buffer_cache/buffer.h"
+#include "video_core/frame_cadence.h"
 
 namespace Vulkan {
 
@@ -85,6 +86,7 @@ private:
     u64 keep_blocks = 0; ///< ring blocks never trimmed
     std::array<std::vector<LargeBuffer>, NUM_TYPES> large_caches;
     u64 frame = 0;
+    VideoCore::FrameCadence trim_cadence{};
 };
 
 } // namespace Vulkan
